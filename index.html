@@ -1259,6 +1259,15 @@
         }
 
         function updateAllViews() {
+            // กรองเอาเฉพาะ mapping ที่มีเครื่องจักรและสินค้าอยู่จริงในระบบ ป้องกันข้อมูลไม่ตรงกันหลังการลบ
+            if (db && Array.isArray(db.mappings)) {
+                const machineIds = new Set(db.machines.map(m => String(m.id).trim()));
+                const productIds = new Set(db.products.map(p => String(p.id).trim()));
+                db.mappings = db.mappings.filter(m => 
+                    machineIds.has(String(m.machine_id).trim()) && 
+                    productIds.has(String(m.product_id).trim())
+                );
+            }
             buildFilters();
             renderCatalog();
             renderMachineTable();
