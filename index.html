@@ -417,18 +417,36 @@
                         <input type="text" id="ep_unit" placeholder="เช่น ชิ้น, กล่อง, ชุด" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">ราคาต้นทุน (Cost) <span class="text-red-500">*</span></label>
-                        <input type="number" step="0.01" id="ep_cost" required placeholder="ตัวเลขเท่านั้น" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
-                        <p class="text-[11px] text-gray-500 mt-1.5"><i class="fa-solid fa-info-circle mr-1"></i> ราคาขายอื่นๆ จะถูกคำนวณใหม่อัตโนมัติจากต้นทุน</p>
-                    </div>
-                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">ประเภทอะไหล่ (Category)</label>
                         <input type="text" id="ep_cat" placeholder="พิมพ์หมวดหมู่" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
                     </div>
-                    <div>
+                    <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">เปลี่ยนรูปภาพ (Image)</label>
                         <input type="file" id="ep_image" accept="image/*" class="w-full p-2 border border-gray-300 rounded-xl text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer transition">
                         <p class="text-[11px] text-gray-500 mt-1.5"><i class="fa-solid fa-image mr-1"></i> หากไม่ต้องการเปลี่ยนรูป ให้เว้นว่างไว้</p>
+                    </div>
+                </div>
+
+                <!-- ส่วนแก้ไขข้อมูลราคา (4 คอลัมน์) -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div>
+                        <label class="block text-xs font-semibold text-red-700 mb-1.5">ราคาต้นทุน (Cost) <span class="text-red-500">*</span></label>
+                        <input type="number" step="0.01" id="ep_cost" required oninput="autoCalcSparePartPrices('ep')" placeholder="0.00" class="w-full p-2 border border-red-200 rounded-lg focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition text-sm font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-blue-700 mb-1.5">ราคา (กลาง) - ไม่บังคับ</label>
+                        <input type="number" step="0.01" id="ep_price_a" placeholder="คำนวณอัตโนมัติ" class="w-full p-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-green-700 mb-1.5">ราคา (ตัวแทน) - ไม่บังคับ</label>
+                        <input type="number" step="0.01" id="ep_price_b" placeholder="คำนวณอัตโนมัติ" class="w-full p-2 border border-green-200 rounded-lg focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-orange-700 mb-1.5">ราคา (ในเครือ) - ไม่บังคับ</label>
+                        <input type="number" step="0.01" id="ep_price_c" placeholder="คำนวณอัตโนมัติ" class="w-full p-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition text-sm">
+                    </div>
+                    <div class="col-span-2 md:col-span-4 mt-0.5">
+                        <p class="text-[11px] text-gray-500"><i class="fa-solid fa-info-circle mr-1"></i> ระบบจะคำนวณราคาขาย 3 ระดับให้อัตโนมัติเมื่อกรอกราคาต้นทุน คุณสามารถแก้ไขหรือระบุราคาเองตามต้องการ</p>
                     </div>
                 </div>
                 <div class="mb-8">
@@ -462,6 +480,7 @@
                 <ul class="space-y-1.5 px-3 text-sm font-medium">
                     <!-- สาธารณะ: ดูได้โดยไม่ต้องล็อกอิน -->
                     <li><a href="#" onclick="switchView('view-catalog', this)" class="menu-item flex items-center px-4 py-3.5 rounded-lg bg-blue-600 text-white shadow-md shadow-blue-900/20 transition-all"><i class="fa-solid fa-box-open mr-3 w-5 text-center flex-shrink-0"></i><span class="flex-1">แคตตาล็อกสินค้า</span><i class="fa-solid fa-globe text-blue-300 text-xs"></i></a></li>
+                    <li><a href="#" onclick="fetchData(true); if (window.innerWidth < 768) toggleSidebar();" class="flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-rotate mr-3 w-5 text-center flex-shrink-0"></i><span>รีเฟรชข้อมูล (Refresh)</span></a></li>
                     <!-- Protected items: ซ่อนเมื่อยังไม่ล็อกอิน -->
                     <li class="protected-nav-item hidden"><a href="#" onclick="switchView('view-add-product', this)" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-plus-circle mr-3 w-5 text-center flex-shrink-0"></i><span>เพิ่มอะไหล่</span></a></li>
                     <li class="protected-nav-item hidden"><a href="#" onclick="switchView('view-machines', this)" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-industry mr-3 w-5 text-center flex-shrink-0"></i><span>จัดการเครื่องจักร</span></a></li>
@@ -512,6 +531,11 @@
                     </button>
                     <h1 class="text-lg font-bold text-slate-800 truncate whitespace-nowrap"><i class="fa-solid fa-gears text-blue-600 mr-2 hidden sm:inline-block"></i> Spare Parts</h1>
                 </div>
+                <!-- ปุ่ม Refresh บนมือถือ -->
+                <button onclick="fetchData(true)" class="text-slate-600 hover:text-blue-600 p-2 rounded-xl hover:bg-slate-100 transition duration-200 flex items-center gap-1.5 text-sm font-semibold border border-gray-200 shadow-sm" title="รีเฟรชข้อมูล">
+                    <i class="fa-solid fa-rotate text-blue-500"></i>
+                    <span>รีเฟรช</span>
+                </button>
             </header>
 
             <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 w-full relative">
@@ -536,6 +560,12 @@
 
                     <!-- Filters Group (จะแสดงเฉพาะโหมดผลิตภัณฑ์ หรือ ค้นหาเครื่องจักร) -->
                     <div class="flex flex-col sm:flex-row gap-3 mb-6 relative z-20 w-full justify-end">
+                        <!-- ปุ่ม Refresh (เดสก์ท็อป/แท็บเล็ต/มือถือ) -->
+                        <button onclick="fetchData(true)" class="flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-gray-700 px-4 py-2.5 rounded-xl font-semibold shadow-sm border border-gray-200 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 text-sm" title="รีเฟรชข้อมูลจาก Google Sheets">
+                            <i class="fa-solid fa-rotate text-blue-500"></i>
+                            <span>รีเฟรชข้อมูล</span>
+                        </button>
+                        
                         <div class="relative w-full lg:w-72 flex-shrink-0">
                             <i class="fa-solid fa-search absolute left-3.5 top-3 text-gray-400"></i>
                             <input type="text" id="searchInput" onkeyup="renderCatalog()" placeholder="ค้นหารหัส หรือชื่อ..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm shadow-sm transition">
@@ -601,17 +631,35 @@
                                     <input type="text" id="ap_unit" placeholder="เช่น ชิ้น, กล่อง, ชุด" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">ราคาต้นทุน (Cost) <span class="text-red-500">*</span></label>
-                                    <input type="number" step="0.01" id="ap_cost" required placeholder="ตัวเลขเท่านั้น" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
-                                    <p class="text-[11px] text-gray-500 mt-1.5"><i class="fa-solid fa-info-circle mr-1"></i> ระบบจะคำนวณราคาขาย (กลาง, ตัวแทน, ในเครือ) อัตโนมัติ</p>
-                                </div>
-                                <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1.5">ประเภทอะไหล่ (Category)</label>
                                     <input type="text" id="ap_cat" placeholder="พิมพ์หมวดหมู่" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
                                 </div>
-                                <div>
+                                <div class="md:col-span-2">
                                     <label class="block text-sm font-medium text-gray-700 mb-1.5">รูปภาพอะไหล่ (Image)</label>
                                     <input type="file" id="ap_image" accept="image/*" class="w-full p-2 border border-gray-300 rounded-xl text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer transition">
+                                </div>
+                            </div>
+                            
+                            <!-- ส่วนข้อมูลราคา (4 คอลัมน์) -->
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <div>
+                                    <label class="block text-xs font-semibold text-red-700 mb-1.5">ราคาต้นทุน (Cost) <span class="text-red-500">*</span></label>
+                                    <input type="number" step="0.01" id="ap_cost" required oninput="autoCalcSparePartPrices('ap')" placeholder="0.00" class="w-full p-2 border border-red-200 rounded-lg focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition text-sm font-medium">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-blue-700 mb-1.5">ราคา (กลาง) - ไม่บังคับ</label>
+                                    <input type="number" step="0.01" id="ap_price_a" placeholder="คำนวณอัตโนมัติ" class="w-full p-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-green-700 mb-1.5">ราคา (ตัวแทน) - ไม่บังคับ</label>
+                                    <input type="number" step="0.01" id="ap_price_b" placeholder="คำนวณอัตโนมัติ" class="w-full p-2 border border-green-200 rounded-lg focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-orange-700 mb-1.5">ราคา (ในเครือ) - ไม่บังคับ</label>
+                                    <input type="number" step="0.01" id="ap_price_c" placeholder="คำนวณอัตโนมัติ" class="w-full p-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-4 mt-0.5">
+                                    <p class="text-[11px] text-gray-500"><i class="fa-solid fa-info-circle mr-1"></i> ระบบจะคำนวณราคาขาย 3 ระดับให้อัตโนมัติเมื่อกรอกราคาต้นทุน คุณสามารถแก้ไขหรือระบุราคาเองตามต้องการ</p>
                                 </div>
                             </div>
                             <div class="mb-8">
@@ -846,7 +894,7 @@
         const VALID_PASSWORD = 'admin';
         const PROTECTED_VIEWS = ['view-add-product', 'view-machines', 'view-mapping', 'view-edit-products', 'view-edit-mapping'];
 
-        document.addEventListener('DOMContentLoaded', () => { fetchData(); updateAuthUI(); });
+        document.addEventListener('DOMContentLoaded', () => { fetchData(true); updateAuthUI(); });
 
         document.addEventListener('click', function(event) {
             const inputCat = document.getElementById('input_filterCategory');
@@ -910,6 +958,19 @@
         }
 
         function autoCalcMachinePrices(prefix) {
+            const cost = parseFloat(document.getElementById(`${prefix}_cost`).value) || 0;
+            if (cost > 0) {
+                document.getElementById(`${prefix}_price_a`).value = (cost * 2.1).toFixed(2);
+                document.getElementById(`${prefix}_price_b`).value = (cost * 1.7).toFixed(2);
+                document.getElementById(`${prefix}_price_c`).value = (cost * 1.3).toFixed(2);
+            } else {
+                document.getElementById(`${prefix}_price_a`).value = '';
+                document.getElementById(`${prefix}_price_b`).value = '';
+                document.getElementById(`${prefix}_price_c`).value = '';
+            }
+        }
+
+        function autoCalcSparePartPrices(prefix) {
             const cost = parseFloat(document.getElementById(`${prefix}_cost`).value) || 0;
             if (cost > 0) {
                 document.getElementById(`${prefix}_price_a`).value = (cost * 2.1).toFixed(2);
@@ -1706,7 +1767,10 @@
             let payload = { 
                 id: id, name: document.getElementById('ap_name').value, unit: document.getElementById('ap_unit').value, 
                 cost: document.getElementById('ap_cost').value, category: document.getElementById('ap_cat').value, 
-                note: document.getElementById('ap_note').value, imageBase64: base64 
+                note: document.getElementById('ap_note').value, imageBase64: base64,
+                price_a: document.getElementById('ap_price_a').value,
+                price_b: document.getElementById('ap_price_b').value,
+                price_c: document.getElementById('ap_price_c').value
             };
 
             showLoading('กำลังบันทึกข้อมูลและอัปโหลดรูป (อาจใช้เวลาสักครู่)...');
@@ -1725,6 +1789,9 @@
             document.getElementById('ep_id').value = p.id; document.getElementById('ep_id_display').value = p.id;
             document.getElementById('ep_name').value = p.name || ''; document.getElementById('ep_unit').value = p.unit || '';
             document.getElementById('ep_cost').value = p.cost || ''; document.getElementById('ep_cat').value = p.category || '';
+            document.getElementById('ep_price_a').value = p.price_a || '';
+            document.getElementById('ep_price_b').value = p.price_b || '';
+            document.getElementById('ep_price_c').value = p.price_c || '';
             document.getElementById('ep_note').value = p.note || ''; document.getElementById('ep_image').value = ''; 
             document.getElementById('editProductModal').classList.remove('hidden');
         }
@@ -1738,7 +1805,10 @@
 
             let payload = { 
                 id: document.getElementById('ep_id').value, name: document.getElementById('ep_name').value, unit: document.getElementById('ep_unit').value, 
-                cost: document.getElementById('ep_cost').value, category: document.getElementById('ep_cat').value, note: document.getElementById('ep_note').value, imageBase64: base64
+                cost: document.getElementById('ep_cost').value, category: document.getElementById('ep_cat').value, note: document.getElementById('ep_note').value, imageBase64: base64,
+                price_a: document.getElementById('ep_price_a').value,
+                price_b: document.getElementById('ep_price_b').value,
+                price_c: document.getElementById('ep_price_c').value
             };
 
             showLoading('กำลังบันทึกการแก้ไขข้อมูล...');
