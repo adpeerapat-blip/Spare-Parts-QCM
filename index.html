@@ -1,0 +1,2202 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>แคตตาล็อกอะไหล่เครื่องจักร (Spare Parts Catalog)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Sarabun', 'Inter', sans-serif; background-color: #f3f4f6; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .table-scroll { -webkit-overflow-scrolling: touch; }
+        .table-scroll::-webkit-scrollbar { height: 8px; }
+        .table-scroll::-webkit-scrollbar-track { background: #f8fafc; border-radius: 8px; }
+        .table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; cursor: pointer; }
+        .table-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .small-spinner {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .toast-enter { transform: translateY(-100%); opacity: 0; }
+        .toast-enter-active { transform: translateY(0); opacity: 1; transition: all 0.3s ease-out; }
+        .toast-leave { transform: translateY(0); opacity: 1; }
+        .toast-leave-active { transform: translateY(-100%); opacity: 0; transition: all 0.3s ease-in; }
+        
+        .transition-transform { transition-property: transform; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 300ms; }
+
+        /* Image Lightbox */
+        #imageLightbox {
+            animation: fadeInBg 0.2s ease-out;
+        }
+        @keyframes fadeInBg {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        #imageLightbox img {
+            animation: zoomIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes zoomIn {
+            from { transform: scale(0.7); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .img-zoom-btn {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(15,23,42,0.65);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s, background 0.2s;
+            z-index: 5;
+            backdrop-filter: blur(4px);
+        }
+        .img-zoom-btn:hover { background: rgba(59,130,246,0.85); }
+        .group:hover .img-zoom-btn { opacity: 1; }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- Notifications handled by SweetAlert2 -->
+
+    <!-- Product Detail Modal (ดูข้อมูลอะไหล่ + เครื่องจักรที่เกี่ยวข้อง) -->
+    <div id="productDetailModal" class="fixed inset-0 bg-black/60 z-[80] flex items-center justify-center hidden backdrop-blur-sm p-4 overflow-y-auto" onclick="closeProductDetailModal()">
+        <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl transform transition-all my-auto flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+
+            <!-- ปุ่มปิด (ลอยอยู่มุมขวาบน) -->
+            <div class="relative flex-shrink-0">
+                <button onclick="closeProductDetailModal()" class="absolute top-4 right-4 z-20 bg-black/50 hover:bg-black/75 text-white w-9 h-9 rounded-full flex items-center justify-center transition backdrop-blur-sm shadow-md">
+                    <i class="fa-solid fa-times text-base"></i>
+                </button>
+
+                <!-- รูปภาพใหญ่ -->
+                <div class="bg-slate-100 cursor-zoom-in" onclick="event.stopPropagation(); openImageLightbox(document.getElementById('pd_image').src, document.getElementById('pd_name').innerText)">
+                    <img id="pd_image" src="" alt="" class="w-full h-72 sm:h-96 object-contain p-4" onerror="this.src='https://placehold.co/800x500/f8fafc/94a3b8?text=No+Image'">
+                </div>
+            </div>
+
+            <!-- ข้อมูลใต้รูป -->
+            <div class="overflow-y-auto hide-scroll flex-1 p-6 sm:p-8">
+                <!-- รหัส + ชื่อ (ส่วนหลัก) -->
+                <div class="mb-6">
+                    <div class="flex flex-wrap items-center gap-2 mb-3">
+                        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">รหัสสินค้า:</span>
+                        <span id="pd_id" class="bg-slate-900 text-white text-sm font-bold px-3.5 py-1.5 rounded-lg tracking-widest font-mono shadow-sm"></span>
+                        <span id="pd_category" class="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full"></span>
+                        <span id="pd_unit" class="bg-slate-100 text-slate-600 text-xs font-medium px-3 py-1 rounded-full"></span>
+                    </div>
+                    <h2 id="pd_name" class="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-snug"></h2>
+                </div>
+
+                <!-- ราคา -->
+                <div class="bg-slate-50 border border-slate-100 rounded-2xl p-5 mb-6">
+                    <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-tag text-blue-500"></i> ข้อมูลราคา
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div id="pd_cost_box" class="sm:col-span-3 bg-red-50 border border-red-100 px-4 py-3 rounded-xl flex justify-between items-center hidden">
+                            <p class="text-xs text-red-500 font-bold">ราคาต้นทุน</p>
+                            <p id="pd_cost" class="text-lg font-bold text-red-600"></p>
+                        </div>
+                        <div class="bg-white border border-slate-200 px-4 py-3.5 rounded-xl shadow-sm">
+                            <p id="pd_price_a_label" class="text-xs text-blue-500 font-bold mb-1">ราคากลาง</p>
+                            <p id="pd_price_a" class="text-xl font-extrabold text-blue-600"></p>
+                        </div>
+                        <div id="pd_price_b_box" class="bg-white border border-slate-200 px-4 py-3.5 rounded-xl shadow-sm">
+                            <p class="text-xs text-green-500 font-bold mb-1">ราคาตัวแทน</p>
+                            <p id="pd_price_b" class="text-xl font-extrabold text-green-600"></p>
+                        </div>
+                        <div id="pd_price_c_box" class="bg-white border border-slate-200 px-4 py-3.5 rounded-xl shadow-sm">
+                            <p class="text-xs text-orange-500 font-bold mb-1">ราคาในเครือ</p>
+                            <p id="pd_price_c" class="text-xl font-extrabold text-orange-600"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Note -->
+                <div class="border-t border-gray-100 pt-5 mb-5">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">รายละเอียด / หมายเหตุ</p>
+                    <p id="pd_note" class="text-gray-700 text-sm whitespace-pre-line leading-relaxed bg-gray-50 border border-gray-100 rounded-xl p-4"></p>
+                </div>
+
+                <!-- เครื่องจักรที่รองรับ -->
+                <div class="border-t border-gray-100 pt-5">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-industry"></i> ใช้กับเครื่องจักร
+                    </p>
+                    <div id="pd_machines_grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Card เครื่องจักรจะถูกแทรกที่นี่ -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Machine Detail Modal -->
+    <div id="machineDetailModal" class="fixed inset-0 bg-black/60 z-[85] flex items-center justify-center hidden backdrop-blur-sm p-4 overflow-y-auto" onclick="closeMachineDetailModal()">
+        <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl transform transition-all my-auto flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+
+            <!-- ปุ่มปิด (ลอยอยู่มุมขวาบน) -->
+            <div class="relative flex-shrink-0">
+                <button onclick="closeMachineDetailModal()" class="absolute top-4 right-4 z-20 bg-black/50 hover:bg-black/75 text-white w-9 h-9 rounded-full flex items-center justify-center transition backdrop-blur-sm shadow-md">
+                    <i class="fa-solid fa-times text-base"></i>
+                </button>
+
+                <!-- รูปภาพใหญ่ -->
+                <div class="bg-slate-100 cursor-zoom-in" onclick="event.stopPropagation(); openImageLightbox(document.getElementById('mdm_image').src, document.getElementById('mdm_name').innerText)">
+                    <img id="mdm_image" src="" alt="" class="w-full h-72 sm:h-96 object-contain p-4" onerror="this.src='https://placehold.co/800x500/1e293b/94a3b8?text=No+Image'">
+                </div>
+            </div>
+
+            <!-- ข้อมูลใต้รูป -->
+            <div class="overflow-y-auto hide-scroll flex-1 p-6 sm:p-8">
+                <!-- รหัส + ชื่อ (ส่วนหลัก) -->
+                <div class="mb-6">
+                    <div class="flex flex-wrap items-center gap-2 mb-3">
+                        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">รหัสเครื่องจักร:</span>
+                        <span id="mdm_id" class="bg-slate-900 text-white text-sm font-bold px-3.5 py-1.5 rounded-lg tracking-widest font-mono shadow-sm"></span>
+                        <span id="mdm_unit" class="bg-slate-100 text-slate-600 text-xs font-medium px-3 py-1 rounded-full"></span>
+                    </div>
+                    <h2 id="mdm_name" class="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-snug"></h2>
+                </div>
+
+                <!-- ราคา -->
+                <div class="bg-slate-50 border border-slate-100 rounded-2xl p-5 mb-6">
+                    <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-tag text-blue-500"></i> ข้อมูลราคา
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div id="mdm_cost_box" class="sm:col-span-3 bg-red-50 border border-red-100 px-4 py-3 rounded-xl flex justify-between items-center hidden">
+                            <p class="text-xs text-red-500 font-bold">ราคาต้นทุน</p>
+                            <p id="mdm_cost" class="text-lg font-bold text-red-600"></p>
+                        </div>
+                        <div class="bg-white border border-slate-200 px-4 py-3.5 rounded-xl shadow-sm">
+                            <p id="mdm_price_a_label" class="text-xs text-blue-500 font-bold mb-1">ราคากลาง</p>
+                            <p id="mdm_price_a" class="text-xl font-extrabold text-blue-600"></p>
+                        </div>
+                        <div id="mdm_price_b_box" class="bg-white border border-slate-200 px-4 py-3.5 rounded-xl shadow-sm">
+                            <p class="text-xs text-green-500 font-bold mb-1">ราคาตัวแทน</p>
+                            <p id="mdm_price_b" class="text-xl font-extrabold text-green-600"></p>
+                        </div>
+                        <div id="mdm_price_c_box" class="bg-white border border-slate-200 px-4 py-3.5 rounded-xl shadow-sm">
+                            <p class="text-xs text-orange-500 font-bold mb-1">ราคาในเครือ</p>
+                            <p id="mdm_price_c" class="text-xl font-extrabold text-orange-600"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Note -->
+                <div class="border-t border-gray-100 pt-5 mb-6">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">รายละเอียดเพิ่มเติม</p>
+                    <p id="mdm_note" class="text-gray-700 text-sm whitespace-pre-line leading-relaxed bg-gray-50 border border-gray-100 rounded-xl p-4"></p>
+                </div>
+
+                <!-- ปุ่มดูอะไหล่ -->
+                <button id="mdm_view_parts_btn" onclick="" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2.5 transition-all shadow-lg shadow-purple-900/20 hover:shadow-purple-900/40 hover:-translate-y-0.5 active:translate-y-0 text-sm sm:text-base">
+                    <i class="fa-solid fa-screwdriver-wrench"></i>
+                    ดูอะไหล่ของเครื่องจักรนี้
+                    <i class="fa-solid fa-arrow-right text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Lightbox Modal -->
+    <div id="imageLightbox" class="fixed inset-0 bg-black/85 z-[200] flex items-center justify-center hidden backdrop-blur-sm p-4" onclick="closeImageLightbox()">
+        <div class="relative max-w-5xl w-full max-h-[92vh] flex flex-col items-center" onclick="event.stopPropagation()">
+            <!-- Close button -->
+            <button onclick="closeImageLightbox()" class="absolute -top-3 -right-3 z-10 bg-white text-gray-700 hover:text-red-600 hover:bg-red-50 w-9 h-9 rounded-full flex items-center justify-center shadow-xl border border-gray-200 transition text-lg font-bold">
+                <i class="fa-solid fa-times"></i>
+            </button>
+            <!-- Image -->
+            <div class="bg-white/10 rounded-2xl overflow-hidden shadow-2xl border border-white/20 max-h-[85vh] flex items-center justify-center p-2">
+                <img id="lightboxImg" src="" alt="" class="max-w-full max-h-[80vh] object-contain rounded-xl" style="min-width:200px;min-height:150px;">
+            </div>
+            <!-- Caption -->
+            <div id="lightboxCaption" class="mt-3 text-white/90 text-sm font-medium bg-black/40 px-4 py-1.5 rounded-full backdrop-blur-sm"></div>
+        </div>
+    </div>
+
+    <!-- Add Machine Modal -->
+    <div id="addMachineModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 z-[90] flex items-center justify-center hidden backdrop-blur-sm p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl transform transition-all my-auto max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-5 border-b border-gray-100 flex-shrink-0">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800"><i class="fa-solid fa-industry text-green-500 mr-2"></i>เพิ่มเครื่องจักรใหม่</h3>
+                    <p class="text-sm text-gray-500 mt-0.5">กรอกข้อมูลและรายละเอียดเครื่องจักรที่ต้องการเพิ่ม</p>
+                </div>
+                <button onclick="closeAddMachineModal()" class="text-gray-400 hover:text-red-500 transition p-2 rounded-lg hover:bg-red-50">
+                    <i class="fa-solid fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-5 overflow-y-auto hide-scroll flex-1">
+                <form id="formAddMachine" onsubmit="submitAddMachine(event)">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">รหัสเครื่องจักร <span class="text-red-500">*</span></label>
+                            <input type="text" id="am_id" required placeholder="เช่น MC-001" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">ชื่อเครื่องจักร <span class="text-red-500">*</span></label>
+                            <input type="text" id="am_name" required placeholder="เช่น เครื่องกลึง CNC" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition text-sm">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">รายละเอียดเพิ่มเติม (Note)</label>
+                        <textarea id="am_note" rows="2" placeholder="อธิบายเพิ่มเติมเกี่ยวกับเครื่องจักรนี้..." class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition text-sm resize-none"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <div>
+                            <label class="block text-xs font-semibold text-red-700 mb-1.5">ราคาต้นทุน (Cost)</label>
+                            <input type="number" step="0.01" id="am_cost" oninput="autoCalcMachinePrices('am')" placeholder="0.00" class="w-full p-2 border border-red-200 rounded-lg focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition text-sm font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-blue-700 mb-1.5">ราคา (กลาง)</label>
+                            <input type="number" step="0.01" id="am_price_a" placeholder="0.00" class="w-full p-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-green-700 mb-1.5">ราคา (ตัวแทน)</label>
+                            <input type="number" step="0.01" id="am_price_b" placeholder="0.00" class="w-full p-2 border border-green-200 rounded-lg focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-orange-700 mb-1.5">ราคา (ในเครือ)</label>
+                            <input type="number" step="0.01" id="am_price_c" placeholder="0.00" class="w-full p-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition text-sm">
+                        </div>
+                        <div class="col-span-2 md:col-span-4 mt-0.5">
+                            <p class="text-[11px] text-gray-500"><i class="fa-solid fa-info-circle mr-1"></i> ระบบจะคำนวณราคาขาย 3 ระดับให้อัตโนมัติเมื่อกรอกราคาต้นทุน คุณสามารถแก้ไขตัวเลขเองได้อิสระ</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">อัพโหลดภาพเครื่องจักร</label>
+                        <div id="am_image_drop" onclick="document.getElementById('am_image').click()" class="relative border-2 border-dashed border-gray-300 rounded-xl p-5 text-center cursor-pointer hover:border-green-400 hover:bg-green-50/50 transition-all duration-200 group">
+                            <div id="am_image_preview_wrap" class="hidden">
+                                <img id="am_image_preview" src="" alt="preview" class="mx-auto max-h-32 object-contain rounded-lg mb-2">
+                                <p class="text-xs text-gray-500" id="am_image_filename"></p>
+                            </div>
+                            <div id="am_image_placeholder">
+                                <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-300 group-hover:text-green-400 transition mb-2"></i>
+                                <p class="text-sm text-gray-500 group-hover:text-green-600 transition">คลิกเพื่อเลือกรูปภาพ</p>
+                                <p class="text-xs text-gray-400 mt-1">PNG, JPG, WEBP ขนาดไม่เกิน 5MB</p>
+                            </div>
+                        </div>
+                        <input type="file" id="am_image" accept="image/*" class="hidden" onchange="previewMachineImage('am')">
+                    </div>
+                    
+                    <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                        <button type="button" onclick="closeAddMachineModal()" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition font-medium">ยกเลิก</button>
+                        <button type="submit" class="px-6 py-2.5 bg-green-600 text-white rounded-xl shadow-lg shadow-green-600/25 hover:bg-green-700 hover:shadow-green-600/40 transition-all font-semibold">
+                            <i class="fa-solid fa-save mr-2"></i>บันทึกข้อมูล
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Machine Modal -->
+    <div id="editMachineModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 z-[90] flex items-center justify-center hidden backdrop-blur-sm p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl transform transition-all my-auto max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-5 border-b border-gray-100 flex-shrink-0">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800"><i class="fa-solid fa-edit text-blue-500 mr-2"></i>แก้ไขข้อมูลเครื่องจักร</h3>
+                    <p class="text-sm text-gray-500 mt-0.5">แก้ไขรายละเอียด ราคา หรือรูปภาพเครื่องจักร</p>
+                </div>
+                <button onclick="closeEditMachineModal()" class="text-gray-400 hover:text-red-500 transition p-2 rounded-lg hover:bg-red-50">
+                    <i class="fa-solid fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-5 overflow-y-auto hide-scroll flex-1">
+                <form id="formEditMachine" onsubmit="submitEditMachine(event)">
+                    <input type="hidden" id="em_id">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">รหัสเครื่องจักร</label>
+                            <input type="text" id="em_id_display" readonly class="w-full p-2.5 border border-gray-200 bg-gray-100 text-gray-500 rounded-xl cursor-not-allowed text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">ชื่อเครื่องจักร <span class="text-red-500">*</span></label>
+                            <input type="text" id="em_name" required class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition text-sm">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">รายละเอียดเพิ่มเติม (Note)</label>
+                        <textarea id="em_note" rows="2" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition text-sm resize-none"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <div>
+                            <label class="block text-xs font-semibold text-red-700 mb-1.5">ราคาต้นทุน (Cost)</label>
+                            <input type="number" step="0.01" id="em_cost" oninput="autoCalcMachinePrices('em')" placeholder="0.00" class="w-full p-2 border border-red-200 rounded-lg focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition text-sm font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-blue-700 mb-1.5">ราคา (กลาง)</label>
+                            <input type="number" step="0.01" id="em_price_a" placeholder="0.00" class="w-full p-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-green-700 mb-1.5">ราคา (ตัวแทน)</label>
+                            <input type="number" step="0.01" id="em_price_b" placeholder="0.00" class="w-full p-2 border border-green-200 rounded-lg focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-orange-700 mb-1.5">ราคา (ในเครือ)</label>
+                            <input type="number" step="0.01" id="em_price_c" placeholder="0.00" class="w-full p-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition text-sm">
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">เปลี่ยนรูปภาพ (ถ้าต้องการ)</label>
+                        <div id="em_image_drop" onclick="document.getElementById('em_image').click()" class="relative border-2 border-dashed border-gray-300 rounded-xl p-5 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all duration-200 group">
+                            <div id="em_image_preview_wrap" class="hidden">
+                                <img id="em_image_preview" src="" alt="preview" class="mx-auto max-h-32 object-contain rounded-lg mb-2">
+                                <p class="text-xs text-gray-500" id="em_image_filename"></p>
+                            </div>
+                            <div id="em_image_placeholder">
+                                <i class="fa-solid fa-image text-3xl text-gray-300 group-hover:text-blue-400 transition mb-2"></i>
+                                <p class="text-sm text-gray-500 group-hover:text-blue-600 transition">คลิกเพื่อเปลี่ยนรูปภาพ</p>
+                                <p class="text-xs text-gray-400 mt-1">หากไม่เลือก รูปเดิมจะยังคงอยู่</p>
+                            </div>
+                        </div>
+                        <input type="file" id="em_image" accept="image/*" class="hidden" onchange="previewMachineImage('em')">
+                    </div>
+                    
+                    <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                        <button type="button" onclick="closeEditMachineModal()" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition font-medium">ยกเลิก</button>
+                        <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/25 hover:bg-blue-700 hover:shadow-blue-600/40 transition-all font-semibold">
+                            <i class="fa-solid fa-save mr-2"></i>บันทึกการแก้ไข
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div id="editProductModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[90] flex items-center justify-center hidden backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl p-5 sm:p-8 w-full max-w-4xl shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto hide-scroll">
+            <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+                <h3 class="text-xl sm:text-2xl font-bold text-gray-800"><i class="fa-solid fa-edit text-blue-500 mr-2"></i> แก้ไขข้อมูลอะไหล่</h3>
+                <button onclick="closeEditProductModal()" class="text-gray-400 hover:text-red-500 transition text-xl p-2 rounded-lg hover:bg-red-50"><i class="fa-solid fa-times"></i></button>
+            </div>
+            
+            <form id="formEditProduct" onsubmit="submitEditProduct(event)">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">รหัสสินค้า (Product ID)</label>
+                        <input type="text" id="ep_id_display" readonly class="w-full p-2.5 border border-gray-200 bg-gray-100 text-gray-500 rounded-xl cursor-not-allowed">
+                        <input type="hidden" id="ep_id">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">ชื่อสินค้า (Product Name) <span class="text-red-500">*</span></label>
+                        <input type="text" id="ep_name" required class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">หน่วยนับ (Unit)</label>
+                        <input type="text" id="ep_unit" placeholder="เช่น ชิ้น, กล่อง, ชุด" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">ราคาต้นทุน (Cost) <span class="text-red-500">*</span></label>
+                        <input type="number" step="0.01" id="ep_cost" required placeholder="ตัวเลขเท่านั้น" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                        <p class="text-[11px] text-gray-500 mt-1.5"><i class="fa-solid fa-info-circle mr-1"></i> ราคาขายอื่นๆ จะถูกคำนวณใหม่อัตโนมัติจากต้นทุน</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">ประเภทอะไหล่ (Category)</label>
+                        <input type="text" id="ep_cat" placeholder="พิมพ์หมวดหมู่" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">เปลี่ยนรูปภาพ (Image)</label>
+                        <input type="file" id="ep_image" accept="image/*" class="w-full p-2 border border-gray-300 rounded-xl text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer transition">
+                        <p class="text-[11px] text-gray-500 mt-1.5"><i class="fa-solid fa-image mr-1"></i> หากไม่ต้องการเปลี่ยนรูป ให้เว้นว่างไว้</p>
+                    </div>
+                </div>
+                <div class="mb-8">
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">หมายเหตุ (Note)</label>
+                    <textarea id="ep_note" rows="3" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition resize-none"></textarea>
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeEditProductModal()" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition font-medium">ยกเลิก</button>
+                    <button type="submit" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/30 hover:bg-blue-700 hover:shadow-blue-600/50 transition-all font-medium">
+                        <i class="fa-solid fa-save mr-2"></i> บันทึกการแก้ไข
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="flex h-screen overflow-hidden w-full relative">
+        
+        <!-- Sidebar Backdrop -->
+        <div id="sidebarBackdrop" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden transition-opacity" onclick="toggleSidebar()"></div>
+
+        <!-- Sidebar (ซ้าย) -->
+        <aside id="sidebar" class="bg-slate-800 text-white w-72 md:w-64 flex-shrink-0 flex flex-col absolute md:relative inset-y-0 left-0 transform -translate-x-full md:translate-x-0 transition-transform z-50 h-full shadow-2xl md:shadow-none">
+            <div class="p-5 flex justify-between items-center border-b border-slate-700/50">
+                <h1 class="text-xl font-bold truncate tracking-wide"><i class="fa-solid fa-gears mr-2 text-blue-400"></i> Spare Parts QCM</h1>
+                <button class="md:hidden text-gray-400 hover:text-white p-2 rounded-lg hover:bg-slate-700 transition" onclick="toggleSidebar()">
+                    <i class="fa-solid fa-times text-xl"></i>
+                </button>
+            </div>
+            <nav class="flex-1 overflow-y-auto py-6 hide-scroll">
+                <ul class="space-y-1.5 px-3 text-sm font-medium">
+                    <!-- สาธารณะ: ดูได้โดยไม่ต้องล็อกอิน -->
+                    <li><a href="#" onclick="switchView('view-catalog', this)" class="menu-item flex items-center px-4 py-3.5 rounded-lg bg-blue-600 text-white shadow-md shadow-blue-900/20 transition-all"><i class="fa-solid fa-box-open mr-3 w-5 text-center flex-shrink-0"></i><span class="flex-1">แคตตาล็อกสินค้า</span><i class="fa-solid fa-globe text-blue-300 text-xs"></i></a></li>
+                    <!-- Protected items: ซ่อนเมื่อยังไม่ล็อกอิน -->
+                    <li class="protected-nav-item hidden"><a href="#" onclick="switchView('view-add-product', this)" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-plus-circle mr-3 w-5 text-center flex-shrink-0"></i><span>เพิ่มอะไหล่</span></a></li>
+                    <li class="protected-nav-item hidden"><a href="#" onclick="switchView('view-machines', this)" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-industry mr-3 w-5 text-center flex-shrink-0"></i><span>จัดการเครื่องจักร</span></a></li>
+                    <li class="protected-nav-item hidden"><a href="#" onclick="switchView('view-mapping', this)" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-link mr-3 w-5 text-center flex-shrink-0"></i><span>จับคู่อะไหล่-เครื่องจักร</span></a></li>
+                    <li class="protected-nav-item hidden"><a href="#" onclick="switchView('view-edit-products', this)" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-list mr-3 w-5 text-center flex-shrink-0"></i><span>รายการอะไหล่</span></a></li>
+                    <li class="protected-nav-item hidden"><a href="#" onclick="switchView('view-edit-mapping', this)" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-table-list mr-3 w-5 text-center flex-shrink-0"></i><span>ดู/แก้ไขการจับคู่</span></a></li>
+                </ul>
+            </nav>
+            <!-- Auth Section -->
+            <div class="border-t border-slate-700/50 bg-slate-900/60">
+                <!-- เมื่อยังไม่ล็อกอิน -->
+                <div id="auth-login-prompt" class="p-4">
+                    <button onclick="showLoginDialog()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-white text-sm font-semibold transition-all shadow-lg shadow-blue-900/30 hover:-translate-y-0.5">
+                        <i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบจัดการ
+                    </button>
+                    <p class="text-center text-[10px] text-slate-500 mt-2">เฉพาะผู้ดูแลระบบเท่านั้น</p>
+                </div>
+                <!-- เมื่อล็อกอินแล้ว -->
+                <div id="auth-user-info" class="hidden p-4">
+                    <div class="flex items-center gap-3 mb-3 bg-slate-700/50 rounded-xl px-3 py-2.5">
+                        <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-user text-white text-xs"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[10px] text-slate-400">ล็อกอินในฐานะ</p>
+                            <p id="auth-username-display" class="text-sm font-bold text-white truncate"></p>
+                        </div>
+                    </div>
+                    <button onclick="initDatabase()" class="w-full mb-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-blue-300 hover:text-blue-200 transition text-xs font-medium">
+                        <i class="fa-solid fa-database mr-1"></i> ตรวจสอบ Database
+                    </button>
+                    <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-3 py-1.5 bg-red-900/50 hover:bg-red-800 rounded-lg text-red-300 hover:text-red-100 transition text-xs font-medium">
+                        <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+                    </button>
+                </div>
+                <p class="text-center text-[9px] text-slate-600 pb-2">System v3.0 (Interactive Catalog)</p>
+            </div>
+        </aside>
+
+        <!-- Main Content (ขวา) -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden w-full bg-slate-50 relative">
+            
+            <!-- Mobile Header -->
+            <header class="bg-white shadow-sm flex items-center justify-between p-4 md:hidden z-30 sticky top-0">
+                <div class="flex items-center gap-3">
+                    <button class="text-slate-600 hover:text-blue-600 focus:outline-none p-1.5 rounded-md hover:bg-slate-100 transition" onclick="toggleSidebar()">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    <h1 class="text-lg font-bold text-slate-800 truncate whitespace-nowrap"><i class="fa-solid fa-gears text-blue-600 mr-2 hidden sm:inline-block"></i> Spare Parts</h1>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 w-full relative">
+                
+                <section id="view-catalog" class="view-section active w-full">
+                    <div class="flex flex-col lg:flex-row justify-between lg:items-end gap-5 mb-6 relative z-20">
+                        <div class="min-w-max">
+                            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 whitespace-nowrap">แคตตาล็อกระบบ</h2>
+                            <p class="text-gray-500 text-sm mt-1 whitespace-nowrap">ค้นหาและดูข้อมูลความเชื่อมโยงของอะไหล่และเครื่องจักร</p>
+                        </div>
+                        
+                        <!-- Toggle Tabs (อะไหล่ vs เครื่องจักร) -->
+                        <div class="flex bg-gray-200/60 p-1 rounded-xl w-full sm:w-auto flex-shrink-0">
+                            <button id="tabModeProducts" onclick="setCatalogMode('products')" class="flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-bold transition-all shadow-sm bg-white text-blue-600">
+                                <i class="fa-solid fa-box-open mr-1.5"></i> หมวดหมู่อะไหล่
+                            </button>
+                            <button id="tabModeMachines" onclick="setCatalogMode('machines')" class="flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-bold transition-all text-gray-500 hover:text-gray-700">
+                                <i class="fa-solid fa-industry mr-1.5"></i> หมวดหมู่เครื่องจักร
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filters Group (จะแสดงเฉพาะโหมดผลิตภัณฑ์ หรือ ค้นหาเครื่องจักร) -->
+                    <div class="flex flex-col sm:flex-row gap-3 mb-6 relative z-20 w-full justify-end">
+                        <div class="relative w-full lg:w-72 flex-shrink-0">
+                            <i class="fa-solid fa-search absolute left-3.5 top-3 text-gray-400"></i>
+                            <input type="text" id="searchInput" onkeyup="renderCatalog()" placeholder="ค้นหารหัส หรือชื่อ..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm shadow-sm transition">
+                        </div>
+                        
+                        <!-- Category Filter (ซ่อนในโหมดเครื่องจักร) -->
+                        <div id="filterCategoryContainer" class="relative w-full sm:w-56 flex-shrink-0">
+                            <div class="relative">
+                                <input type="text" id="input_filterCategory" placeholder="-- ทุกประเภทอะไหล่ --" 
+                                        onfocus="openCustomSelect('category')" 
+                                        onkeyup="filterCustomSelect('category')"
+                                        autocomplete="off"
+                                        class="w-full p-2.5 pr-8 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white text-sm shadow-sm transition cursor-pointer text-gray-700">
+                                <i class="fa-solid fa-chevron-down absolute right-3.5 top-3.5 text-gray-400 pointer-events-none text-xs"></i>
+                            </div>
+                            <div id="dropdown_filterCategory" class="absolute z-50 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl hidden max-h-60 overflow-y-auto text-sm"></div>
+                            <input type="hidden" id="filterCategory" value="all">
+                        </div>
+                        
+                        <!-- Machine Filter (ซ่อนในโหมดเครื่องจักร) -->
+                        <div id="filterMachineContainer" class="relative w-full sm:w-64 flex-shrink-0">
+                            <div class="relative">
+                                <input type="text" id="input_filterMachine" placeholder="-- ทุกเครื่องจักร --" 
+                                        onfocus="openCustomSelect('machine')" 
+                                        onkeyup="filterCustomSelect('machine')"
+                                        autocomplete="off"
+                                        class="w-full p-2.5 pr-8 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white text-sm shadow-sm transition cursor-pointer text-gray-700">
+                                <i class="fa-solid fa-chevron-down absolute right-3.5 top-3.5 text-gray-400 pointer-events-none text-xs"></i>
+                            </div>
+                            <div id="dropdown_filterMachine" class="absolute z-50 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl hidden max-h-60 overflow-y-auto text-sm"></div>
+                            <input type="hidden" id="filterMachine" value="all">
+                        </div>
+                    </div>
+
+                    <!-- แบนเนอร์แสดงรายละเอียดเครื่องจักรที่ถูกเลือก (จะโชว์เมื่อมีการ filter เครื่องจักร) -->
+                    <div id="selectedMachineBanner" class="hidden mb-6 bg-gradient-to-r from-slate-800 to-slate-700 rounded-2xl shadow-lg border border-slate-600 p-5 md:p-6 text-white relative overflow-hidden">
+                        <!-- Content injected via JS -->
+                    </div>
+
+                    <!-- Catalog Grid (ใช้แสดงทั้ง Products และ Machines) -->
+                    <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 relative z-10">
+                        <!-- การ์ดจะถูกแทรกที่นี่ -->
+                    </div>
+                </section>
+
+                <section id="view-add-product" class="view-section hidden w-full">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">เพิ่มข้อมูลอะไหล่ใหม่</h2>
+                    <p class="text-gray-500 text-sm mb-6">กรอกรายละเอียดเพื่อเพิ่มรายการสินค้าเข้าสู่ระบบ</p>
+                    
+                    <div class="bg-white p-5 sm:p-8 rounded-2xl shadow-sm border border-gray-100 w-full max-w-4xl">
+                        <form id="formAddProduct" onsubmit="submitAddProduct(event)">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 mb-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">รหัสสินค้า (Product ID) <span class="text-red-500">*</span></label>
+                                    <input type="text" id="ap_id" required class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">ชื่อสินค้า (Product Name) <span class="text-red-500">*</span></label>
+                                    <input type="text" id="ap_name" required class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">หน่วยนับ (Unit)</label>
+                                    <input type="text" id="ap_unit" placeholder="เช่น ชิ้น, กล่อง, ชุด" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">ราคาต้นทุน (Cost) <span class="text-red-500">*</span></label>
+                                    <input type="number" step="0.01" id="ap_cost" required placeholder="ตัวเลขเท่านั้น" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                                    <p class="text-[11px] text-gray-500 mt-1.5"><i class="fa-solid fa-info-circle mr-1"></i> ระบบจะคำนวณราคาขาย (กลาง, ตัวแทน, ในเครือ) อัตโนมัติ</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">ประเภทอะไหล่ (Category)</label>
+                                    <input type="text" id="ap_cat" placeholder="พิมพ์หมวดหมู่" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">รูปภาพอะไหล่ (Image)</label>
+                                    <input type="file" id="ap_image" accept="image/*" class="w-full p-2 border border-gray-300 rounded-xl text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer transition">
+                                </div>
+                            </div>
+                            <div class="mb-8">
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">หมายเหตุ (Note)</label>
+                                <textarea id="ap_note" rows="3" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition resize-none"></textarea>
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit" class="w-full sm:w-auto bg-blue-600 text-white px-8 py-3 rounded-xl shadow-lg shadow-blue-600/30 hover:bg-blue-700 hover:shadow-blue-600/50 transition-all font-medium text-lg">
+                                    <i class="fa-solid fa-save mr-2"></i> บันทึกข้อมูลอะไหล่
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <section id="view-machines" class="view-section hidden w-full">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                        <div>
+                            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">จัดการข้อมูลเครื่องจักร</h2>
+                            <p class="text-gray-500 text-sm mt-1">เพิ่ม แก้ไข และจัดการข้อมูลเครื่องจักรทั้งหมดในระบบ</p>
+                        </div>
+                        <button onclick="openAddMachineModal()" class="flex-shrink-0 flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-green-600/25 hover:shadow-green-600/40 transition-all duration-200 hover:-translate-y-0.5">
+                            <i class="fa-solid fa-plus text-sm"></i>
+                            <span>เครื่องจักรใหม่</span>
+                        </button>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm w-full">
+                        <div class="relative w-full md:w-80 flex-shrink-0">
+                            <i class="fa-solid fa-search absolute left-3.5 top-3 text-gray-400"></i>
+                            <input type="text" id="searchMachine" onkeyup="renderMachineTable()" placeholder="พิมพ์รหัส หรือชื่อเครื่องจักร (เว้นวรรคได้)..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 text-sm transition shadow-sm">
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden w-full">
+                        <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                            <i class="fa-solid fa-industry text-green-500"></i>
+                            <h3 class="text-base font-bold text-slate-700">รายชื่อเครื่องจักรทั้งหมด</h3>
+                            <span id="machineCount" class="ml-auto text-xs bg-green-50 text-green-700 border border-green-100 font-semibold px-2.5 py-1 rounded-full">0 รายการ</span>
+                        </div>
+                        <div class="overflow-x-auto w-full table-scroll pb-2">
+                            <table class="min-w-full text-left text-sm whitespace-nowrap">
+                                <thead class="bg-slate-800 text-white">
+                                    <tr>
+                                        <th class="p-4 font-medium rounded-tl-none w-20 text-center">รูปภาพ</th>
+                                        <th class="p-4 font-medium">รหัสเครื่องจักร</th>
+                                        <th class="p-4 font-medium">ชื่อเครื่องจักร</th>
+                                        <th class="p-4 font-medium">รายละเอียด</th>
+                                        <th class="p-4 font-medium text-right text-red-200">ราคาต้นทุน</th>
+                                        <th class="p-4 font-medium text-right text-blue-200">ราคา (กลาง)</th>
+                                        <th class="p-4 font-medium text-right text-green-200">ราคา (ตัวแทน)</th>
+                                        <th class="p-4 font-medium text-right text-orange-200">ราคา (ในเครือ)</th>
+                                        <th class="p-4 font-medium text-center w-32">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="machineTableBody" class="divide-y divide-gray-100 bg-white">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-mapping" class="view-section hidden w-full">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">จับคู่อะไหล่กับเครื่องจักร</h2>
+                    <p class="text-gray-500 text-sm mb-6">ค้นหาเครื่องจักรที่ต้องการ และเลือกอะไหล่ที่สามารถใช้ร่วมกันได้ทีละหลายรายการ</p>
+                    
+                    <div class="bg-white p-5 sm:p-8 rounded-2xl shadow-sm border border-gray-100 w-full max-w-4xl relative z-20">
+                        <form onsubmit="submitAddMapping(event)">
+                            
+                            <div class="mb-8 p-5 bg-purple-50/50 border border-purple-100 rounded-xl relative z-30">
+                                <label class="block text-base font-bold text-purple-800 mb-3"><i class="fa-solid fa-1 mr-2"></i>เลือกรุ่นเครื่องจักร (Machine) <span class="text-red-500">*</span></label>
+                                <div class="flex flex-col md:flex-row gap-4 relative">
+                                    <div class="relative w-full md:w-1/2">
+                                        <i class="fa-solid fa-search absolute left-3.5 top-3.5 text-gray-400"></i>
+                                        <input type="text" id="map_machine_search" placeholder="พิมพ์ค้นหาชื่อหรือรหัสเว้นวรรคได้..." 
+                                               autocomplete="off"
+                                               onkeyup="filterMapMachines()" 
+                                               onfocus="showMachineSuggestions()"
+                                               onclick="showMachineSuggestions()"
+                                               class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition shadow-sm">
+                                        
+                                        <div id="machine_suggestions" class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl hidden max-h-60 overflow-y-auto text-sm"></div>
+                                    </div>
+                                    
+                                    <div class="w-full md:w-1/2 hidden md:block">
+                                        <select id="map_machine" required onchange="onMachineSelected()" class="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 shadow-sm transition cursor-pointer font-medium text-purple-900 pointer-events-none opacity-60">
+                                            <option value="">-- เครื่องจักรที่เลือกจะแสดงที่นี่ --</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="map_products_section" class="mb-8 hidden transition-all duration-300 relative z-10">
+                                <label class="block text-base font-bold text-blue-800 mb-3"><i class="fa-solid fa-2 mr-2"></i>เลือกอะไหล่ที่ใช้กับเครื่องจักรนี้ (Products) <span class="text-red-500">*</span></label>
+                                
+                                <div class="flex flex-col md:flex-row gap-3 mb-4">
+                                    <div class="relative w-full md:w-2/3">
+                                        <i class="fa-solid fa-search absolute left-3.5 top-3 text-gray-400"></i>
+                                        <input type="text" id="map_product_search" onkeyup="filterMapProducts()" placeholder="พิมพ์ค้นหา รหัสหรือชื่อ (เว้นวรรคคำได้)" class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition shadow-sm">
+                                    </div>
+                                    <div class="w-full md:w-1/3 flex-shrink-0">
+                                        <select id="map_category_filter" onchange="filterMapProducts()" class="w-full p-2.5 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 shadow-sm transition cursor-pointer text-sm text-gray-700">
+                                            <option value="all">-- ทุกประเภทอะไหล่ --</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                                    <div class="bg-slate-100 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                                        <span class="text-sm font-bold text-slate-700">รายการอะไหล่ (<span id="map_selected_count" class="text-purple-600 text-base">0</span> เลือกแล้ว)</span>
+                                        <button type="button" onclick="selectAllMapProducts()" class="text-xs sm:text-sm font-bold text-blue-700 hover:text-white bg-blue-100 hover:bg-blue-600 px-3 py-1.5 rounded-lg border border-blue-200 transition shadow-sm">
+                                            เลือก/ยกเลิก ทั้งหมดที่แสดง
+                                        </button>
+                                    </div>
+                                    <div id="map_product_list" class="max-h-80 overflow-y-auto p-2 bg-white flex flex-col gap-1 table-scroll"></div>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-start border-t border-gray-100 pt-6">
+                                <button type="submit" id="btn_submit_mapping" disabled class="w-full sm:w-auto bg-purple-600 text-white px-10 py-3.5 rounded-xl shadow-lg opacity-50 cursor-not-allowed transition-all font-bold text-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-save mr-2"></i> บันทึกการจับคู่
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <section id="view-edit-products" class="view-section hidden w-full">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6">
+                        <div>
+                            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">รายการอะไหล่</h2>
+                            <p class="text-gray-500 text-sm mt-1">จัดการแก้ไข ค้นหา หรือลบข้อมูลสินค้าในระบบ</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm w-full">
+                        <div class="relative w-full md:w-80 flex-shrink-0">
+                            <i class="fa-solid fa-search absolute left-3.5 top-3 text-gray-400"></i>
+                            <input type="text" id="searchEditProduct" onkeyup="renderEditProductTable()" placeholder="พิมพ์รหัส หรือชื่อสินค้า (เว้นวรรคได้)..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm transition">
+                        </div>
+                        
+                        <div class="w-full md:w-auto flex justify-start">
+                            <label class="flex items-center gap-2.5 cursor-pointer text-sm text-gray-700 select-none bg-red-50/50 hover:bg-red-50 border border-red-100 px-4 py-2.5 rounded-xl transition">
+                                <input type="checkbox" id="showCostToggle" onchange="toggleShowCost(this)" class="w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500">
+                                <span class="font-medium text-red-700">แสดงราคาต้นทุนที่หน้าแคตตาล็อก</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden w-full">
+                        <div class="overflow-x-auto w-full table-scroll pb-2">
+                            <table class="min-w-full text-left text-sm whitespace-nowrap">
+                                <thead class="bg-slate-800 text-white">
+                                    <tr>
+                                        <th class="p-4 font-medium rounded-tl-lg">รูปภาพ</th>
+                                        <th class="p-4 font-medium">รหัสสินค้า</th>
+                                        <th class="p-4 font-medium">ชื่อสินค้า</th>
+                                        <th class="p-4 font-medium">หน่วยนับ</th>
+                                        <th class="p-4 font-medium text-right text-red-200">ราคาต้นทุน</th>
+                                        <th class="p-4 font-medium text-right text-blue-200">ราคา (กลาง)</th>
+                                        <th class="p-4 font-medium text-right text-green-200">ราคา (ตัวแทน)</th>
+                                        <th class="p-4 font-medium text-right text-orange-200">ราคา (ในเครือ)</th>
+                                        <th class="p-4 font-medium text-center rounded-tr-lg">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="editProductTableBody" class="divide-y divide-gray-200 bg-white">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-edit-mapping" class="view-section hidden w-full">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6">
+                        <div>
+                            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">ดู/แก้ไขการจับคู่</h2>
+                            <p class="text-gray-500 text-sm mt-1">ค้นหา กรอง และจัดการการเชื่อมโยงระหว่างอะไหล่และเครื่องจักร</p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row justify-start items-center gap-4 mb-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm w-full max-w-4xl">
+                        <div class="relative w-full md:w-80 flex-shrink-0">
+                            <i class="fa-solid fa-search absolute left-3.5 top-3 text-gray-400"></i>
+                            <input type="text" id="searchMapping" onkeyup="renderMappingTable()" placeholder="พิมพ์ค้นหารหัส หรือชื่ออะไหล่ (เว้นวรรคได้)..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 text-sm transition">
+                        </div>
+                        
+                        <div class="w-full md:w-72 flex-shrink-0">
+                            <select id="filterMappingMachine" onchange="renderMappingTable()" class="w-full p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 bg-white text-sm shadow-sm cursor-pointer transition">
+                                <option value="all">-- ทุกเครื่องจักร --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden w-full max-w-4xl">
+                        <div class="overflow-x-auto w-full table-scroll pb-2">
+                            <table class="min-w-full text-left text-sm whitespace-nowrap">
+                                <thead class="bg-slate-50 text-slate-700 border-b border-gray-200">
+                                    <tr>
+                                        <th class="p-4 w-12 text-center font-semibold">#</th>
+                                        <th class="p-4 font-semibold">รหัสสินค้า (Product)</th>
+                                        <th class="p-4 font-semibold">รหัสเครื่องจักร (Machine)</th>
+                                        <th class="p-4 w-24 text-center font-semibold">ยกเลิกจับคู่</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="editMappingTableBody" class="divide-y divide-gray-100 bg-white">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByGfYMg80KCM8n9fS4pn6JMrGa7hKG2oOR3H1brsQDtrcs1/exec';
+        
+        let db = { products: [], machines: [], mappings: [] };
+        let isShowCostInCatalog = false;
+        let selectedMappingProducts = new Set();
+        let currentSelectedMachineForMapping = '';
+
+        let catalogCategories = [];
+        let catalogMachines = [];
+        let currentCatalogMode = 'products'; // 'products' หรือ 'machines'
+
+        // ===== Auth System =====
+        let isLoggedIn = false;
+        let currentUser = '';
+        const VALID_USERS = ['admin', 'QCM', 'LDT'];
+        const VALID_PASSWORD = 'admin';
+        const PROTECTED_VIEWS = ['view-add-product', 'view-machines', 'view-mapping', 'view-edit-products', 'view-edit-mapping'];
+
+        document.addEventListener('DOMContentLoaded', () => { fetchData(); updateAuthUI(); });
+
+        document.addEventListener('click', function(event) {
+            const inputCat = document.getElementById('input_filterCategory');
+            if (inputCat) {
+                const catContainer = inputCat.parentElement.parentElement;
+                if (!catContainer.contains(event.target)) {
+                    document.getElementById('dropdown_filterCategory').classList.add('hidden');
+                    const hiddenCat = document.getElementById('filterCategory');
+                    if(hiddenCat.value === 'all') inputCat.value = '';
+                    else if(catalogCategories.includes(hiddenCat.value)) inputCat.value = hiddenCat.value;
+                }
+            }
+            
+            const inputMach = document.getElementById('input_filterMachine');
+            if (inputMach) {
+                const machContainer = inputMach.parentElement.parentElement;
+                if (!machContainer.contains(event.target)) {
+                    document.getElementById('dropdown_filterMachine').classList.add('hidden');
+                    const hiddenMach = document.getElementById('filterMachine');
+                    if(hiddenMach.value === 'all') inputMach.value = '';
+                    else {
+                        const m = catalogMachines.find(x => x.id === hiddenMach.value);
+                        if(m) inputMach.value = m.id + ' : ' + m.name;
+                    }
+                }
+            }
+            
+            const mapMachContainer = document.getElementById('map_machine_search');
+            if (mapMachContainer && !mapMachContainer.parentElement.contains(event.target)) hideMachineSuggestions();
+        });
+
+        function escapeHTML(str) {
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function escapeForJS(str) {
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function fNumber(val, fallbackCalc) {
+            let num = parseFloat(val);
+            // แก้บัค 3: เช็คเฉพาะ NaN หรือ null/undefined ไม่รวม 0 เพื่อให้ราคา 0 บาทแสดงได้ถูกต้อง
+            if (isNaN(num) || val === '' || val === null || val === undefined) {
+                num = parseFloat(fallbackCalc);
+            }
+            if (isNaN(num)) num = 0; 
+            return num.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        // fNumberM: เหมือน fNumber แต่ treat ราคา 0 เป็น "ยังไม่ได้กำหนด" → fallback คำนวณจาก cost
+        // ใช้กับหมวดหมู่เครื่องจักร เพื่อให้พฤติกรรมเหมือนหมวดหมู่อะไหล่
+        function fNumberM(val, fallbackCalc) {
+            let num = parseFloat(val);
+            if (isNaN(num) || val === '' || val === null || val === undefined || num === 0) {
+                num = parseFloat(fallbackCalc);
+            }
+            if (isNaN(num)) num = 0;
+            return num.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        function autoCalcMachinePrices(prefix) {
+            const cost = parseFloat(document.getElementById(`${prefix}_cost`).value) || 0;
+            if (cost > 0) {
+                document.getElementById(`${prefix}_price_a`).value = (cost * 2.1).toFixed(2);
+                document.getElementById(`${prefix}_price_b`).value = (cost * 1.7).toFixed(2);
+                document.getElementById(`${prefix}_price_c`).value = (cost * 1.3).toFixed(2);
+            } else {
+                document.getElementById(`${prefix}_price_a`).value = '';
+                document.getElementById(`${prefix}_price_b`).value = '';
+                document.getElementById(`${prefix}_price_c`).value = '';
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+                document.body.style.overflow = 'hidden'; 
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        function switchView(viewId, element = null) {
+            // ตรวจสอบสิทธิ์ก่อนเข้าหน้า protected
+            if (PROTECTED_VIEWS.includes(viewId) && !isLoggedIn) {
+                showLoginDialog(() => switchView(viewId, element));
+                return;
+            }
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(viewId).classList.remove('hidden');
+
+            if (element) {
+                document.querySelectorAll('.menu-item').forEach(el => {
+                    el.classList.remove('bg-blue-600', 'text-white', 'shadow-md', 'shadow-blue-900/20');
+                    el.classList.add('text-gray-300');
+                });
+                element.classList.remove('text-gray-300');
+                element.classList.add('bg-blue-600', 'text-white', 'shadow-md', 'shadow-blue-900/20');
+            }
+            if (window.innerWidth < 768) {
+                const sidebar = document.getElementById('sidebar');
+                if (!sidebar.classList.contains('-translate-x-full')) toggleSidebar();
+            }
+        }
+
+        function showLoginDialog(onSuccess = null) {
+            Swal.fire({
+                title: '<i class="fa-solid fa-lock text-blue-500 mr-2"></i>เข้าสู่ระบบ',
+                html: `
+                    <div class="space-y-3 text-left mt-1">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-600 mb-1.5">ชื่อผู้ใช้ (Username)</label>
+                            <input type="text" id="swal-username"
+                                class="swal2-input !mx-0 !w-full"
+                                placeholder="\u0e0a\u0e37\u0e48\u0e2d\u0e1c\u0e39\u0e49\u0e43\u0e0a\u0e49"
+                                autocomplete="username">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-600 mb-1.5">รหัสผ่าน (Password)</label>
+                            <input type="password" id="swal-password"
+                                class="swal2-input !mx-0 !w-full"
+                                placeholder="••••••••"
+                                autocomplete="current-password">
+                        </div>
+                    </div>
+                `,
+                confirmButtonText: '<i class="fa-solid fa-right-to-bracket mr-2"></i>เข้าสู่ระบบ',
+                confirmButtonColor: '#2563eb',
+                showCancelButton: true,
+                cancelButtonText: 'ยกเลิก',
+                cancelButtonColor: '#6b7280',
+                reverseButtons: true,
+                focusConfirm: false,
+                customClass: {
+                    popup: 'rounded-2xl',
+                    confirmButton: 'rounded-xl font-semibold',
+                    cancelButton: 'rounded-xl font-semibold',
+                },
+                didOpen: () => {
+                    document.getElementById('swal-password').addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') Swal.clickConfirm();
+                    });
+                },
+                preConfirm: () => {
+                    const username = document.getElementById('swal-username').value.trim();
+                    const password = document.getElementById('swal-password').value;
+                    if (!VALID_USERS.includes(username) || password !== VALID_PASSWORD) {
+                        Swal.showValidationMessage('<i class="fa-solid fa-circle-exclamation mr-2"></i>ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+                        return false;
+                    }
+                    return username;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    isLoggedIn = true;
+                    currentUser = result.value;
+                    updateAuthUI();
+                    showToast(`ยินดีต้อนรับ ${currentUser}!`, 'success');
+                    if (onSuccess) onSuccess();
+                }
+            });
+        }
+
+        function logout() {
+            confirmAction(`ยืนยันการออกจากระบบ?\nคุณจะกลับไปยังหน้าแคตตาล็อกสาธารณะ`, () => {
+                isLoggedIn = false;
+                currentUser = '';
+                updateAuthUI();
+                switchView('view-catalog');
+                // คืน active state กลับไปที่ปุ่ม catalog
+                document.querySelectorAll('.menu-item').forEach(el => {
+                    el.classList.remove('bg-blue-600', 'text-white', 'shadow-md', 'shadow-blue-900/20');
+                    el.classList.add('text-gray-300');
+                });
+                const catalogBtn = document.querySelector('[onclick="switchView(\'view-catalog\', this)"]');
+                if (catalogBtn) {
+                    catalogBtn.classList.remove('text-gray-300');
+                    catalogBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md', 'shadow-blue-900/20');
+                }
+                showToast('ออกจากระบบเรียบร้อยแล้ว', 'info');
+            });
+        }
+
+        function updateAuthUI() {
+            // แสดง/ซ่อนเมนู protected ตามสถานะ login
+            document.querySelectorAll('.protected-nav-item').forEach(el => {
+                el.classList.toggle('hidden', !isLoggedIn);
+            });
+            // แสดง/ซ่อน auth sections
+            document.getElementById('auth-login-prompt').classList.toggle('hidden', isLoggedIn);
+            document.getElementById('auth-user-info').classList.toggle('hidden', !isLoggedIn);
+            if (isLoggedIn) {
+                document.getElementById('auth-username-display').textContent = currentUser;
+            } else {
+                closeProductDetailModal();
+            }
+            if (typeof db !== 'undefined' && db && db.products && db.products.length > 0) {
+                renderCatalog();
+            }
+        }
+
+        // ===== SweetAlert2 Notification System =====
+        const SwalToast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3500,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.onmouseenter = Swal.stopTimer;
+                toast.onmouseleave = Swal.resumeTimer;
+            }
+        });
+
+        function showLoading(text = 'กำลังโหลดข้อมูล...') {
+            Swal.fire({
+                title: text,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+        }
+
+        function hideLoading() { Swal.close(); }
+
+        function showToast(message, type = 'success') {
+            const iconMap = { success: 'success', error: 'error', info: 'info' };
+            SwalToast.fire({
+                icon: iconMap[type] || 'success',
+                title: message
+            });
+        }
+
+        function confirmAction(message, callback) {
+            Swal.fire({
+                title: 'ยืนยันการดำเนินการ',
+                html: escapeHTML(message).replace(/\n/g, '<br>'),
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: '<i class="fa-solid fa-check mr-1"></i> ยืนยัน',
+                cancelButtonText: 'ยกเลิก',
+                reverseButtons: true,
+                customClass: {
+                    popup: 'rounded-2xl shadow-2xl',
+                    confirmButton: 'rounded-xl font-semibold px-5',
+                    cancelButton: 'rounded-xl font-semibold px-5',
+                }
+            }).then((result) => {
+                if (result.isConfirmed) callback();
+            });
+        }
+
+        function closeConfirmModal() { Swal.close(); }
+
+        async function initDatabase() {
+            showLoading('กำลังตรวจสอบโครงสร้างฐานข้อมูล...');
+            try {
+                let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'initDatabase' }) });
+                let result = await res.json();
+                showToast(result.message, result.status);
+            } catch (error) { showToast('การเชื่อมต่อล้มเหลว', 'error'); }
+            hideLoading();
+        }
+
+        const LS_CACHE_KEY = 'spareparts_cache_v1';
+        const LS_CACHE_TTL = 5 * 60 * 1000; // 5 นาที (ms)
+
+        async function fetchData(forceRefresh = false) {
+            // ถ้าไม่ได้บังคับ refresh → ตรวจสอบ localStorage cache ก่อน
+            if (!forceRefresh) {
+                try {
+                    const raw = localStorage.getItem(LS_CACHE_KEY);
+                    if (raw) {
+                        const cached = JSON.parse(raw);
+                        const age = Date.now() - (cached.ts || 0);
+                        const hasData = cached.data
+                            && Array.isArray(cached.data.products)
+                            && cached.data.products.length > 0;
+
+                        if (age < LS_CACHE_TTL && hasData) {
+                            // ข้อมูล cache ยังสดและไม่ว่าง → แสดงทันที
+                            db = cached.data;
+                            updateAllViews();
+                            // ดึงข้อมูลใหม่เบื้องหลัง (ไม่แสดง spinner)
+                            _fetchFromServer(true);
+                            return;
+                        }
+                    }
+                } catch(e) {
+                    // localStorage มีปัญหา → ล้าง cache แล้วดึงใหม่
+                    try { localStorage.removeItem(LS_CACHE_KEY); } catch(_) {}
+                }
+            }
+
+            // ไม่มี cache / cache หมดอายุ / ข้อมูลว่าง → ดึงจาก server + แสดง spinner
+            showLoading('กำลังดึงข้อมูลระบบ...');
+            await _fetchFromServer(false);
+        }
+
+        async function _fetchFromServer(background = false) {
+            try {
+                const res = await fetch(API_URL + '?action=getAppData', { method: 'GET' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+
+                // ตรวจสอบว่าข้อมูลที่ได้กลับมา valid ก่อน cache
+                if (data && Array.isArray(data.products)) {
+                    try {
+                        localStorage.setItem(LS_CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
+                    } catch(e) { /* storage full → ข้ามได้ */ }
+                    db = data;
+                    updateAllViews();
+                } else {
+                    throw new Error('ข้อมูลที่ได้รับไม่ถูกต้อง');
+                }
+            } catch (error) {
+                if (!background) showToast('ไม่สามารถดึงข้อมูลได้: ' + error.message, 'error');
+            }
+            if (!background) hideLoading();
+        }
+
+        function updateAllViews() {
+            buildFilters();
+            renderCatalog();
+            renderMachineTable();
+            renderEditProductTable();
+            initMappingView(); 
+            renderMappingTable();
+        }
+
+        function buildFilters() {
+            const mapCatSelect = document.getElementById('map_category_filter');
+            if(mapCatSelect) {
+                mapCatSelect.innerHTML = '<option value="all">-- ทุกประเภทอะไหล่ --</option>';
+                const categories = [...new Set(db.products.map(p => p.category))].filter(c => c && c.trim() !== '');
+                categories.sort();
+                categories.forEach(c => mapCatSelect.insertAdjacentHTML('beforeend', `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`));
+            }
+
+            const mapMachSelect = document.getElementById('filterMappingMachine');
+            if (mapMachSelect) {
+                mapMachSelect.innerHTML = '<option value="all">-- ทุกเครื่องจักร --</option>';
+                db.machines.forEach(m => mapMachSelect.insertAdjacentHTML('beforeend', `<option value="${escapeHTML(m.id)}">${escapeHTML(m.id)} : ${escapeHTML(m.name)}</option>`));
+            }
+
+            catalogCategories = [...new Set(db.products.map(p => p.category))].filter(c => c && c.trim() !== '');
+            catalogCategories.sort();
+            catalogMachines = db.machines;
+            
+            if(!document.getElementById('filterCategory').value) document.getElementById('filterCategory').value = 'all';
+            if(!document.getElementById('filterMachine').value) document.getElementById('filterMachine').value = 'all';
+        }
+
+        function openCustomSelect(type) {
+            const dropdown = document.getElementById('dropdown_filter' + (type === 'category' ? 'Category' : 'Machine'));
+            dropdown.classList.remove('hidden');
+            renderCustomSelect(type, true);
+            setTimeout(() => { document.getElementById('input_filter' + (type === 'category' ? 'Category' : 'Machine')).select(); }, 10);
+        }
+
+        function filterCustomSelect(type) {
+            const dropdown = document.getElementById('dropdown_filter' + (type === 'category' ? 'Category' : 'Machine'));
+            dropdown.classList.remove('hidden');
+            renderCustomSelect(type, false);
+        }
+
+        function renderCustomSelect(type, forceShowAll = false) {
+            const isCat = type === 'category';
+            const inputId = isCat ? 'input_filterCategory' : 'input_filterMachine';
+            const dropdownId = isCat ? 'dropdown_filterCategory' : 'dropdown_filterMachine';
+            
+            const keywordString = forceShowAll ? '' : document.getElementById(inputId).value.toLowerCase();
+            const keywords = keywordString.split(/\s+/).filter(k => k.length > 0);
+            const dropdown = document.getElementById(dropdownId);
+            dropdown.innerHTML = '';
+            
+            let allOptionHtml = `
+                <div class="px-4 py-2.5 hover:bg-blue-50 cursor-pointer border-b border-gray-100 transition text-gray-800 font-medium bg-gray-50" 
+                     onclick="selectCustomOption('${type}', 'all', '')">
+                    -- ${isCat ? 'ทุกประเภทอะไหล่' : 'ทุกเครื่องจักร'} --
+                </div>`;
+            dropdown.insertAdjacentHTML('beforeend', allOptionHtml);
+
+            let matchCount = 0;
+            if (isCat) {
+                catalogCategories.forEach(c => {
+                    const textToSearch = c.toLowerCase();
+                    if (keywords.length === 0 || keywords.every(kw => textToSearch.includes(kw))) {
+                        dropdown.insertAdjacentHTML('beforeend', `<div class="px-4 py-2.5 hover:bg-blue-50 cursor-pointer border-b border-gray-100 transition text-gray-700" onclick="selectCustomOption('category', '${escapeForJS(c)}', '${escapeForJS(c)}')">${escapeHTML(c)}</div>`);
+                        matchCount++;
+                    }
+                });
+            } else {
+                const displayLimit = 50;
+                catalogMachines.forEach(m => {
+                    const textToSearch = `${m.id} ${m.name}`.toLowerCase();
+                    if (keywords.length === 0 || keywords.every(kw => textToSearch.includes(kw))) {
+                        if (matchCount < displayLimit) {
+                            dropdown.insertAdjacentHTML('beforeend', `<div class="px-4 py-2.5 hover:bg-blue-50 cursor-pointer border-b border-gray-100 transition" onclick="selectCustomOption('machine', '${escapeForJS(m.id)}', '${escapeForJS(m.id)} : ${escapeForJS(m.name)}')"><span class="font-bold text-blue-700">${escapeHTML(m.id)}</span> : <span class="text-gray-700">${escapeHTML(m.name)}</span></div>`);
+                        }
+                        matchCount++;
+                    }
+                });
+                if (matchCount > displayLimit) {
+                    dropdown.insertAdjacentHTML('beforeend', `<div class="px-4 py-2 text-center bg-amber-50 text-xs text-amber-600 font-medium border-t border-amber-100"><i class="fa-solid fa-info-circle mr-1"></i>พบอีก ${matchCount - displayLimit} รายการ — พิมพ์เพิ่มเพื่อค้นหา</div>`);
+                }
+            }
+            if (matchCount === 0 && keywords.length > 0) dropdown.insertAdjacentHTML('beforeend', `<div class="px-4 py-3 text-gray-400 text-sm text-center">ไม่พบข้อมูลที่ค้นหา</div>`);
+        }
+
+        function selectCustomOption(type, value, displayLabel) {
+            const isCat = type === 'category';
+            const inputId = isCat ? 'input_filterCategory' : 'input_filterMachine';
+            const hiddenId = isCat ? 'filterCategory' : 'filterMachine';
+            const dropdownId = isCat ? 'dropdown_filterCategory' : 'dropdown_filterMachine';
+            
+            document.getElementById(hiddenId).value = value;
+            document.getElementById(inputId).value = displayLabel; 
+            document.getElementById(dropdownId).classList.add('hidden');
+            
+            if(!isCat && value !== 'all') {
+                setCatalogMode('products');
+            } else {
+                renderCatalog();
+            }
+        }
+
+        function toggleShowCost(checkboxElement) {
+            isShowCostInCatalog = checkboxElement.checked;
+            renderCatalog(); 
+        }
+
+        function setCatalogMode(mode) {
+            currentCatalogMode = mode;
+            const btnProd = document.getElementById('tabModeProducts');
+            const btnMach = document.getElementById('tabModeMachines');
+            
+            if(mode === 'products') {
+                btnProd.className = 'flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-bold transition-all shadow-sm bg-white text-blue-600';
+                btnMach.className = 'flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-bold transition-all text-gray-500 hover:text-gray-700';
+                document.getElementById('filterCategoryContainer').classList.remove('hidden');
+                document.getElementById('filterMachineContainer').classList.remove('hidden');
+            } else {
+                btnMach.className = 'flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-bold transition-all shadow-sm bg-white text-blue-600';
+                btnProd.className = 'flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-bold transition-all text-gray-500 hover:text-gray-700';
+                document.getElementById('filterCategoryContainer').classList.add('hidden');
+                document.getElementById('filterMachineContainer').classList.add('hidden');
+            }
+            renderCatalog();
+        }
+
+        function renderMachineBanner(machineId) {
+            const banner = document.getElementById('selectedMachineBanner');
+            if (machineId === 'all') {
+                banner.classList.add('hidden');
+                return;
+            }
+            
+            const m = db.machines.find(x => x.id == machineId);
+            if (!m) {
+                banner.classList.add('hidden');
+                return;
+            }
+
+            banner.classList.remove('hidden');
+            
+            const imgSrc = m.image_url || 'https://placehold.co/400x300/334155/94a3b8?text=No+Image';
+            const costVal = parseFloat(String(m.cost).replace(/,/g, '')) || 0;
+            const costStr = costVal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            const pA = fNumberM(m.price_a, costVal * 2.1);
+            const pB = fNumberM(m.price_b, costVal * 1.7);
+            const pC = fNumberM(m.price_c, costVal * 1.3);
+            
+            let costHtml = (isShowCostInCatalog && isLoggedIn) ? `<div class="bg-red-500/20 border border-red-400/30 px-3 py-1.5 rounded-lg text-red-200 text-sm font-medium">ต้นทุน: <span class="text-white font-bold text-base ml-1">฿${costStr}</span></div>` : '';
+
+            banner.innerHTML = `
+                <div class="absolute -right-10 -top-10 text-9xl text-white opacity-5 pointer-events-none"><i class="fa-solid fa-cogs"></i></div>
+                <div class="flex flex-col md:flex-row gap-6 items-start relative z-10">
+                    <div class="w-full md:w-40 flex-shrink-0 bg-white/10 p-2 rounded-xl border border-white/20">
+                        <img src="${escapeHTML(imgSrc)}" class="w-full h-32 md:h-40 object-cover rounded-lg bg-slate-100" onerror="this.src='https://placehold.co/400x300/334155/94a3b8?text=Err'">
+                    </div>
+                    <div class="flex-1 w-full">
+                        <div class="flex flex-wrap items-center gap-3 mb-2">
+                            <span class="bg-blue-500 text-white text-xs font-bold px-2.5 py-1 rounded-md tracking-wider shadow-sm">${escapeHTML(m.id)}</span>
+                            <h3 class="text-2xl md:text-3xl font-bold text-white tracking-tight">${escapeHTML(m.name)}</h3>
+                        </div>
+                        <p class="text-slate-300 text-sm mb-4 line-clamp-2 leading-relaxed max-w-2xl">${escapeHTML(m.note || 'ไม่มีข้อมูลรายละเอียดเพิ่มเติม')}</p>
+                        
+                        <div class="flex flex-wrap gap-3 mt-auto">
+                            ${costHtml}
+                            <div class="bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-blue-200 text-sm">${isLoggedIn ? 'กลาง:' : 'ราคา:'} <span class="text-white font-bold ml-1">฿${pA}</span></div>
+                            ${isLoggedIn ? `
+                            <div class="bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-green-200 text-sm">ตัวแทน: <span class="text-white font-bold ml-1">฿${pB}</span></div>
+                            <div class="bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-orange-200 text-sm">เครือ: <span class="text-white font-bold ml-1">฿${pC}</span></div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div class="absolute top-0 right-0 hidden md:block">
+                        <button onclick="document.getElementById('filterMachine').value='all'; document.getElementById('input_filterMachine').value=''; renderCatalog();" class="text-slate-400 hover:text-white bg-slate-800 hover:bg-red-500/80 transition-all p-2 rounded-lg text-xs font-medium border border-slate-600 shadow-sm"><i class="fa-solid fa-times mr-1"></i> ล้างการกรอง</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCatalog() {
+            const grid = document.getElementById('productGrid');
+            const searchKeywordString = document.getElementById('searchInput').value.toLowerCase();
+            const searchKeywords = searchKeywordString.split(/\s+/).filter(k => k.length > 0);
+            grid.innerHTML = '';
+
+            if (currentCatalogMode === 'products') {
+                const selectedCategory = document.getElementById('filterCategory').value;
+                const selectedMachine = document.getElementById('filterMachine').value;
+                
+                renderMachineBanner(selectedMachine);
+
+                // สร้าง Set สำหรับ lookup O(1) เวลากรองตามเครื่องจักร
+                let mappedProductIds = new Set();
+                if (selectedMachine !== 'all') {
+                    db.mappings.forEach(m => {
+                        if (String(m.machine_id) === String(selectedMachine)) {
+                            mappedProductIds.add(String(m.product_id));
+                        }
+                    });
+                }
+
+                let filteredProducts = db.products.filter(p => {
+                    const textToSearch = `${p.id} ${p.name}`.toLowerCase();
+                    const matchSearch = searchKeywords.length === 0 || searchKeywords.every(kw => textToSearch.includes(kw));
+                    let matchCategory = selectedCategory === 'all' || p.category === selectedCategory;
+                    let matchMachine = selectedMachine === 'all' || mappedProductIds.has(String(p.id));
+                    return matchSearch && matchCategory && matchMachine;
+                });
+
+                if (filteredProducts.length === 0) {
+                    grid.innerHTML = `<div class="col-span-full py-16 flex flex-col items-center justify-center text-gray-400"><i class="fa-solid fa-box-open text-5xl mb-4 opacity-50"></i><p class="text-lg">ไม่พบข้อมูลสินค้าที่ตรงกับเงื่อนไข</p></div>`;
+                    return;
+                }
+
+                // สร้าง machineMap สำหรับ O(1) lookup ชื่อเครื่องจักรจาก mapping
+                const machineMap = new Map();
+                db.machines.forEach(m => machineMap.set(String(m.id), m));
+                const productToMachinesMap = new Map();
+                db.mappings.forEach(m => {
+                    const pid = String(m.product_id);
+                    const mac = machineMap.get(String(m.machine_id));
+                    if (mac) {
+                        if (!productToMachinesMap.has(pid)) productToMachinesMap.set(pid, []);
+                        productToMachinesMap.get(pid).push(mac.name);
+                    }
+                });
+
+                const displayLimit = 200;
+                const totalFound = filteredProducts.length;
+                filteredProducts = filteredProducts.slice(0, displayLimit);
+
+                filteredProducts.forEach(p => {
+                    const relatedMachines = productToMachinesMap.get(String(p.id)) || [];
+                    let badges = relatedMachines.map(name => `<span class="bg-gray-100 text-gray-600 text-[11px] px-2 py-0.5 rounded border border-gray-200 truncate max-w-full" title="${escapeHTML(name)}">${escapeHTML(name)}</span>`).join('');
+                    let imgSource = p.image_url ? p.image_url : `https://placehold.co/400x300/f8fafc/94a3b8?text=No+Image`;
+
+                    const costVal = parseFloat(String(p.cost).replace(/,/g, '')) || 0;
+                    const costStr = costVal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    const pA = fNumber(p.price_a, costVal * 2.1);
+                    const pB = fNumber(p.price_b, costVal * 1.7);
+                    const pC = fNumber(p.price_c, costVal * 1.3);
+
+                    let costLineHtml = (isShowCostInCatalog && isLoggedIn) ? `<div class="flex justify-between items-center text-sm bg-red-50 px-2 py-1.5 rounded-lg mb-3 border border-red-100"><span class="text-red-700 font-medium">ราคาต้นทุน:</span><span class="font-bold text-red-600 text-base">฿${costStr}</span></div>` : '';
+
+                    const noteHtml = p.note ? `
+                                <div class="mb-3 flex items-start gap-1.5 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-2">
+                                    <i class="fa-solid fa-note-sticky text-amber-400 text-xs mt-0.5 flex-shrink-0"></i>
+                                    <p class="text-xs text-amber-800 line-clamp-2 leading-relaxed" title="${escapeHTML(p.note)}">${escapeHTML(p.note)}</p>
+                                </div>` : '';
+
+                    let card = `
+                        <div onclick="openProductDetailModal('${escapeForJS(p.id)}')" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-blue-200 transition-all duration-300 group flex flex-col h-full transform hover:-translate-y-1 cursor-pointer">
+                            <div class="h-48 sm:h-52 bg-slate-50 overflow-hidden relative flex-shrink-0 flex items-center justify-center">
+                                <img src="${escapeHTML(imgSource)}" alt="${escapeHTML(p.name)}" class="max-w-full max-h-full object-contain p-2 group-hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/400x300/fee2e2/ef4444?text=Image+Error'">
+                                <div class="absolute top-3 left-3 bg-white/90 backdrop-blur px-2.5 py-1 rounded-md text-xs font-bold text-gray-800 shadow-sm border border-gray-100">${escapeHTML(p.id)}</div>
+                                <button class="img-zoom-btn" onclick="event.stopPropagation(); openImageLightbox('${escapeForJS(imgSource)}', '${escapeForJS(p.name)}')">
+                                    <i class="fa-solid fa-magnifying-glass-plus"></i> ขยายภาพ
+                                </button>
+                            </div>
+                            <div class="p-5 flex flex-col flex-1">
+                                <h3 class="text-lg font-bold text-gray-800 mb-1 line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</h3>
+                                <div class="flex flex-wrap gap-2 mb-3">
+                                    <span class="text-xs font-medium text-blue-500 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">${escapeHTML(p.category) || 'ไม่ระบุประเภท'}</span>
+                                    <span class="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">หน่วย: ${escapeHTML(p.unit) || 'ชิ้น'}</span>
+                                </div>
+                                <div class="mb-4">
+                                    ${costLineHtml}
+                                    <div class="space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                                        <div class="flex justify-between items-center text-sm"><span class="text-gray-500">${isLoggedIn ? 'ราคากลาง:' : 'ราคา:'}</span><span class="font-bold text-blue-600 text-base">฿${pA}</span></div>
+                                        ${isLoggedIn ? `
+                                        <div class="flex justify-between items-center text-sm"><span class="text-gray-500">ราคาตัวแทน:</span><span class="font-bold text-green-600 text-base">฿${pB}</span></div>
+                                        <div class="flex justify-between items-center text-sm"><span class="text-gray-500">ราคาในเครือ:</span><span class="font-bold text-orange-600 text-base">฿${pC}</span></div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                                ${noteHtml}
+                                <div class="border-t border-gray-100 pt-3 mt-auto">
+                                    <p class="text-[10px] text-gray-400 mb-2 uppercase tracking-wider font-semibold"><i class="fa-solid fa-microchip mr-1"></i> ใช้กับเครื่องจักร:</p>
+                                    <div class="flex flex-wrap gap-1.5">${badges || '<span class="text-xs text-gray-400 italic bg-gray-50 px-2 py-1 rounded">ยังไม่ระบุ</span>'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    grid.insertAdjacentHTML('beforeend', card);
+                });
+
+                if (totalFound > displayLimit) {
+                    grid.insertAdjacentHTML('beforeend', `
+                        <div class="col-span-full py-5 text-center text-amber-600 bg-amber-50 rounded-2xl border border-amber-200 font-medium text-sm">
+                            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i>
+                            แสดง 200 รายการแรก จากทั้งหมด ${totalFound} รายการ — กรุณาค้นหาเพื่อระบุสินค้าเพิ่มเติม
+                        </div>`);
+                }
+
+            } else {
+                document.getElementById('selectedMachineBanner').classList.add('hidden');
+
+                let filteredMachines = db.machines.filter(m => {
+                    const textToSearch = `${m.id} ${m.name}`.toLowerCase();
+                    return searchKeywords.length === 0 || searchKeywords.every(kw => textToSearch.includes(kw));
+                });
+
+                if (filteredMachines.length === 0) {
+                    grid.innerHTML = `<div class="col-span-full py-16 flex flex-col items-center justify-center text-gray-400"><i class="fa-solid fa-industry text-5xl mb-4 opacity-50"></i><p class="text-lg">ไม่พบข้อมูลเครื่องจักรที่ค้นหา</p></div>`;
+                    return;
+                }
+
+                const displayLimitM = 200;
+                const totalFoundM = filteredMachines.length;
+                const itemsToRender = filteredMachines.slice(0, displayLimitM);
+
+                itemsToRender.forEach(m => {
+                    let imgSource = m.image_url ? m.image_url : `https://placehold.co/400x300/f8fafc/94a3b8?text=No+Image`;
+                    const clickAction = `openMachineDetailModal('${escapeForJS(m.id)}');`;
+
+                    const costVal = parseFloat(String(m.cost).replace(/,/g, '')) || 0;
+                    const costStr = costVal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    const pA = fNumberM(m.price_a, costVal * 2.1);
+                    const pB = fNumberM(m.price_b, costVal * 1.7);
+                    const pC = fNumberM(m.price_c, costVal * 1.3);
+
+                    let costLineHtml = (isShowCostInCatalog && isLoggedIn) ? `<div class="flex justify-between items-center text-sm bg-red-50 px-2 py-1.5 rounded-lg mb-3 border border-red-100"><span class="text-red-700 font-medium">ราคาต้นทุน:</span><span class="font-bold text-red-600 text-base">฿${costStr}</span></div>` : '';
+
+                    let card = `
+                        <div onclick="${clickAction}" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg hover:border-purple-300 transition-all duration-300 group flex flex-col h-full transform hover:-translate-y-1 cursor-pointer">
+                            <div class="h-56 bg-slate-800 overflow-hidden relative flex-shrink-0 flex items-center justify-center p-3">
+                                <img src="${escapeHTML(imgSource)}" alt="${escapeHTML(m.name)}" class="max-w-full max-h-full object-contain group-hover:scale-105 transition duration-500 rounded" onerror="this.src='https://placehold.co/400x300/1e293b/94a3b8?text=Image+Error'">
+                                <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
+                                <div class="absolute bottom-3 left-4 right-4">
+                                    <span class="bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-1 inline-block">Machine</span>
+                                    <h3 class="text-base font-bold text-white line-clamp-2 leading-snug group-hover:text-purple-300 transition-colors">${escapeHTML(m.name)}</h3>
+                                </div>
+                            </div>
+                            <div class="p-4 flex flex-col flex-1 bg-white">
+                                <div class="flex items-center justify-between gap-2 mb-2 text-sm text-gray-500">
+                                    <span><span class="font-bold text-gray-800">รหัส:</span> ${escapeHTML(m.id)}</span>
+                                    <span class="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">หน่วย: ${escapeHTML(m.unit) || 'เครื่อง'}</span>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    ${costLineHtml}
+                                    <div class="space-y-1.5 bg-purple-50 p-3 rounded-xl border border-purple-100">
+                                        <div class="flex justify-between items-center text-xs"><span class="text-gray-500">${isLoggedIn ? 'ราคากลาง:' : 'ราคา:'}</span><span class="font-bold text-blue-600">฿${pA}</span></div>
+                                        ${isLoggedIn ? `
+                                        <div class="flex justify-between items-center text-xs"><span class="text-gray-500">ราคาตัวแทน:</span><span class="font-bold text-green-600">฿${pB}</span></div>
+                                        <div class="flex justify-between items-center text-xs"><span class="text-gray-500">ราคาในเครือ:</span><span class="font-bold text-orange-600">฿${pC}</span></div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+
+                                <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-4 flex-1">${escapeHTML(m.note || 'ไม่มีรายละเอียดเพิ่มเติม')}</p>
+                                <div class="mt-auto flex justify-between items-center pt-3 border-t border-gray-100">
+                                    <span class="text-xs font-semibold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-md group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                                        คลิกเพื่อดูอะไหล่ <i class="fa-solid fa-arrow-right ml-1 text-[10px]"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    grid.insertAdjacentHTML('beforeend', card);
+                });
+
+                if (totalFoundM > displayLimitM) {
+                    grid.insertAdjacentHTML('beforeend', `
+                        <div class="col-span-full py-5 text-center text-amber-600 bg-amber-50 rounded-2xl border border-amber-200 font-medium text-sm">
+                            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i>
+                            แสดง 200 เครื่องแรก จากทั้งหมด ${totalFoundM} รายการ — กรุณาค้นหาเพื่อระบุเครื่องจักรเพิ่มเติม
+                        </div>`);
+                }
+            }
+        }
+
+        function openMachineDetailModal(id) {
+            const m = db.machines.find(x => x.id === id || x.id == id);
+            if (!m) return;
+
+            document.getElementById('mdm_id').innerText = m.id;
+            document.getElementById('mdm_name').innerText = m.name;
+            document.getElementById('mdm_unit').innerText = 'หน่วย: ' + (m.unit || 'เครื่อง');
+            document.getElementById('mdm_note').innerText = m.note || 'ไม่มีรายละเอียดเพิ่มเติม';
+            document.getElementById('mdm_image').src = m.image_url || 'https://placehold.co/800x500/1e293b/94a3b8?text=No+Image';
+
+            const costVal = parseFloat(String(m.cost).replace(/,/g, '')) || 0;
+            document.getElementById('mdm_cost').innerText = '฿' + costVal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('mdm_price_a_label').innerText = isLoggedIn ? 'ราคากลาง' : 'ราคา';
+            document.getElementById('mdm_price_a').innerText = '฿' + fNumberM(m.price_a, costVal * 2.1);
+            document.getElementById('mdm_price_b').innerText = '฿' + fNumberM(m.price_b, costVal * 1.7);
+            document.getElementById('mdm_price_c').innerText = '฿' + fNumberM(m.price_c, costVal * 1.3);
+
+            if (isShowCostInCatalog && isLoggedIn) document.getElementById('mdm_cost_box').classList.remove('hidden');
+            else document.getElementById('mdm_cost_box').classList.add('hidden');
+
+            if (isLoggedIn) {
+                document.getElementById('mdm_price_b_box').classList.remove('hidden');
+                document.getElementById('mdm_price_c_box').classList.remove('hidden');
+            } else {
+                document.getElementById('mdm_price_b_box').classList.add('hidden');
+                document.getElementById('mdm_price_c_box').classList.add('hidden');
+            }
+
+            // ผูกปุ่มดูอะไหล่
+            const viewBtn = document.getElementById('mdm_view_parts_btn');
+            viewBtn.onclick = function() {
+                closeMachineDetailModal();
+                document.getElementById('filterMachine').value = m.id;
+                document.getElementById('input_filterMachine').value = m.id + ' : ' + m.name;
+                setCatalogMode('products');
+            };
+
+            document.getElementById('machineDetailModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMachineDetailModal() {
+            document.getElementById('machineDetailModal').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        function openProductDetailModal(id) {
+            const p = db.products.find(x => x.id == id);
+            if (!p) return;
+
+            document.getElementById('pd_id').innerText = p.id;
+            document.getElementById('pd_name').innerText = p.name;
+            document.getElementById('pd_category').innerText = p.category || 'ไม่ระบุ';
+            document.getElementById('pd_unit').innerText = 'หน่วย: ' + (p.unit || 'ชิ้น');
+            document.getElementById('pd_note').innerText = p.note || '-';
+            document.getElementById('pd_image').src = p.image_url || 'https://placehold.co/400x300/f8fafc/94a3b8?text=No+Image';
+            
+            const costVal = parseFloat(String(p.cost).replace(/,/g, '')) || 0;
+            document.getElementById('pd_cost').innerText = '฿' + costVal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('pd_price_a_label').innerText = isLoggedIn ? 'ราคากลาง' : 'ราคา';
+            document.getElementById('pd_price_a').innerText = '฿' + fNumber(p.price_a, costVal * 2.1);
+            document.getElementById('pd_price_b').innerText = '฿' + fNumber(p.price_b, costVal * 1.7);
+            document.getElementById('pd_price_c').innerText = '฿' + fNumber(p.price_c, costVal * 1.3);
+
+            if(isShowCostInCatalog && isLoggedIn) document.getElementById('pd_cost_box').classList.remove('hidden');
+            else document.getElementById('pd_cost_box').classList.add('hidden');
+
+            if (isLoggedIn) {
+                document.getElementById('pd_price_b_box').classList.remove('hidden');
+                document.getElementById('pd_price_c_box').classList.remove('hidden');
+            } else {
+                document.getElementById('pd_price_b_box').classList.add('hidden');
+                document.getElementById('pd_price_c_box').classList.add('hidden');
+            }
+
+            // แก้บัค 1: ใช้ == แทน === เพื่อรองรับกรณี product_id ใน mapping เป็น number แต่ p.id เป็น string
+            const relatedMachineIds = db.mappings.filter(m => m.product_id == p.id).map(m => m.machine_id);
+            const machineGrid = document.getElementById('pd_machines_grid');
+            machineGrid.innerHTML = '';
+
+            if (relatedMachineIds.length === 0) {
+                machineGrid.innerHTML = `<div class="col-span-full py-6 text-center text-gray-400 bg-white rounded-xl border border-dashed border-gray-200"><p class="text-sm"><i class="fa-solid fa-link-slash mr-2"></i>ยังไม่มีการจับคู่เครื่องจักรกับอะไหล่ชิ้นนี้</p></div>`;
+            } else {
+                relatedMachineIds.forEach(mId => {
+                    // แก้บัค 2: ใช้ == แทน === เพื่อรองรับ type mismatch ระหว่าง machine_id ใน mapping กับ mac.id
+                    const m = db.machines.find(mac => mac.id == mId);
+                    if (m) {
+                        let mImg = m.image_url || 'https://placehold.co/100x100/334155/94a3b8?text=No+Img';
+                        let action = `closeProductDetailModal(); document.getElementById('filterMachine').value='${escapeForJS(m.id)}'; document.getElementById('input_filterMachine').value='${escapeForJS(m.id)} : ${escapeForJS(m.name)}'; renderCatalog();`;
+                        
+                        let mCard = `
+                            <div onclick="${action}" class="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition cursor-pointer group">
+                                <img src="${escapeHTML(mImg)}" class="w-12 h-12 object-cover rounded-lg bg-slate-100" onerror="this.src='https://placehold.co/100x100/334155/94a3b8?text=Err'">
+                                <div>
+                                    <p class="text-xs font-bold text-gray-500 mb-0.5 group-hover:text-blue-500 transition">${escapeHTML(m.id)}</p>
+                                    <p class="text-sm font-semibold text-gray-800 line-clamp-1" title="${escapeHTML(m.name)}">${escapeHTML(m.name)}</p>
+                                </div>
+                            </div>
+                        `;
+                        machineGrid.insertAdjacentHTML('beforeend', mCard);
+                    }
+                });
+            }
+            document.getElementById('productDetailModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeProductDetailModal() {
+            document.getElementById('productDetailModal').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        function openImageLightbox(src, caption) {
+            const lb = document.getElementById('imageLightbox');
+            document.getElementById('lightboxImg').src = src;
+            document.getElementById('lightboxCaption').textContent = caption || '';
+            lb.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeImageLightbox() {
+            document.getElementById('imageLightbox').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+        // Close modals with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeImageLightbox();
+                closeProductDetailModal();
+                closeMachineDetailModal();
+            }
+        });
+
+        function getBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        async function submitAddProduct(e) {
+            e.preventDefault();
+            const id = document.getElementById('ap_id').value;
+            if(db.products.some(p => p.id == id)) { showToast('รหัสสินค้านี้มีอยู่ในระบบแล้ว! โปรดใช้รหัสอื่น', 'error'); return; }
+            
+            let base64 = null;
+            if (document.getElementById('ap_image').files.length > 0) base64 = await getBase64(document.getElementById('ap_image').files[0]);
+
+            let payload = { 
+                id: id, name: document.getElementById('ap_name').value, unit: document.getElementById('ap_unit').value, 
+                cost: document.getElementById('ap_cost').value, category: document.getElementById('ap_cat').value, 
+                note: document.getElementById('ap_note').value, imageBase64: base64 
+            };
+
+            showLoading('กำลังบันทึกข้อมูลและอัปโหลดรูป (อาจใช้เวลาสักครู่)...');
+            try {
+                let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'addProduct', payload: payload }) });
+                let result = await res.json();
+                if(result.status === 'success') { showToast('เพิ่มสินค้าเข้าระบบเรียบร้อย'); document.getElementById('formAddProduct').reset(); fetchData(); }
+                else showToast('เกิดข้อผิดพลาด: ' + result.message, 'error');
+            } catch (err) { showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error'); }
+            hideLoading();
+        }
+
+        function openEditProductModal(id) {
+            const p = db.products.find(x => x.id == id);
+            if(!p) return;
+            document.getElementById('ep_id').value = p.id; document.getElementById('ep_id_display').value = p.id;
+            document.getElementById('ep_name').value = p.name || ''; document.getElementById('ep_unit').value = p.unit || '';
+            document.getElementById('ep_cost').value = p.cost || ''; document.getElementById('ep_cat').value = p.category || '';
+            document.getElementById('ep_note').value = p.note || ''; document.getElementById('ep_image').value = ''; 
+            document.getElementById('editProductModal').classList.remove('hidden');
+        }
+
+        function closeEditProductModal() { document.getElementById('editProductModal').classList.add('hidden'); }
+
+        async function submitEditProduct(e) {
+            e.preventDefault();
+            let base64 = null;
+            if (document.getElementById('ep_image').files.length > 0) base64 = await getBase64(document.getElementById('ep_image').files[0]);
+
+            let payload = { 
+                id: document.getElementById('ep_id').value, name: document.getElementById('ep_name').value, unit: document.getElementById('ep_unit').value, 
+                cost: document.getElementById('ep_cost').value, category: document.getElementById('ep_cat').value, note: document.getElementById('ep_note').value, imageBase64: base64
+            };
+
+            showLoading('กำลังบันทึกการแก้ไขข้อมูล...');
+            try {
+                let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'editProduct', payload: payload }) });
+                let result = await res.json();
+                if(result.status === 'success') { showToast('บันทึกข้อมูลการแก้ไขเรียบร้อย'); closeEditProductModal(); fetchData(); } 
+                else showToast('เกิดข้อผิดพลาด: ' + result.message, 'error');
+            } catch (err) { showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error'); }
+            hideLoading();
+        }
+
+        function openAddMachineModal() {
+            document.getElementById('formAddMachine').reset();
+            document.getElementById('am_image_preview_wrap').classList.add('hidden');
+            document.getElementById('am_image_placeholder').classList.remove('hidden');
+            document.getElementById('addMachineModal').classList.remove('hidden');
+        }
+
+        function closeAddMachineModal() { document.getElementById('addMachineModal').classList.add('hidden'); }
+
+        function openEditMachineModal(id) {
+            const m = db.machines.find(x => x.id == id);
+            if(!m) return;
+            document.getElementById('em_id').value = m.id;
+            document.getElementById('em_id_display').value = m.id;
+            document.getElementById('em_name').value = m.name || '';
+            document.getElementById('em_note').value = m.note || '';
+            document.getElementById('em_cost').value = m.cost || '';
+            document.getElementById('em_price_a').value = m.price_a || '';
+            document.getElementById('em_price_b').value = m.price_b || '';
+            document.getElementById('em_price_c').value = m.price_c || '';
+            document.getElementById('em_image').value = '';
+            
+            if(m.image_url) {
+                document.getElementById('em_image_preview').src = m.image_url;
+                document.getElementById('em_image_filename').textContent = 'รูปภาพปัจจุบัน';
+                document.getElementById('em_image_preview_wrap').classList.remove('hidden');
+                document.getElementById('em_image_placeholder').classList.add('hidden');
+            } else {
+                document.getElementById('em_image_preview_wrap').classList.add('hidden');
+                document.getElementById('em_image_placeholder').classList.remove('hidden');
+            }
+            document.getElementById('editMachineModal').classList.remove('hidden');
+        }
+
+        function closeEditMachineModal() { document.getElementById('editMachineModal').classList.add('hidden'); }
+
+        function previewMachineImage(prefix) {
+            const input = document.getElementById(prefix + '_image');
+            const previewWrap = document.getElementById(prefix + '_image_preview_wrap');
+            const placeholder = document.getElementById(prefix + '_image_placeholder');
+            const preview = document.getElementById(prefix + '_image_preview');
+            const filename = document.getElementById(prefix + '_image_filename');
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    preview.src = e.target.result;
+                    filename.textContent = input.files[0].name;
+                    previewWrap.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        async function submitAddMachine(e) {
+            e.preventDefault();
+            const id = document.getElementById('am_id').value.trim();
+            const name = document.getElementById('am_name').value.trim();
+            if (!id || !name) { showToast('กรุณากรอกรหัสและชื่อเครื่องจักร', 'error'); return; }
+            if(db.machines.some(m => m.id == id)) { showToast('รหัสเครื่องจักรนี้มีอยู่แล้ว', 'error'); return; }
+            
+            let base64 = null;
+            if (document.getElementById('am_image').files.length > 0) base64 = await getBase64(document.getElementById('am_image').files[0]);
+            
+            // แก้บัค 4: แปลง empty string เป็น 0 ก่อนส่งไปยัง GS เพื่อป้องกัน "" บันทึกลง Sheets
+            let payload = {
+                id: id, name: name, 
+                note: document.getElementById('am_note').value,
+                cost: parseFloat(document.getElementById('am_cost').value) || 0,
+                price_a: parseFloat(document.getElementById('am_price_a').value) || 0,
+                price_b: parseFloat(document.getElementById('am_price_b').value) || 0,
+                price_c: parseFloat(document.getElementById('am_price_c').value) || 0,
+                imageBase64: base64
+            };
+
+            showLoading('กำลังบันทึกข้อมูลเครื่องจักร...');
+            try {
+                let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'addMachine', payload: payload }) });
+                let result = await res.json();
+                if(result.status === 'success') { showToast('เพิ่มเครื่องจักรเรียบร้อย'); closeAddMachineModal(); fetchData(); } 
+                else showToast(result.message, 'error');
+            } catch (err) { showToast('ข้อผิดพลาดเครือข่าย', 'error'); }
+            hideLoading();
+        }
+
+        async function submitEditMachine(e) {
+            e.preventDefault();
+            const id = document.getElementById('em_id').value;
+            const name = document.getElementById('em_name').value.trim();
+            if (!name) { showToast('กรุณากรอกชื่อเครื่องจักร', 'error'); return; }
+            
+            let base64 = null;
+            if (document.getElementById('em_image').files.length > 0) base64 = await getBase64(document.getElementById('em_image').files[0]);
+            
+            // แก้บัค 4: แปลง empty string เป็น 0 ก่อนส่งไปยัง GS เพื่อป้องกัน "" บันทึกลง Sheets
+            let payload = {
+                id: id, name: name, 
+                note: document.getElementById('em_note').value,
+                cost: parseFloat(document.getElementById('em_cost').value) || 0,
+                price_a: parseFloat(document.getElementById('em_price_a').value) || 0,
+                price_b: parseFloat(document.getElementById('em_price_b').value) || 0,
+                price_c: parseFloat(document.getElementById('em_price_c').value) || 0,
+                imageBase64: base64
+            };
+
+            showLoading('กำลังบันทึกการแก้ไขข้อมูล...');
+            try {
+                let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'editMachine', payload: payload }) });
+                let result = await res.json();
+                if(result.status === 'success') { showToast('บันทึกข้อมูลเครื่องจักรเรียบร้อย'); closeEditMachineModal(); fetchData(); } 
+                else showToast('เกิดข้อผิดพลาด: ' + result.message, 'error');
+            } catch (err) { showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error'); }
+            hideLoading();
+        }
+
+        function renderMachineTable() {
+            const tbody = document.getElementById('machineTableBody');
+            const countEl = document.getElementById('machineCount');
+            const searchKeywordString = document.getElementById('searchMachine') ? document.getElementById('searchMachine').value.toLowerCase() : '';
+            const searchKeywords = searchKeywordString.split(/\s+/).filter(k => k.length > 0);
+            tbody.innerHTML = '';
+            
+            let filteredMachines = db.machines;
+            if (searchKeywords.length > 0) {
+                filteredMachines = filteredMachines.filter(m => {
+                    const textToSearch = `${m.id} ${m.name}`.toLowerCase();
+                    return searchKeywords.every(kw => textToSearch.includes(kw));
+                });
+            }
+            
+            if(countEl) countEl.textContent = filteredMachines.length + ' รายการ';
+            
+            if(filteredMachines.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-10 text-center text-gray-400"><i class="fa-solid fa-industry text-4xl mb-3 opacity-30 block"></i>ไม่พบข้อมูลเครื่องจักรที่ค้นหา</td></tr>`;
+                return;
+            }
+            
+            filteredMachines.forEach(m => {
+                const imgSrc = m.image_url || 'https://placehold.co/80x80/f1f5f9/94a3b8?text=No+Img';
+                let tr = `
+                    <tr class="hover:bg-slate-50/80 transition-colors duration-150 border-b border-gray-100 last:border-0">
+                        <td class="p-3 text-center">
+                            <img src="${escapeHTML(imgSrc)}" alt="${escapeHTML(m.name)}" class="w-14 h-14 object-cover rounded-xl shadow-sm border border-gray-200 bg-white mx-auto" onerror="this.src='https://placehold.co/80x80/f1f5f9/94a3b8?text=Err'">
+                        </td>
+                        <td class="p-4 font-semibold text-gray-800 whitespace-nowrap">${escapeHTML(m.id)}</td>
+                        <td class="p-4 text-gray-600">${escapeHTML(m.name)}</td>
+                        <td class="p-4 text-gray-500 max-w-[150px] truncate" title="${escapeHTML(m.note)}">${escapeHTML(m.note || '-')}</td>
+                        <td class="p-4 text-red-600 font-medium text-right">${fNumber(m.cost, 0)}</td>
+                        <td class="p-4 text-blue-600 font-bold text-right">${fNumber(m.price_a, 0)}</td>
+                        <td class="p-4 text-green-600 font-bold text-right">${fNumber(m.price_b, 0)}</td>
+                        <td class="p-4 text-orange-600 font-bold text-right">${fNumber(m.price_c, 0)}</td>
+                        <td class="p-4 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                <button onclick="openEditMachineModal('${escapeForJS(m.id)}')" class="text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 px-3 py-2 rounded-lg text-xs font-medium transition shadow-sm inline-flex items-center gap-1.5" title="แก้ไขข้อมูล"><i class="fa-solid fa-edit"></i><span class="hidden sm:inline">แก้ไข</span></button>
+                                <button onclick="requestDeleteMachine('${escapeForJS(m.id)}')" class="text-red-500 hover:text-white bg-red-50 hover:bg-red-600 px-3 py-2 rounded-lg text-xs font-medium transition shadow-sm inline-flex items-center gap-1.5" title="ลบเครื่องจักร"><i class="fa-solid fa-trash-alt"></i><span class="hidden sm:inline">ลบ</span></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', tr);
+            });
+        }
+
+        function initMappingView() {
+            selectedMappingProducts.clear();
+            currentSelectedMachineForMapping = '';
+            document.getElementById('map_machine_search').value = '';
+            document.getElementById('map_product_search').value = '';
+            const sugg = document.getElementById('machine_suggestions');
+            if (sugg) sugg.classList.add('hidden');
+            filterMapMachines(); 
+        }
+
+        function showMachineSuggestions() { document.getElementById('machine_suggestions').classList.remove('hidden'); filterMapMachines(); }
+        function hideMachineSuggestions() { setTimeout(() => { const sugg = document.getElementById('machine_suggestions'); if(sugg) sugg.classList.add('hidden'); }, 200); }
+
+        function filterMapMachines() {
+            const keywordString = document.getElementById('map_machine_search').value.toLowerCase();
+            const keywords = keywordString.split(/\s+/).filter(k => k.length > 0);
+            const selMach = document.getElementById('map_machine');
+            const suggContainer = document.getElementById('machine_suggestions');
+            const currentVal = selMach.value;
+            
+            selMach.innerHTML = '<option value="">-- เครื่องจักรที่เลือกจะแสดงที่นี่ --</option>';
+            if (suggContainer) suggContainer.innerHTML = '';
+            
+            let foundCurrent = false;
+            let matchCount = 0;
+            let renderCount = 0;
+            const maxSugg = 50;
+            
+            db.machines.forEach(m => {
+                const textToSearch = `${m.id} ${m.name}`.toLowerCase();
+                const isMatch = keywords.every(kw => textToSearch.includes(kw));
+                
+                if (keywords.length === 0 || isMatch) {
+                    selMach.insertAdjacentHTML('beforeend', `<option value="${escapeHTML(m.id)}">${escapeHTML(m.id)} : ${escapeHTML(m.name)}</option>`);
+                    if (m.id == currentVal) foundCurrent = true;
+                    
+                    if (suggContainer && renderCount < maxSugg) {
+                        let suggHtml = `
+                        <div class="p-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-0 transition" 
+                             onclick="selectMachineFromSuggestion('${escapeForJS(m.id)}', '${escapeForJS(m.name)}')">
+                            <span class="font-bold text-purple-700">${escapeHTML(m.id)}</span> : <span class="text-gray-700">${escapeHTML(m.name)}</span>
+                        </div>`;
+                        suggContainer.insertAdjacentHTML('beforeend', suggHtml);
+                        renderCount++;
+                    }
+                    matchCount++;
+                }
+            });
+            if (foundCurrent) selMach.value = currentVal;
+            if (suggContainer) {
+                if (matchCount === 0) suggContainer.innerHTML = '<div class="p-3 text-gray-400 text-sm text-center">ไม่พบเครื่องจักรที่ค้นหา</div>';
+                else if (matchCount > maxSugg) suggContainer.insertAdjacentHTML('beforeend', `<div class="p-2 text-center bg-amber-50 text-xs text-amber-600 border-t border-amber-100">พบอีก ${matchCount - maxSugg} เครื่อง — พิมพ์ชื่อเพื่อค้นหา</div>`);
+            }
+        }
+
+        function selectMachineFromSuggestion(id, name) {
+            document.getElementById('map_machine_search').value = id + ' ' + name;
+            const selMach = document.getElementById('map_machine');
+            selMach.innerHTML = `<option value="${escapeHTML(id)}">${escapeHTML(id)} : ${escapeHTML(name)}</option>`;
+            selMach.value = id;
+            const suggContainer = document.getElementById('machine_suggestions');
+            if(suggContainer) suggContainer.classList.add('hidden');
+            onMachineSelected();
+        }
+
+        function onMachineSelected() {
+            const machineId = document.getElementById('map_machine').value;
+            const prodSection = document.getElementById('map_products_section');
+            if (machineId !== currentSelectedMachineForMapping) { selectedMappingProducts.clear(); currentSelectedMachineForMapping = machineId; }
+            updateMappingSubmitButton();
+            if (machineId) { prodSection.classList.remove('hidden'); filterMapProducts(); } 
+            else { prodSection.classList.add('hidden'); }
+        }
+
+        function filterMapProducts() {
+            const keywordString = document.getElementById('map_product_search').value.toLowerCase();
+            const keywords = keywordString.split(/\s+/).filter(k => k.length > 0);
+            const selectedCategory = document.getElementById('map_category_filter').value;
+            
+            const list = document.getElementById('map_product_list');
+            const machineId = document.getElementById('map_machine').value;
+            
+            list.innerHTML = '';
+            const alreadyMapped = new Set(db.mappings.filter(m => m.machine_id == machineId).map(m => String(m.product_id)));
+            let visibleCount = 0;
+            let totalMatch = 0;
+            const renderLimit = 150;
+            
+            db.products.forEach(p => {
+                const textToSearch = `${p.id} ${p.name}`.toLowerCase();
+                const isMatchKeyword = keywords.every(kw => textToSearch.includes(kw));
+                const isMatchCategory = selectedCategory === 'all' || p.category === selectedCategory;
+
+                if ((keywords.length === 0 || isMatchKeyword) && isMatchCategory) {
+                    totalMatch++;
+                    if (visibleCount < renderLimit) {
+                        visibleCount++;
+                        const isAlreadyMapped = alreadyMapped.has(String(p.id));
+                        const isSelected = selectedMappingProducts.has(String(p.id));
+                        
+                        let html = `
+                            <label class="flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-slate-50 transition cursor-pointer ${isAlreadyMapped ? 'opacity-60 bg-slate-50' : ''}">
+                                <input type="checkbox" value="${escapeHTML(p.id)}" 
+                                    ${isAlreadyMapped ? 'disabled checked' : (isSelected ? 'checked' : '')} 
+                                    onchange="toggleMapProduct('${escapeForJS(p.id)}', this.checked)"
+                                    class="w-5 h-5 text-purple-600 rounded border-gray-300 focus:ring-purple-500 disabled:bg-gray-200 disabled:border-gray-300 transition cursor-pointer disabled:cursor-not-allowed">
+                                <img src="${escapeHTML(p.image_url || 'https://placehold.co/100x100?text=NoImg')}" class="w-10 h-10 object-cover rounded-lg shadow-sm bg-white" onerror="this.src='https://placehold.co/100x100?text=Err'">
+                                <div class="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 overflow-hidden">
+                                    <span class="font-bold text-gray-800 sm:w-32 truncate" title="${escapeHTML(p.id)}">${escapeHTML(p.id)}</span>
+                                    <span class="text-gray-600 flex-1 truncate text-sm" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</span>
+                                    <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded border border-gray-200 whitespace-nowrap hidden md:inline-block">${escapeHTML(p.category || '-')}</span>
+                                    ${isAlreadyMapped ? '<span class="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-md font-bold whitespace-nowrap"><i class="fa-solid fa-check mr-1"></i> จับคู่แล้ว</span>' : ''}
+                                </div>
+                            </label>
+                        `;
+                        list.insertAdjacentHTML('beforeend', html);
+                    }
+                }
+            });
+
+            if (totalMatch > renderLimit) {
+                list.insertAdjacentHTML('beforeend', `<div class="p-3 text-center text-amber-600 bg-amber-50 rounded-xl border border-amber-100 text-xs font-medium"><i class="fa-solid fa-info-circle mr-1"></i>แสดง 150 รายการแรก จากทั้งหมด ${totalMatch} รายการ — ค้นหาชื่อหรือรหัสเพื่อจำกัดผลลัพธ์</div>`);
+            }
+
+            if (visibleCount === 0) list.innerHTML = `<div class="p-8 text-center text-gray-400"><i class="fa-solid fa-box-open text-3xl mb-3 opacity-50"></i><br>ไม่พบอะไหล่ที่ค้นหา หรือในหมวดหมู่นี้</div>`;
+        }
+
+        function toggleMapProduct(productId, isChecked) {
+            if (isChecked) selectedMappingProducts.add(productId);
+            else selectedMappingProducts.delete(productId);
+            updateMappingSubmitButton();
+        }
+
+        function selectAllMapProducts() {
+            const checkboxes = document.querySelectorAll('#map_product_list input[type="checkbox"]:not(:disabled)');
+            let allChecked = true;
+            checkboxes.forEach(cb => { if (!cb.checked) allChecked = false; });
+            checkboxes.forEach(cb => { cb.checked = !allChecked; if (cb.checked) selectedMappingProducts.add(cb.value); else selectedMappingProducts.delete(cb.value); });
+            updateMappingSubmitButton();
+        }
+
+        function updateMappingSubmitButton() {
+            document.getElementById('map_selected_count').innerText = selectedMappingProducts.size;
+            const btnSubmit = document.getElementById('btn_submit_mapping');
+            if (selectedMappingProducts.size > 0) {
+                btnSubmit.disabled = false; btnSubmit.classList.remove('opacity-50', 'cursor-not-allowed'); btnSubmit.classList.add('hover:bg-purple-700', 'shadow-purple-600/30');
+            } else {
+                btnSubmit.disabled = true; btnSubmit.classList.add('opacity-50', 'cursor-not-allowed'); btnSubmit.classList.remove('hover:bg-purple-700', 'shadow-purple-600/30');
+            }
+        }
+
+        async function submitAddMapping(e) {
+            e.preventDefault();
+            const mid = document.getElementById('map_machine').value;
+            if(!mid || selectedMappingProducts.size === 0) { showToast('กรุณาเลือกเครื่องจักรและเลือกอะไหล่อย่างน้อย 1 รายการ', 'error'); return; }
+            const pids = Array.from(selectedMappingProducts); 
+            showLoading(`กำลังบันทึกการจับคู่อะไหล่ ${pids.length} รายการ...`);
+            try {
+                let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'addMapping', payload: { product_ids: pids, machine_id: mid } }) });
+                let result = await res.json();
+                if(result.status === 'success') { showToast('บันทึกการจับคู่อะไหล่เรียบร้อย'); fetchData(); } 
+                else showToast(result.message, 'error');
+            } catch (err) { showToast('เกิดข้อผิดพลาดเครือข่าย', 'error'); }
+            hideLoading();
+        }
+
+        function renderEditProductTable() {
+            const tbody = document.getElementById('editProductTableBody');
+            const searchKeywordString = document.getElementById('searchEditProduct').value.toLowerCase();
+            const searchKeywords = searchKeywordString.split(/\s+/).filter(k => k.length > 0);
+            tbody.innerHTML = '';
+
+            let filteredProducts = db.products;
+            if (searchKeywords.length > 0) {
+                filteredProducts = filteredProducts.filter(p => {
+                    const textToSearch = `${p.id} ${p.name}`.toLowerCase();
+                    return searchKeywords.every(kw => textToSearch.includes(kw));
+                });
+            }
+            if (filteredProducts.length === 0) { tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-gray-500">ไม่พบรายการอะไหล่ที่ค้นหา</td></tr>`; return; }
+
+            filteredProducts.forEach(p => {
+                const costVal = parseFloat(String(p.cost).replace(/,/g, '')) || 0;
+                const costStr = costVal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                const pA = fNumber(p.price_a, costVal * 2.1);
+                const pB = fNumber(p.price_b, costVal * 1.7);
+                const pC = fNumber(p.price_c, costVal * 1.3);
+                let tr = `
+                    <tr class="hover:bg-blue-50/30 border-b border-gray-200 transition">
+                        <td class="p-3"><img src="${escapeHTML(p.image_url || 'https://placehold.co/100x100?text=NoImg')}" class="w-12 h-12 object-cover rounded-lg shadow-sm border border-gray-200 bg-white" onerror="this.src='https://placehold.co/100x100?text=Err'"></td>
+                        <td class="p-4 font-semibold text-gray-800">${escapeHTML(p.id)}</td>
+                        <td class="p-4 text-gray-700 max-w-xs truncate" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</td>
+                        <td class="p-4 text-gray-600">${escapeHTML(p.unit || '-')}</td>
+                        <td class="p-4 text-red-600 font-medium text-right">${costStr}</td>
+                        <td class="p-4 text-blue-600 font-bold text-right">${pA}</td>
+                        <td class="p-4 text-green-600 font-bold text-right">${pB}</td>
+                        <td class="p-4 text-orange-600 font-bold text-right">${pC}</td>
+                        <td class="p-4 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                <button onclick="openEditProductModal('${escapeForJS(p.id)}')" class="text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 px-3 py-2 rounded-lg text-xs font-medium transition shadow-sm inline-flex items-center" title="แก้ไขข้อมูล"><i class="fa-solid fa-edit"></i> <span class="hidden xl:inline ml-1.5">แก้ไข</span></button>
+                                <button onclick="requestDeleteProduct('${escapeForJS(p.id)}')" class="text-red-600 hover:text-white bg-red-50 hover:bg-red-600 px-3 py-2 rounded-lg text-xs font-medium transition shadow-sm inline-flex items-center" title="ลบข้อมูล"><i class="fa-solid fa-trash-alt"></i> <span class="hidden xl:inline ml-1.5">ลบ</span></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', tr);
+            });
+        }
+
+        function renderMappingTable() {
+            const tbody = document.getElementById('editMappingTableBody');
+            const searchInput = document.getElementById('searchMapping');
+            const machineFilter = document.getElementById('filterMappingMachine');
+            
+            const searchKeywordString = searchInput ? searchInput.value.toLowerCase() : '';
+            const searchKeywords = searchKeywordString.split(/\s+/).filter(k => k.length > 0);
+            const selectedMachine = machineFilter ? machineFilter.value : 'all';
+            
+            tbody.innerHTML = '';
+            
+            let filteredMappings = db.mappings.filter(m => {
+                const p = db.products.find(prod => prod.id == m.product_id);
+                const pName = p ? String(p.name).toLowerCase() : '';
+                const pId = String(m.product_id).toLowerCase();
+                const textToSearch = `${pId} ${pName}`;
+                
+                const matchSearch = searchKeywords.length === 0 || searchKeywords.every(kw => textToSearch.includes(kw));
+                const matchMachine = selectedMachine === 'all' || m.machine_id == selectedMachine;
+                return matchSearch && matchMachine;
+            });
+            if (filteredMappings.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-500">ไม่พบรายการจับคู่ที่ตรงกับเงื่อนไขการค้นหา</td></tr>`; return; }
+
+            filteredMappings.forEach((m, index) => {
+                const pName = db.products.find(p => p.id == m.product_id)?.name || 'ไม่พบชื่อสินค้า';
+                const mName = db.machines.find(mac => mac.id == m.machine_id)?.name || 'ไม่พบชื่อเครื่องจักร';
+                let tr = `
+                    <tr class="hover:bg-slate-50 transition border-b border-gray-100 last:border-0">
+                        <td class="p-4 text-center text-gray-500">${index + 1}</td>
+                        <td class="p-4"><div class="font-bold text-blue-600">${escapeHTML(m.product_id)}</div><div class="text-sm text-gray-500 mt-0.5">${escapeHTML(pName)}</div></td>
+                        <td class="p-4"><div class="font-bold text-green-600">${escapeHTML(m.machine_id)}</div><div class="text-sm text-gray-500 mt-0.5">${escapeHTML(mName)}</div></td>
+                        <td class="p-4 text-center"><button onclick="requestDeleteMapping('${escapeForJS(m.product_id)}', '${escapeForJS(m.machine_id)}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2.5 rounded-full transition shadow-sm" title="ยกเลิกการจับคู่"><i class="fa-solid fa-unlink"></i></button></td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', tr);
+            });
+        }
+
+        // แก้บัค 5: เพิ่มการเช็ค response status ใน delete functions ทั้งหมด
+        function requestDeleteMachine(id) {
+            confirmAction(`ยืนยันการลบเครื่องจักรรหัส "${id}" ใช่หรือไม่?\nการกระทำนี้จะลบประวัติการจับคู่อะไหล่ที่ผูกกับเครื่องจักรนี้ทั้งหมดด้วย`, async () => {
+                showLoading('กำลังลบข้อมูลระบบ...');
+                try {
+                    let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteMachine', payload: { id: id } }) });
+                    let result = await res.json();
+                    if (result.status === 'success') { showToast('ลบเครื่องจักรสำเร็จ'); fetchData(); }
+                    else { showToast('เกิดข้อผิดพลาด: ' + result.message, 'error'); hideLoading(); }
+                } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); hideLoading(); }
+            });
+        }
+
+        function requestDeleteProduct(id) {
+            confirmAction(`ยืนยันการลบอะไหล่รหัส "${id}" ใช่หรือไม่?\nคำเตือน: การลบนี้จะไม่สามารถกู้คืนข้อมูลได้`, async () => {
+                showLoading('กำลังลบสินค้าออกจากระบบ...');
+                try {
+                    let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteProduct', payload: { id: id } }) });
+                    let result = await res.json();
+                    if (result.status === 'success') { showToast('ลบสินค้าสำเร็จ'); fetchData(); }
+                    else { showToast('เกิดข้อผิดพลาด: ' + result.message, 'error'); hideLoading(); }
+                } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); hideLoading(); }
+            });
+        }
+
+        function requestDeleteMapping(pid, mid) {
+            confirmAction(`ยืนยันการยกเลิกการจับคู่ระหว่าง\nอะไหล่: ${pid}\nเครื่องจักร: ${mid}\nใช่หรือไม่?`, async () => {
+                showLoading('กำลังยกเลิกการจับคู่...');
+                try {
+                    let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteMapping', payload: { product_id: pid, machine_id: mid } }) });
+                    let result = await res.json();
+                    if (result.status === 'success') { showToast('ยกเลิกการจับคู่สำเร็จ'); fetchData(); }
+                    else { showToast('เกิดข้อผิดพลาด: ' + result.message, 'error'); hideLoading(); }
+                } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); hideLoading(); }
+            });
+        }
+    </script>
+</body>
+</html>
