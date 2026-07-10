@@ -565,10 +565,20 @@
                             <i class="fa-solid fa-rotate text-blue-500"></i>
                             <span>รีเฟรชข้อมูล</span>
                         </button>
+
+                        <!-- กำหนดการแสดงรายการ -->
+                        <div class="relative w-full sm:w-44 flex-shrink-0">
+                            <select id="catalogLimit" onchange="currentCatalogPage=1; renderCatalog();" class="w-full p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white text-sm shadow-sm transition cursor-pointer text-gray-700 font-medium">
+                                <option value="200">แสดง 200 รายการ</option>
+                                <option value="10">แสดง 10 รายการ</option>
+                                <option value="50">แสดง 50 รายการ</option>
+                                <option value="100">แสดง 100 รายการ</option>
+                            </select>
+                        </div>
                         
                         <div class="relative w-full lg:w-72 flex-shrink-0">
                             <i class="fa-solid fa-search absolute left-3.5 top-3 text-gray-400"></i>
-                            <input type="text" id="searchInput" onkeyup="renderCatalog()" placeholder="ค้นหารหัส หรือชื่อ..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm shadow-sm transition">
+                            <input type="text" id="searchInput" onkeyup="currentCatalogPage=1; renderCatalog()" placeholder="ค้นหารหัส หรือชื่อ..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm shadow-sm transition">
                         </div>
                         
                         <!-- Category Filter (ซ่อนในโหมดเครื่องจักร) -->
@@ -609,6 +619,9 @@
                     <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 relative z-10">
                         <!-- การ์ดจะถูกแทรกที่นี่ -->
                     </div>
+
+                    <!-- Catalog Pagination -->
+                    <div id="catalogPagination" class="mt-8 flex justify-center items-center gap-2 relative z-10"></div>
                 </section>
 
                 <section id="view-add-product" class="view-section hidden w-full">
@@ -726,7 +739,7 @@
                     <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">จับคู่อะไหล่กับเครื่องจักร</h2>
                     <p class="text-gray-500 text-sm mb-6">ค้นหาเครื่องจักรที่ต้องการ และเลือกอะไหล่ที่สามารถใช้ร่วมกันได้ทีละหลายรายการ</p>
                     
-                    <div class="bg-white p-5 sm:p-8 rounded-2xl shadow-sm border border-gray-100 w-full max-w-4xl relative z-20">
+                    <div class="bg-white p-5 sm:p-8 rounded-2xl shadow-sm border border-gray-100 w-full relative z-20">
                         <form onsubmit="submitAddMapping(event)">
                             
                             <div class="mb-8 p-5 bg-purple-50/50 border border-purple-100 rounded-xl relative z-30">
@@ -758,10 +771,10 @@
                                 <div class="flex flex-col md:flex-row gap-3 mb-4">
                                     <div class="relative w-full md:w-2/3">
                                         <i class="fa-solid fa-search absolute left-3.5 top-3 text-gray-400"></i>
-                                        <input type="text" id="map_product_search" onkeyup="filterMapProducts()" placeholder="พิมพ์ค้นหา รหัสหรือชื่อ (เว้นวรรคคำได้)" class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition shadow-sm">
+                                        <input type="text" id="map_product_search" onkeyup="currentMapProductPage=1; filterMapProducts()" placeholder="พิมพ์ค้นหา รหัสหรือชื่อ (เว้นวรรคคำได้)" class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition shadow-sm">
                                     </div>
                                     <div class="w-full md:w-1/3 flex-shrink-0">
-                                        <select id="map_category_filter" onchange="filterMapProducts()" class="w-full p-2.5 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 shadow-sm transition cursor-pointer text-sm text-gray-700">
+                                        <select id="map_category_filter" onchange="currentMapProductPage=1; filterMapProducts()" class="w-full p-2.5 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 shadow-sm transition cursor-pointer text-sm text-gray-700">
                                             <option value="all">-- ทุกประเภทอะไหล่ --</option>
                                         </select>
                                     </div>
@@ -775,6 +788,8 @@
                                         </button>
                                     </div>
                                     <div id="map_product_list" class="max-h-80 overflow-y-auto p-2 bg-white flex flex-col gap-1 table-scroll"></div>
+                                    <!-- Mapping Pagination -->
+                                    <div id="mapProductPagination" class="bg-slate-50 px-4 py-3 border-t border-gray-200 flex justify-center items-center gap-2"></div>
                                 </div>
                             </div>
 
@@ -840,7 +855,7 @@
                         </div>
                     </div>
 
-                    <div class="flex flex-col md:flex-row justify-start items-center gap-4 mb-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm w-full max-w-4xl">
+                    <div class="flex flex-col md:flex-row justify-start items-center gap-4 mb-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm w-full">
                         <div class="relative w-full md:w-80 flex-shrink-0">
                             <i class="fa-solid fa-search absolute left-3.5 top-3 text-gray-400"></i>
                             <input type="text" id="searchMapping" onkeyup="renderMappingTable()" placeholder="พิมพ์ค้นหารหัส หรือชื่ออะไหล่ (เว้นวรรคได้)..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 text-sm transition">
@@ -853,7 +868,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden w-full max-w-4xl">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden w-full">
                         <div class="overflow-x-auto w-full table-scroll pb-2">
                             <table class="min-w-full text-left text-sm whitespace-nowrap">
                                 <thead class="bg-slate-50 text-slate-700 border-b border-gray-200">
@@ -886,6 +901,10 @@
         let catalogCategories = [];
         let catalogMachines = [];
         let currentCatalogMode = 'products'; // 'products' หรือ 'machines'
+
+        let currentCatalogPage = 1;
+        let currentMapProductPage = 1;
+        const MAP_PRODUCT_LIMIT = 50;
 
         // ===== Auth System =====
         let isLoggedIn = false;
@@ -1338,6 +1357,8 @@
             document.getElementById(inputId).value = displayLabel; 
             document.getElementById(dropdownId).classList.add('hidden');
             
+            currentCatalogPage = 1;
+            
             if(!isCat && value !== 'all') {
                 setCatalogMode('products');
             } else {
@@ -1351,6 +1372,7 @@
         }
 
         function setCatalogMode(mode) {
+            currentCatalogPage = 1;
             currentCatalogMode = mode;
             const btnProd = document.getElementById('tabModeProducts');
             const btnMach = document.getElementById('tabModeMachines');
@@ -1428,6 +1450,8 @@
             const searchKeywords = searchKeywordString.split(/\s+/).filter(k => k.length > 0);
             grid.innerHTML = '';
 
+            const limit = parseInt(document.getElementById('catalogLimit').value) || 200;
+
             if (currentCatalogMode === 'products') {
                 const selectedCategory = document.getElementById('filterCategory').value;
                 const selectedMachine = document.getElementById('filterMachine').value;
@@ -1454,6 +1478,7 @@
 
                 if (filteredProducts.length === 0) {
                     grid.innerHTML = `<div class="col-span-full py-16 flex flex-col items-center justify-center text-gray-400"><i class="fa-solid fa-box-open text-5xl mb-4 opacity-50"></i><p class="text-lg">ไม่พบข้อมูลสินค้าที่ตรงกับเงื่อนไข</p></div>`;
+                    renderCatalogPagination(0);
                     return;
                 }
 
@@ -1470,11 +1495,17 @@
                     }
                 });
 
-                const displayLimit = 200;
-                const totalFound = filteredProducts.length;
-                filteredProducts = filteredProducts.slice(0, displayLimit);
+                const totalItems = filteredProducts.length;
+                const totalPages = Math.ceil(totalItems / limit);
+                
+                if (currentCatalogPage > totalPages) currentCatalogPage = totalPages;
+                if (currentCatalogPage < 1) currentCatalogPage = 1;
+                
+                const startIndex = (currentCatalogPage - 1) * limit;
+                const endIndex = startIndex + limit;
+                const pageProducts = filteredProducts.slice(startIndex, endIndex);
 
-                filteredProducts.forEach(p => {
+                pageProducts.forEach(p => {
                     const relatedMachines = productToMachinesMap.get(String(p.id)) || [];
                     let badges = relatedMachines.map(name => `<span class="bg-gray-100 text-gray-600 text-[11px] px-2 py-0.5 rounded border border-gray-200 truncate max-w-full" title="${escapeHTML(name)}">${escapeHTML(name)}</span>`).join('');
                     let imgSource = p.image_url ? p.image_url : `https://placehold.co/400x300/f8fafc/94a3b8?text=No+Image`;
@@ -1529,13 +1560,7 @@
                     grid.insertAdjacentHTML('beforeend', card);
                 });
 
-                if (totalFound > displayLimit) {
-                    grid.insertAdjacentHTML('beforeend', `
-                        <div class="col-span-full py-5 text-center text-amber-600 bg-amber-50 rounded-2xl border border-amber-200 font-medium text-sm">
-                            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i>
-                            แสดง 200 รายการแรก จากทั้งหมด ${totalFound} รายการ — กรุณาค้นหาเพื่อระบุสินค้าเพิ่มเติม
-                        </div>`);
-                }
+                renderCatalogPagination(totalPages);
 
             } else {
                 document.getElementById('selectedMachineBanner').classList.add('hidden');
@@ -1547,14 +1572,21 @@
 
                 if (filteredMachines.length === 0) {
                     grid.innerHTML = `<div class="col-span-full py-16 flex flex-col items-center justify-center text-gray-400"><i class="fa-solid fa-industry text-5xl mb-4 opacity-50"></i><p class="text-lg">ไม่พบข้อมูลเครื่องจักรที่ค้นหา</p></div>`;
+                    renderCatalogPagination(0);
                     return;
                 }
 
-                const displayLimitM = 200;
-                const totalFoundM = filteredMachines.length;
-                const itemsToRender = filteredMachines.slice(0, displayLimitM);
+                const totalItemsM = filteredMachines.length;
+                const totalPagesM = Math.ceil(totalItemsM / limit);
+                
+                if (currentCatalogPage > totalPagesM) currentCatalogPage = totalPagesM;
+                if (currentCatalogPage < 1) currentCatalogPage = 1;
+                
+                const startIndexM = (currentCatalogPage - 1) * limit;
+                const endIndexM = startIndexM + limit;
+                const pageMachines = filteredMachines.slice(startIndexM, endIndexM);
 
-                itemsToRender.forEach(m => {
+                pageMachines.forEach(m => {
                     let imgSource = m.image_url ? m.image_url : `https://placehold.co/400x300/f8fafc/94a3b8?text=No+Image`;
                     const clickAction = `openMachineDetailModal('${escapeForJS(m.id)}');`;
 
@@ -1605,14 +1637,154 @@
                     grid.insertAdjacentHTML('beforeend', card);
                 });
 
-                if (totalFoundM > displayLimitM) {
-                    grid.insertAdjacentHTML('beforeend', `
-                        <div class="col-span-full py-5 text-center text-amber-600 bg-amber-50 rounded-2xl border border-amber-200 font-medium text-sm">
-                            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i>
-                            แสดง 200 เครื่องแรก จากทั้งหมด ${totalFoundM} รายการ — กรุณาค้นหาเพื่อระบุเครื่องจักรเพิ่มเติม
-                        </div>`);
+                renderCatalogPagination(totalPagesM);
+            }
+        }
+
+        function renderCatalogPagination(totalPages) {
+            const container = document.getElementById('catalogPagination');
+            container.innerHTML = '';
+            
+            if (totalPages <= 1) {
+                container.classList.add('hidden');
+                return;
+            }
+            container.classList.remove('hidden');
+            
+            const prevDisabled = currentCatalogPage === 1;
+            let html = `
+                <button onclick="changeCatalogPage(${currentCatalogPage - 1})" ${prevDisabled ? 'disabled' : ''} 
+                        class="px-3.5 py-2 rounded-xl border text-sm font-semibold transition flex items-center justify-center gap-1.5 shadow-sm
+                               ${prevDisabled ? 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed' : 'bg-white border-gray-200 text-gray-700 hover:bg-slate-50 active:scale-95'}">
+                    <i class="fa-solid fa-chevron-left text-xs"></i> <<
+                </button>
+            `;
+            
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentCatalogPage - 2);
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            if (startPage > 1) {
+                html += `
+                    <button onclick="changeCatalogPage(1)" class="w-10 h-10 rounded-xl border text-sm font-semibold transition bg-white border-gray-200 text-gray-700 hover:bg-slate-50 active:scale-95">1</button>
+                `;
+                if (startPage > 2) {
+                    html += `<span class="text-gray-400 px-1">...</span>`;
                 }
             }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const isCurrent = i === currentCatalogPage;
+                html += `
+                    <button onclick="changeCatalogPage(${i})" 
+                            class="w-10 h-10 rounded-xl border text-sm font-bold transition shadow-sm
+                                   ${isCurrent ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-200 text-gray-700 hover:bg-slate-50 active:scale-95'}">
+                        ${i}
+                    </button>
+                `;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    html += `<span class="text-gray-400 px-1">...</span>`;
+                }
+                html += `
+                    <button onclick="changeCatalogPage(${totalPages})" class="w-10 h-10 rounded-xl border text-sm font-semibold transition bg-white border-gray-200 text-gray-700 hover:bg-slate-50 active:scale-95">${totalPages}</button>
+                `;
+            }
+            
+            const nextDisabled = currentCatalogPage === totalPages;
+            html += `
+                <button onclick="changeCatalogPage(${currentCatalogPage + 1})" ${nextDisabled ? 'disabled' : ''} 
+                        class="px-3.5 py-2 rounded-xl border text-sm font-semibold transition flex items-center justify-center gap-1.5 shadow-sm
+                               ${nextDisabled ? 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed' : 'bg-white border-gray-200 text-gray-700 hover:bg-slate-50 active:scale-95'}">
+                    >> <i class="fa-solid fa-chevron-right text-xs"></i>
+                </button>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        function renderMapProductPagination(totalPages) {
+            const container = document.getElementById('mapProductPagination');
+            container.innerHTML = '';
+            
+            if (totalPages <= 1) {
+                container.classList.add('hidden');
+                return;
+            }
+            container.classList.remove('hidden');
+            
+            const prevDisabled = currentMapProductPage === 1;
+            let html = `
+                <button type="button" onclick="changeMapProductPage(${currentMapProductPage - 1})" ${prevDisabled ? 'disabled' : ''} 
+                        class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition flex items-center justify-center gap-1 shadow-sm
+                               ${prevDisabled ? 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed' : 'bg-white border-gray-200 text-gray-700 hover:bg-slate-50 active:scale-95'}">
+                    <i class="fa-solid fa-chevron-left text-[10px]"></i> <<
+                </button>
+            `;
+            
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentMapProductPage - 2);
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            if (startPage > 1) {
+                html += `
+                    <button type="button" onclick="changeMapProductPage(1)" class="w-8 h-8 rounded-lg border text-xs font-semibold transition bg-white border-gray-200 text-gray-700 hover:bg-slate-50 active:scale-95">1</button>
+                `;
+                if (startPage > 2) {
+                    html += `<span class="text-gray-400 px-1 text-xs">...</span>`;
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const isCurrent = i === currentMapProductPage;
+                html += `
+                    <button type="button" onclick="changeMapProductPage(${i})" 
+                            class="w-8 h-8 rounded-lg border text-xs font-bold transition shadow-sm
+                                   ${isCurrent ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-200 text-gray-700 hover:bg-slate-50 active:scale-95'}">
+                        ${i}
+                    </button>
+                `;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    html += `<span class="text-gray-400 px-1 text-xs">...</span>`;
+                }
+                html += `
+                    <button type="button" onclick="changeMapProductPage(${totalPages})" class="w-8 h-8 rounded-lg border text-xs font-semibold transition bg-white border-gray-200 text-gray-700 hover:bg-slate-50 active:scale-95">${totalPages}</button>
+                `;
+            }
+            
+            const nextDisabled = currentMapProductPage === totalPages;
+            html += `
+                <button type="button" onclick="changeMapProductPage(${currentMapProductPage + 1})" ${nextDisabled ? 'disabled' : ''} 
+                        class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition flex items-center justify-center gap-1 shadow-sm
+                               ${nextDisabled ? 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed' : 'bg-white border-gray-200 text-gray-700 hover:bg-slate-50 active:scale-95'}">
+                    >> <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </button>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        function changeCatalogPage(page) {
+            currentCatalogPage = page;
+            renderCatalog();
+            document.getElementById('view-catalog').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function changeMapProductPage(page) {
+            currentMapProductPage = page;
+            filterMapProducts();
+            document.getElementById('map_product_list').scrollTop = 0;
         }
 
         function openMachineDetailModal(id) {
@@ -1991,6 +2163,7 @@
             document.getElementById('map_product_search').value = '';
             const sugg = document.getElementById('machine_suggestions');
             if (sugg) sugg.classList.add('hidden');
+            currentMapProductPage = 1;
             filterMapMachines(); 
         }
 
@@ -2053,6 +2226,7 @@
             const machineId = document.getElementById('map_machine').value;
             const prodSection = document.getElementById('map_products_section');
             if (machineId !== currentSelectedMachineForMapping) { selectedMappingProducts.clear(); currentSelectedMachineForMapping = machineId; }
+            currentMapProductPage = 1;
             updateMappingSubmitButton();
             if (machineId) { prodSection.classList.remove('hidden'); filterMapProducts(); } 
             else { prodSection.classList.add('hidden'); }
@@ -2068,47 +2242,59 @@
             
             list.innerHTML = '';
             const alreadyMapped = new Set(db.mappings.filter(m => m.machine_id == machineId).map(m => String(m.product_id)));
-            let visibleCount = 0;
-            let totalMatch = 0;
-            const renderLimit = 150;
             
-            db.products.forEach(p => {
+            let filteredProducts = db.products.filter(p => {
                 const textToSearch = `${p.id} ${p.name}`.toLowerCase();
                 const isMatchKeyword = keywords.every(kw => textToSearch.includes(kw));
                 const isMatchCategory = selectedCategory === 'all' || p.category === selectedCategory;
-
-                if ((keywords.length === 0 || isMatchKeyword) && isMatchCategory) {
-                    totalMatch++;
-                    if (visibleCount < renderLimit) {
-                        visibleCount++;
-                        const isAlreadyMapped = alreadyMapped.has(String(p.id));
-                        const isSelected = selectedMappingProducts.has(String(p.id));
-                        
-                        let html = `
-                            <label class="flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-slate-50 transition cursor-pointer ${isAlreadyMapped ? 'opacity-60 bg-slate-50' : ''}">
-                                <input type="checkbox" value="${escapeHTML(p.id)}" 
-                                    ${isAlreadyMapped ? 'disabled checked' : (isSelected ? 'checked' : '')} 
-                                    onchange="toggleMapProduct('${escapeForJS(p.id)}', this.checked)"
-                                    class="w-5 h-5 text-purple-600 rounded border-gray-300 focus:ring-purple-500 disabled:bg-gray-200 disabled:border-gray-300 transition cursor-pointer disabled:cursor-not-allowed">
-                                <img src="${escapeHTML(p.image_url || 'https://placehold.co/100x100?text=NoImg')}" class="w-10 h-10 object-cover rounded-lg shadow-sm bg-white" onerror="this.src='https://placehold.co/100x100?text=Err'">
-                                <div class="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 overflow-hidden">
-                                    <span class="font-bold text-gray-800 sm:w-32 truncate" title="${escapeHTML(p.id)}">${escapeHTML(p.id)}</span>
-                                    <span class="text-gray-600 flex-1 truncate text-sm" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</span>
-                                    <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded border border-gray-200 whitespace-nowrap hidden md:inline-block">${escapeHTML(p.category || '-')}</span>
-                                    ${isAlreadyMapped ? '<span class="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-md font-bold whitespace-nowrap"><i class="fa-solid fa-check mr-1"></i> จับคู่แล้ว</span>' : ''}
-                                </div>
-                            </label>
-                        `;
-                        list.insertAdjacentHTML('beforeend', html);
-                    }
-                }
+                return (keywords.length === 0 || isMatchKeyword) && isMatchCategory;
             });
 
-            if (totalMatch > renderLimit) {
-                list.insertAdjacentHTML('beforeend', `<div class="p-3 text-center text-amber-600 bg-amber-50 rounded-xl border border-amber-100 text-xs font-medium"><i class="fa-solid fa-info-circle mr-1"></i>แสดง 150 รายการแรก จากทั้งหมด ${totalMatch} รายการ — ค้นหาชื่อหรือรหัสเพื่อจำกัดผลลัพธ์</div>`);
+            if (filteredProducts.length === 0) {
+                list.innerHTML = `<div class="p-8 text-center text-gray-400"><i class="fa-solid fa-box-open text-3xl mb-3 opacity-50"></i><br>ไม่พบอะไหล่ที่ค้นหา หรือในหมวดหมู่นี้</div>`;
+                renderMapProductPagination(0);
+                return;
             }
 
-            if (visibleCount === 0) list.innerHTML = `<div class="p-8 text-center text-gray-400"><i class="fa-solid fa-box-open text-3xl mb-3 opacity-50"></i><br>ไม่พบอะไหล่ที่ค้นหา หรือในหมวดหมู่นี้</div>`;
+            const totalItems = filteredProducts.length;
+            const totalPages = Math.ceil(totalItems / MAP_PRODUCT_LIMIT);
+            
+            if (currentMapProductPage > totalPages) currentMapProductPage = totalPages;
+            if (currentMapProductPage < 1) currentMapProductPage = 1;
+            
+            const startIndex = (currentMapProductPage - 1) * MAP_PRODUCT_LIMIT;
+            const endIndex = startIndex + MAP_PRODUCT_LIMIT;
+            const pageProducts = filteredProducts.slice(startIndex, endIndex);
+
+            pageProducts.forEach(p => {
+                const isAlreadyMapped = alreadyMapped.has(String(p.id));
+                const isSelected = selectedMappingProducts.has(String(p.id));
+                
+                let html = `
+                    <label class="flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-slate-50 transition cursor-pointer ${isAlreadyMapped ? 'opacity-60 bg-slate-50' : ''}">
+                        <input type="checkbox" value="${escapeHTML(p.id)}" 
+                            ${isAlreadyMapped ? 'disabled checked' : (isSelected ? 'checked' : '')} 
+                            onchange="toggleMapProduct('${escapeForJS(p.id)}', this.checked)"
+                            class="w-5 h-5 text-purple-600 rounded border-gray-300 focus:ring-purple-500 disabled:bg-gray-200 disabled:border-gray-300 transition cursor-pointer disabled:cursor-not-allowed">
+                        <img src="${escapeHTML(p.image_url || 'https://placehold.co/100x100?text=NoImg')}" class="w-10 h-10 object-cover rounded-lg shadow-sm bg-white" onerror="this.src='https://placehold.co/100x100?text=Err'">
+                        <div class="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 overflow-hidden">
+                            <span class="font-bold text-gray-800 sm:w-32 truncate" title="${escapeHTML(p.id)}">${escapeHTML(p.id)}</span>
+                            <span class="text-gray-600 flex-1 truncate text-sm" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</span>
+                            <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded border border-gray-200 whitespace-nowrap hidden md:inline-block">${escapeHTML(p.category || '-')}</span>
+                            ${isAlreadyMapped ? `
+                                <div class="flex items-center gap-2 whitespace-nowrap">
+                                    <span class="text-[11px] bg-green-100 text-green-700 px-2.5 py-1 rounded-lg font-bold"><i class="fa-solid fa-check mr-1"></i> จับคู่แล้ว</span>
+                                    <button type="button" onclick="event.stopPropagation(); event.preventDefault(); requestDeleteMappingFromForm('${escapeForJS(p.id)}', '${escapeForJS(machineId)}')" class="text-red-500 hover:text-white hover:bg-red-600 bg-red-50 px-2.5 py-1 rounded-lg border border-red-200 transition text-[11px] font-semibold flex items-center gap-1">
+                                        <i class="fa-solid fa-unlink"></i> ยกเลิกจับคู่
+                                    </button>
+                                </div>` : ''}
+                        </div>
+                    </label>
+                `;
+                list.insertAdjacentHTML('beforeend', html);
+            });
+
+            renderMapProductPagination(totalPages);
         }
 
         function toggleMapProduct(productId, isChecked) {
@@ -2265,6 +2451,39 @@
                     if (result.status === 'success') { showToast('ยกเลิกการจับคู่สำเร็จ'); fetchData(); }
                     else { showToast('เกิดข้อผิดพลาด: ' + result.message, 'error'); hideLoading(); }
                 } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); hideLoading(); }
+            });
+        }
+
+        function requestDeleteMappingFromForm(pid, mid) {
+            confirmAction(`ยืนยันการยกเลิกการจับคู่ระหว่าง\nอะไหล่: ${pid}\nเครื่องจักร: ${mid}\nใช่หรือไม่?`, async () => {
+                showLoading('กำลังยกเลิกการจับคู่...');
+                try {
+                    let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteMapping', payload: { product_id: pid, machine_id: mid } }) });
+                    let result = await res.json();
+                    if (result.status === 'success') { 
+                        showToast('ยกเลิกการจับคู่สำเร็จ');
+                        
+                        // ดึงข้อมูลใหม่เบื้องหลัง เพื่ออัปเดต db.mappings
+                        const getRes = await fetch(API_URL + '?action=getAppData', { method: 'GET' });
+                        if (getRes.ok) {
+                            const data = await getRes.json();
+                            if (data && Array.isArray(data.products)) {
+                                db = data;
+                                try { localStorage.setItem(LS_CACHE_KEY, JSON.stringify({ data, ts: Date.now() })); } catch(e) {}
+                            }
+                        }
+                        
+                        // รีเรนเดอร์ลิสต์ทันทีโดยไม่เปลี่ยนเครื่องจักรที่เลือก
+                        filterMapProducts();
+                        // อัปเดตตารางหน้าดู/แก้ไขด้วย
+                        renderMappingTable();
+                    } else { 
+                        showToast('เกิดข้อผิดพลาด: ' + result.message, 'error'); 
+                    }
+                } catch (e) { 
+                    showToast('เกิดข้อผิดพลาด', 'error'); 
+                }
+                hideLoading();
             });
         }
     </script>
