@@ -614,6 +614,9 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
 
             const cardManageManuals = document.getElementById('card-settings-manage-manuals');
             if (cardManageManuals) cardManageManuals.classList.toggle('hidden', !hasAccess('view-manage-manuals'));
+
+            const cardMachines = document.getElementById('card-settings-machines');
+            if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machines'));
         }
 
         function openSelfSettingsModal() {
@@ -1111,6 +1114,58 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             renderMappingTable();
             renderPublicManualsTable();
             renderManageManualsTable();
+            populateDatalists();
+        }
+
+        function populateDatalists() {
+            if (!db) return;
+            
+            // 0. ประเภทอะไหล่ (Product Categories)
+            const productCategories = [...new Set(db.products.map(p => p.category).filter(Boolean))].sort();
+            const dlProdCategories = document.getElementById('list_product_categories');
+            if (dlProdCategories) {
+                dlProdCategories.innerHTML = productCategories.map(c => `<option value="${escapeHTML(c)}">`).join('');
+            }
+            
+            // 1. กลุ่มสินค้า (Product Groups)
+            const productGroups = [...new Set(db.products.map(p => p.group).filter(Boolean))].sort();
+            const dlProdGroups = document.getElementById('list_product_groups');
+            if (dlProdGroups) {
+                dlProdGroups.innerHTML = productGroups.map(g => `<option value="${escapeHTML(g)}">`).join('');
+            }
+            
+            // 2. กลุ่มเครื่องจักร (Machine Groups)
+            const machineGroups = [...new Set(db.machines.map(m => m.group).filter(Boolean))].sort();
+            const dlMachGroups = document.getElementById('list_machine_groups');
+            if (dlMachGroups) {
+                dlMachGroups.innerHTML = machineGroups.map(g => `<option value="${escapeHTML(g)}">`).join('');
+            }
+            
+            // 3. ซัพพลายเออร์ (Suppliers)
+            const productSuppliers = [...new Set(db.products.map(p => p.supplier).filter(Boolean))].sort();
+            const dlProdSuppliers = document.getElementById('list_product_suppliers');
+            if (dlProdSuppliers) {
+                dlProdSuppliers.innerHTML = productSuppliers.map(s => `<option value="${escapeHTML(s)}">`).join('');
+            }
+            
+            const machineSuppliers = [...new Set(db.machines.map(m => m.supplier).filter(Boolean))].sort();
+            const dlMachSuppliers = document.getElementById('list_machine_suppliers');
+            if (dlMachSuppliers) {
+                dlMachSuppliers.innerHTML = machineSuppliers.map(s => `<option value="${escapeHTML(s)}">`).join('');
+            }
+            
+            // 4. พื้นที่จัดเก็บ (Storage Area)
+            const productStorages = [...new Set(db.products.map(p => p.storage).filter(Boolean))].sort();
+            const dlProdStorages = document.getElementById('list_product_storages');
+            if (dlProdStorages) {
+                dlProdStorages.innerHTML = productStorages.map(s => `<option value="${escapeHTML(s)}">`).join('');
+            }
+            
+            const machineStorages = [...new Set(db.machines.map(m => m.storage).filter(Boolean))].sort();
+            const dlMachStorages = document.getElementById('list_machine_storages');
+            if (dlMachStorages) {
+                dlMachStorages.innerHTML = machineStorages.map(s => `<option value="${escapeHTML(s)}">`).join('');
+            }
         }
 
         function buildFilters() {
@@ -1416,6 +1471,14 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             });
             
             let costHtml = (isShowCostInCatalog && isLoggedIn) ? `<div class="bg-red-500/20 border border-red-400/30 px-3 py-1.5 rounded-lg text-red-200 text-sm font-medium">ต้นทุน: <span class="text-white font-bold text-base ml-1">฿${costStr}</span></div>` : '';
+            
+            let metaHtml = `
+                <div class="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 text-xs text-slate-300 border-t border-white/10 pt-3">
+                    ${m.group ? `<span><i class="fa-solid fa-folder mr-1.5 text-purple-400"></i><strong>กลุ่มเครื่องจักร:</strong> ${escapeHTML(m.group)}</span>` : ''}
+                    ${(isLoggedIn && m.supplier) ? `<span><i class="fa-solid fa-truck-field mr-1.5 text-blue-400"></i><strong>ซัพพลายเออร์:</strong> ${escapeHTML(m.supplier)}</span>` : ''}
+                    ${m.storage ? `<span><i class="fa-solid fa-map-location-dot mr-1.5 text-emerald-400"></i><strong>พื้นที่จัดเก็บ:</strong> ${escapeHTML(m.storage)}</span>` : ''}
+                </div>
+            `;
 
             banner.innerHTML = `
                 <div class="absolute -right-10 -top-10 text-9xl text-white opacity-5 pointer-events-none"><i class="fa-solid fa-cogs"></i></div>
@@ -1453,6 +1516,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                             `}
                             <div class="bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-slate-200 text-sm font-medium"><i class="fa-solid fa-gears mr-1"></i>Spare Parts จำนวน: <span class="text-white font-bold ml-1">${partsCount}</span> ชิ้น</div>
                         </div>
+                        ${metaHtml}
                     </div>
                     <div class="absolute top-0 right-0 hidden md:block">
                         <button onclick="document.getElementById('filterMachine').value='all'; document.getElementById('input_filterMachine').value=''; renderCatalog();" class="text-slate-400 hover:text-white bg-slate-800 hover:bg-red-500/80 transition-all p-2 rounded-lg text-xs font-medium border border-slate-600 shadow-sm"><i class="fa-solid fa-times mr-1"></i> ล้างการกรอง</button>
@@ -1486,7 +1550,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                 }
 
                 let filteredProducts = db.products.filter(p => {
-                    const textToSearch = `${p.id} ${p.name}`.toLowerCase();
+                    const textToSearch = `${p.id} ${p.name} ${p.group || ''} ${p.supplier || ''} ${p.storage || ''}`.toLowerCase();
                     const matchSearch = searchKeywords.length === 0 || searchKeywords.every(kw => textToSearch.includes(kw));
                     let matchCategory = selectedCategory === 'all' || p.category === selectedCategory;
                     let matchMachine = selectedMachine === 'all' || mappedProductIds.has(String(p.id));
@@ -1533,7 +1597,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                     const pB = fNumber(p.price_b, costVal * 1.7);
                     const pC = fNumber(p.price_c, costVal * 1.3);
 
-                    let costLineHtml = (isShowCostInCatalog && isLoggedIn) ? `<div class="flex justify-between items-center text-sm bg-red-50 px-2 py-1.5 rounded-lg mb-3 border border-red-100"><span class="text-red-700 font-medium">ราคาต้นทุน:</span><span class="font-bold text-red-600 text-base">฿${costStr}</span></div>` : '';
+                    let costLineHtml = (isShowCostInCatalog && isLoggedIn) ? `<div class="flex justify-between items-center text-sm bg-red-50 px-2 py-1.5 rounded-lg mb-3 border border-red-100"><span class="text-red-700 font-medium">ราคาต้นทุน:</span><span class="font-bold text-red-600 text-base">฿${costStr} ต่อ ${escapeHTML(p.unit || 'ชิ้น')}</span></div>` : '';
 
                     const isCancelled = p.note && (p.note.trim() === 'ยกเลิกใช้' || p.note.includes('ยกเลิกใช้'));
 
@@ -1575,23 +1639,28 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                                     <div class="space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
                                         ${(isLoggedIn && currentUser && currentUser.role === 'user') ? `
                                             ${(currentUser.priceLevel === 'B') ? `
-                                                <div class="flex justify-between items-center text-sm"><span class="text-gray-500">ราคา:</span><span class="font-bold text-green-600 text-base">฿${pB}</span></div>
+                                                <div class="flex justify-between items-center text-sm"><span class="text-gray-500">ราคา:</span><span class="font-bold text-green-600 text-base">฿${pB} ต่อ ${escapeHTML(p.unit || 'ชิ้น')}</span></div>
                                             ` : (currentUser.priceLevel === 'C') ? `
-                                                <div class="flex justify-between items-center text-sm"><span class="text-gray-500">ราคา:</span><span class="font-bold text-orange-600 text-base">฿${pC}</span></div>
+                                                <div class="flex justify-between items-center text-sm"><span class="text-gray-500">ราคา:</span><span class="font-bold text-orange-600 text-base">฿${pC} ต่อ ${escapeHTML(p.unit || 'ชิ้น')}</span></div>
                                             ` : (currentUser.priceLevel === 'COST') ? `
-                                                <div class="flex justify-between items-center text-sm"><span class="text-gray-500">ราคา:</span><span class="font-bold text-purple-600 text-base">฿${p.cost}</span></div>
+                                                <div class="flex justify-between items-center text-sm"><span class="text-gray-500">ราคา:</span><span class="font-bold text-purple-600 text-base">฿${fNumber(p.cost, p.cost)} ต่อ ${escapeHTML(p.unit || 'ชิ้น')}</span></div>
                                             ` : `
-                                                <div class="flex justify-between items-center text-sm"><span class="text-gray-500">ราคา:</span><span class="font-bold text-blue-600 text-base">฿${pA}</span></div>
+                                                <div class="flex justify-between items-center text-sm"><span class="text-gray-500">ราคา:</span><span class="font-bold text-blue-600 text-base">฿${pA} ต่อ ${escapeHTML(p.unit || 'ชิ้น')}</span></div>
                                             `}
                                         ` : `
-                                            <div class="flex justify-between items-center text-sm"><span class="text-gray-500">${(isLoggedIn || isShowPriceBForGuest || isShowPriceCForGuest) ? 'ราคากลาง:' : 'ราคา:'}</span><span class="font-bold text-blue-600 text-base">฿${pA}</span></div>
+                                            <div class="flex justify-between items-center text-sm"><span class="text-gray-500">${(isLoggedIn || isShowPriceBForGuest || isShowPriceCForGuest) ? 'ราคากลาง:' : 'ราคา:'}</span><span class="font-bold text-blue-600 text-base">฿${pA} ต่อ ${escapeHTML(p.unit || 'ชิ้น')}</span></div>
                                             ${(isLoggedIn || isShowPriceBForGuest) ? `
-                                            <div class="flex justify-between items-center text-sm"><span class="text-gray-500">ราคาตัวแทน:</span><span class="font-bold text-green-600 text-base">฿${pB}</span></div>
+                                            <div class="flex justify-between items-center text-sm"><span class="text-gray-500">ราคาตัวแทน:</span><span class="font-bold text-green-600 text-base">฿${pB} ต่อ ${escapeHTML(p.unit || 'ชิ้น')}</span></div>
                                             ` : ''}
                                             ${(isLoggedIn || isShowPriceCForGuest) ? `
-                                            <div class="flex justify-between items-center text-sm"><span class="text-gray-500">ราคาในเครือ:</span><span class="font-bold text-orange-600 text-base">฿${pC}</span></div>
+                                            <div class="flex justify-between items-center text-sm"><span class="text-gray-500">ราคาในเครือ:</span><span class="font-bold text-orange-600 text-base">฿${pC} ต่อ ${escapeHTML(p.unit || 'ชิ้น')}</span></div>
                                             ` : ''}
                                         `}
+                                    </div>
+                                    <div class="flex flex-wrap gap-x-3 gap-y-1.5 mt-2.5 text-[11px] text-gray-500">
+                                        ${p.group ? `<span><i class="fa-solid fa-folder mr-1 text-blue-500/80"></i><strong>กลุ่มสินค้า:</strong> ${escapeHTML(p.group)}</span>` : ''}
+                                        ${(isLoggedIn && p.supplier) ? `<span><i class="fa-solid fa-truck-field mr-1 text-slate-500/85"></i><strong>ซัพพลายเออร์:</strong> ${escapeHTML(p.supplier)}</span>` : ''}
+                                        ${p.storage ? `<span><i class="fa-solid fa-map-location-dot mr-1 text-emerald-600/80"></i><strong>พื้นที่จัดเก็บ:</strong> ${escapeHTML(p.storage)}</span>` : ''}
                                     </div>
                                 </div>
                                 ${noteHtml}
@@ -1621,7 +1690,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                 });
 
                 let filteredMachines = db.machines.filter(m => {
-                    const textToSearch = `${m.id} ${m.name}`.toLowerCase();
+                    const textToSearch = `${m.id} ${m.name} ${m.group || ''} ${m.supplier || ''} ${m.storage || ''}`.toLowerCase();
                     return searchKeywords.length === 0 || searchKeywords.every(kw => textToSearch.includes(kw));
                 });
 
@@ -1689,6 +1758,11 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                                         ${(isLoggedIn || isShowPriceCForGuest) ? `
                                         <div class="flex justify-between items-center text-xs"><span class="text-gray-500">ราคาในเครือ:</span><span class="font-bold text-orange-600">฿${pC}</span></div>
                                         ` : ''}
+                                    </div>
+                                    <div class="flex flex-wrap gap-x-3 gap-y-1.5 mt-2.5 text-[11px] text-gray-500">
+                                        ${m.group ? `<span><i class="fa-solid fa-folder mr-1 text-purple-600/80"></i><strong>กลุ่มเครื่องจักร:</strong> ${escapeHTML(m.group)}</span>` : ''}
+                                        ${(isLoggedIn && m.supplier) ? `<span><i class="fa-solid fa-truck-field mr-1 text-slate-500/85"></i><strong>ซัพพลายเออร์:</strong> ${escapeHTML(m.supplier)}</span>` : ''}
+                                        ${m.storage ? `<span><i class="fa-solid fa-map-location-dot mr-1 text-emerald-600/80"></i><strong>พื้นที่จัดเก็บ:</strong> ${escapeHTML(m.storage)}</span>` : ''}
                                     </div>
                                 </div>
 
@@ -2333,6 +2407,14 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             document.getElementById('mdm_id').innerText = m.id;
             document.getElementById('mdm_name').innerText = m.name;
             document.getElementById('mdm_unit').innerText = 'หน่วย: ' + (m.unit || 'เครื่อง');
+            document.getElementById('mdm_group').innerText = m.group || '-';
+            document.getElementById('mdm_supplier').innerText = m.supplier || '-';
+            document.getElementById('mdm_storage').innerText = m.storage || '-';
+            
+            const supContainer = document.getElementById('mdm_supplier_container');
+            if (supContainer) {
+                supContainer.classList.toggle('hidden', !isLoggedIn);
+            }
             
             const mdmNoteEl = document.getElementById('mdm_note');
             mdmNoteEl.innerText = m.note || 'ไม่มีรายละเอียดเพิ่มเติม';
@@ -2428,6 +2510,14 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             document.getElementById('pd_name').innerText = p.name;
             document.getElementById('pd_category').innerText = p.category || 'ไม่ระบุ';
             document.getElementById('pd_unit').innerText = 'หน่วย: ' + (p.unit || 'ชิ้น');
+            document.getElementById('pd_group').innerText = p.group || '-';
+            document.getElementById('pd_supplier').innerText = p.supplier || '-';
+            document.getElementById('pd_storage').innerText = p.storage || '-';
+            
+            const supContainer = document.getElementById('pd_supplier_container');
+            if (supContainer) {
+                supContainer.classList.toggle('hidden', !isLoggedIn);
+            }
             
             const pdStockEl = document.getElementById('pd_stock');
             if (p.stock_qty <= 0) {
@@ -2599,7 +2689,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                 price_a: document.getElementById('ap_price_a').value,
                 price_b: document.getElementById('ap_price_b').value,
                 price_c: document.getElementById('ap_price_c').value,
-                stock_qty: document.getElementById('ap_stock_qty').value || 0
+                stock_qty: document.getElementById('ap_stock_qty').value || 0,
+                group: document.getElementById('ap_group').value.trim(),
+                supplier: document.getElementById('ap_supplier').value.trim(),
+                storage: document.getElementById('ap_storage').value.trim()
             };
 
             showLoading('กำลังบันทึกข้อมูลและอัปโหลดรูป (อาจใช้เวลาสักครู่)...');
@@ -2737,6 +2830,9 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             document.getElementById('ep_id').value = p.id; document.getElementById('ep_id_display').value = p.id;
             document.getElementById('ep_name').value = p.name || ''; document.getElementById('ep_unit').value = p.unit || '';
             document.getElementById('ep_cost').value = p.cost || ''; document.getElementById('ep_cat').value = p.category || '';
+            document.getElementById('ep_group').value = p.group || '';
+            document.getElementById('ep_supplier').value = p.supplier || '';
+            document.getElementById('ep_storage').value = p.storage || '';
             document.getElementById('ep_price_a').value = p.price_a || '';
             document.getElementById('ep_price_b').value = p.price_b || '';
             document.getElementById('ep_price_c').value = p.price_c || '';
@@ -2777,7 +2873,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                 price_a: document.getElementById('ep_price_a').value,
                 price_b: document.getElementById('ep_price_b').value,
                 price_c: document.getElementById('ep_price_c').value,
-                stock_qty: document.getElementById('ep_stock_qty').value || 0
+                stock_qty: document.getElementById('ep_stock_qty').value || 0,
+                group: document.getElementById('ep_group').value.trim(),
+                supplier: document.getElementById('ep_supplier').value.trim(),
+                storage: document.getElementById('ep_storage').value.trim()
             };
 
             showLoading('กำลังบันทึกการแก้ไขข้อมูล...');
@@ -2805,6 +2904,9 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             document.getElementById('em_id').value = m.id;
             document.getElementById('em_id_display').value = m.id;
             document.getElementById('em_name').value = m.name || '';
+            document.getElementById('em_group').value = m.group || '';
+            document.getElementById('em_supplier').value = m.supplier || '';
+            document.getElementById('em_storage').value = m.storage || '';
             document.getElementById('em_note').value = m.note || '';
             document.getElementById('em_cost').value = m.cost || '';
             document.getElementById('em_price_a').value = m.price_a || '';
@@ -2862,7 +2964,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                 price_a: parseFloat(document.getElementById('am_price_a').value) || 0,
                 price_b: parseFloat(document.getElementById('am_price_b').value) || 0,
                 price_c: parseFloat(document.getElementById('am_price_c').value) || 0,
-                imageBase64: base64
+                imageBase64: base64,
+                group: document.getElementById('am_group').value.trim(),
+                supplier: document.getElementById('am_supplier').value.trim(),
+                storage: document.getElementById('am_storage').value.trim()
             };
 
             showLoading('กำลังบันทึกข้อมูลเครื่องจักร...');
@@ -2892,7 +2997,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                 price_a: parseFloat(document.getElementById('em_price_a').value) || 0,
                 price_b: parseFloat(document.getElementById('em_price_b').value) || 0,
                 price_c: parseFloat(document.getElementById('em_price_c').value) || 0,
-                imageBase64: base64
+                imageBase64: base64,
+                group: document.getElementById('em_group').value.trim(),
+                supplier: document.getElementById('em_supplier').value.trim(),
+                storage: document.getElementById('em_storage').value.trim()
             };
 
             showLoading('กำลังบันทึกการแก้ไขข้อมูล...');
@@ -2915,7 +3023,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             let filteredMachines = db.machines;
             if (searchKeywords.length > 0) {
                 filteredMachines = filteredMachines.filter(m => {
-                    const textToSearch = `${m.id} ${m.name}`.toLowerCase();
+                    const textToSearch = `${m.id} ${m.name} ${m.group || ''} ${m.supplier || ''} ${m.storage || ''}`.toLowerCase();
                     return searchKeywords.every(kw => textToSearch.includes(kw));
                 });
             }
@@ -3142,7 +3250,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             let filteredProducts = db.products;
             if (searchKeywords.length > 0) {
                 filteredProducts = filteredProducts.filter(p => {
-                    const textToSearch = `${p.id} ${p.name}`.toLowerCase();
+                    const textToSearch = `${p.id} ${p.name} ${p.group || ''} ${p.supplier || ''} ${p.storage || ''}`.toLowerCase();
                     return searchKeywords.every(kw => textToSearch.includes(kw));
                 });
             }

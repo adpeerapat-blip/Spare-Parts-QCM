@@ -73,6 +73,27 @@
                     </div>
                 </div>
 
+                <!-- Additional Info -->
+                <div class="border-t border-gray-100 pt-5 mb-5">
+                    <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-info text-blue-500"></i> ข้อมูลเพิ่มเติม
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl">
+                            <p class="text-xs text-gray-400 font-semibold mb-1">กลุ่มสินค้า</p>
+                            <p id="pd_group" class="text-sm font-bold text-gray-800">-</p>
+                        </div>
+                        <div id="pd_supplier_container" class="bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl">
+                            <p class="text-xs text-gray-400 font-semibold mb-1">ซัพพลายเออร์</p>
+                            <p id="pd_supplier" class="text-sm font-bold text-gray-800">-</p>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl">
+                            <p class="text-xs text-gray-400 font-semibold mb-1">พื้นที่จัดเก็บ</p>
+                            <p id="pd_storage" class="text-sm font-bold text-gray-800">-</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Note -->
                 <div class="border-t border-gray-100 pt-5 mb-5">
                     <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">รายละเอียด / หมายเหตุ</p>
@@ -145,6 +166,27 @@
                     </div>
                 </div>
 
+                <!-- Additional Info -->
+                <div class="border-t border-gray-100 pt-5 mb-5">
+                    <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-info text-blue-500"></i> ข้อมูลเพิ่มเติม
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl">
+                            <p class="text-xs text-gray-400 font-semibold mb-1">กลุ่มเครื่องจักร</p>
+                            <p id="mdm_group" class="text-sm font-bold text-gray-800">-</p>
+                        </div>
+                        <div id="mdm_supplier_container" class="bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl">
+                            <p class="text-xs text-gray-400 font-semibold mb-1">ซัพพลายเออร์</p>
+                            <p id="mdm_supplier" class="text-sm font-bold text-gray-800">-</p>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl">
+                            <p class="text-xs text-gray-400 font-semibold mb-1">พื้นที่จัดเก็บ</p>
+                            <p id="mdm_storage" class="text-sm font-bold text-gray-800">-</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Note -->
                 <div class="border-t border-gray-100 pt-5 mb-6">
                     <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">รายละเอียดเพิ่มเติม</p>
@@ -199,6 +241,21 @@
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1.5">ชื่อเครื่องจักร <span class="text-red-500">*</span></label>
                             <input type="text" id="am_name" required placeholder="เช่น เครื่องกลึง CNC" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition text-sm">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">กลุ่มเครื่องจักร (Machine Group)</label>
+                            <input type="text" id="am_group" list="list_machine_groups" placeholder="เช่น เครื่องจักรผลิต, CNC" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">ซัพพลายเออร์ (Supplier)</label>
+                            <input type="text" id="am_supplier" list="list_machine_suppliers" placeholder="พิมพ์ซัพพลายเออร์" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition text-sm">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">พื้นที่จัดเก็บ (Storage Area)</label>
+                            <input type="text" id="am_storage" list="list_machine_storages" placeholder="พิมพ์พื้นที่จัดเก็บ" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition text-sm">
                         </div>
                     </div>
                     
@@ -282,6 +339,21 @@
                         </div>
                     </div>
 
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">กลุ่มเครื่องจักร (Machine Group)</label>
+                            <input type="text" id="em_group" list="list_machine_groups" placeholder="พิมพ์กลุ่มเครื่องจักร" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">ซัพพลายเออร์ (Supplier)</label>
+                            <input type="text" id="em_supplier" list="list_machine_suppliers" placeholder="พิมพ์ซัพพลายเออร์" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition text-sm">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">พื้นที่จัดเก็บ (Storage Area)</label>
+                            <input type="text" id="em_storage" list="list_machine_storages" placeholder="พิมพ์พื้นที่จัดเก็บ" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition text-sm">
+                        </div>
+                    </div>
+
                     <div class="mb-4">
                         <label class="block text-sm font-semibold text-gray-700 mb-1.5">รายละเอียดเพิ่มเติม (Note)</label>
                         <textarea id="em_note" rows="2" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition text-sm resize-none"></textarea>
@@ -358,7 +430,19 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">ประเภทอะไหล่ (Category)</label>
-                        <input type="text" id="ep_cat" placeholder="พิมพ์หมวดหมู่" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                        <input type="text" id="ep_cat" list="list_product_categories" placeholder="พิมพ์หมวดหมู่" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">กลุ่มสินค้า (Product Group)</label>
+                        <input type="text" id="ep_group" list="list_product_groups" placeholder="พิมพ์กลุ่มสินค้า" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">ซัพพลายเออร์ (Supplier)</label>
+                        <input type="text" id="ep_supplier" list="list_product_suppliers" placeholder="พิมพ์ซัพพลายเออร์" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">พื้นที่จัดเก็บ (Storage Area)</label>
+                        <input type="text" id="ep_storage" list="list_product_storages" placeholder="พิมพ์พื้นที่จัดเก็บ (เช่น A-01)" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
                     </div>
                     <div class="md:col-span-1">
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">เปลี่ยนรูปภาพ (Image)</label>
@@ -434,8 +518,6 @@
                     <li class="protected-nav-item hidden" data-view="view-transactions"><a href="#" onclick="switchView('view-transactions', this); loadTransactions();" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-receipt mr-3 w-5 text-center flex-shrink-0"></i><span>ประวัติการเบิกจ่าย</span></a></li>
                     <li class="protected-nav-item hidden" data-view="view-restock"><a href="#" onclick="switchView('view-restock', this);" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-boxes-stacked mr-3 w-5 text-center flex-shrink-0 text-sky-400"></i><span class="font-bold text-sky-300">เติมสต็อกอะไหล่</span></a></li>
                     <li class="protected-nav-item hidden border-t border-slate-700/30 my-1 pt-1" data-view="divider-admin"></li>
-                    <li class="protected-nav-item hidden" data-view="view-add-product"><a href="#" onclick="switchView('view-add-product', this)" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-plus-circle mr-3 w-5 text-center flex-shrink-0"></i><span>เพิ่มอะไหล่</span></a></li>
-                    <li class="protected-nav-item hidden" data-view="view-machines"><a href="#" onclick="switchView('view-machines', this)" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-industry mr-3 w-5 text-center flex-shrink-0"></i><span>จัดการเครื่องจักร</span></a></li>
                     <li class="protected-nav-item hidden" data-view="view-report"><a href="#" onclick="switchView('view-report', this); initReportView();" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-chart-pie mr-3 w-5 text-center flex-shrink-0 text-emerald-400"></i><span>Report</span></a></li>
                     <li class="protected-nav-item hidden" data-view="view-settings"><a href="#" onclick="switchView('view-settings', this); initSettingsView();" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-cog mr-3 w-5 text-center flex-shrink-0 text-slate-400"></i><span>ตั้งค่าระบบ</span></a></li>
                     <li id="nav-item-manual" data-view="view-manual"><a href="#" onclick="switchView('view-manual', this); initManualView();" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-book mr-3 w-5 text-center flex-shrink-0 text-purple-400"></i><span>คู่มือ</span></a></li>
@@ -577,6 +659,9 @@
                 </section>
 
                 <section id="view-add-product" class="view-section hidden w-full">
+                    <div class="mb-4">
+                        <button onclick="switchView('view-edit-products')" class="text-xs font-bold text-gray-500 hover:text-gray-700 transition flex items-center gap-1.5"><i class="fa-solid fa-arrow-left"></i> กลับไปรายการอะไหล่</button>
+                    </div>
                     <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">เพิ่มข้อมูลอะไหล่ใหม่</h2>
                     <p class="text-gray-500 text-sm mb-6">กรอกรายละเอียดเพื่อเพิ่มรายการสินค้าเข้าสู่ระบบ</p>
                     
@@ -597,7 +682,19 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1.5">ประเภทอะไหล่ (Category)</label>
-                                    <input type="text" id="ap_cat" placeholder="พิมพ์หมวดหมู่" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                                    <input type="text" id="ap_cat" list="list_product_categories" placeholder="พิมพ์หมวดหมู่" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">กลุ่มสินค้า (Product Group)</label>
+                                    <input type="text" id="ap_group" list="list_product_groups" placeholder="พิมพ์กลุ่มสินค้า" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">ซัพพลายเออร์ (Supplier)</label>
+                                    <input type="text" id="ap_supplier" list="list_product_suppliers" placeholder="พิมพ์ซัพพลายเออร์" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">พื้นที่จัดเก็บ (Storage Area)</label>
+                                    <input type="text" id="ap_storage" list="list_product_storages" placeholder="พิมพ์พื้นที่จัดเก็บ (เช่น A-01)" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
                                 </div>
                                 <div class="md:col-span-1">
                                     <label class="block text-sm font-medium text-gray-700 mb-1.5">รูปภาพอะไหล่ (Image)</label>
@@ -772,6 +869,9 @@
                 </section>
 
                 <section id="view-machines" class="view-section hidden w-full">
+                    <div class="mb-4">
+                        <button onclick="switchView('view-settings')" class="text-xs font-bold text-gray-500 hover:text-gray-700 transition flex items-center gap-1.5"><i class="fa-solid fa-arrow-left"></i> กลับไปตั้งค่า</button>
+                    </div>
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                         <div>
                             <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">จัดการข้อมูลเครื่องจักร</h2>
@@ -898,7 +998,11 @@
                             <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">รายการอะไหล่</h2>
                             <p class="text-gray-500 text-sm mt-1">จัดการแก้ไข ค้นหา หรือลบข้อมูลสินค้าในระบบ</p>
                         </div>
-                        <div>
+                        <div class="flex items-center gap-3">
+                            <button onclick="switchView('view-add-product')" class="flex-shrink-0 flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-green-600/25 hover:shadow-green-600/40 transition-all duration-200 hover:-translate-y-0.5 text-sm">
+                                <i class="fa-solid fa-plus text-xs"></i>
+                                <span>เพิ่มอะไหล่ใหม่</span>
+                            </button>
                             <button onclick="switchView('view-settings')" class="text-xs font-bold text-gray-500 hover:text-gray-700 transition flex items-center gap-1.5"><i class="fa-solid fa-arrow-left"></i> กลับไปตั้งค่า</button>
                         </div>
                     </div>
@@ -1505,6 +1609,17 @@
                             <div>
                                 <h3 class="text-lg font-bold text-slate-800 group-hover:text-emerald-600 transition-all duration-300">รายการอะไหล่</h3>
                                 <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">ตรวจสอบรายการอะไหล่ทั้งหมด ค้นหา แก้ไขราคา หรือปรับแต่งข้อมูลและภาพอะไหล่</p>
+                            </div>
+                        </div>
+
+                        <!-- Card 8: จัดการเครื่องจักร -->
+                        <div id="card-settings-machines" onclick="switchView('view-machines')" class="bg-white rounded-2xl border border-gray-150 p-6 hover:shadow-xl hover:border-purple-200 transition-all duration-300 cursor-pointer flex gap-4 items-start group hidden">
+                            <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">
+                                <i class="fa-solid fa-industry text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-800 group-hover:text-purple-600 transition-all duration-300">จัดการเครื่องจักร</h3>
+                                <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">ตรวจสอบรายการเครื่องจักรทั้งหมด ค้นหา แก้ไข หรือลบเครื่องจักรออกจากระบบ</p>
                             </div>
                         </div>
 
@@ -2119,6 +2234,15 @@
             </div>
         </main>
     </div>
+
+    <!-- Datalists for Autocomplete -->
+    <datalist id="list_product_categories"></datalist>
+    <datalist id="list_product_groups"></datalist>
+    <datalist id="list_product_suppliers"></datalist>
+    <datalist id="list_product_storages"></datalist>
+    <datalist id="list_machine_groups"></datalist>
+    <datalist id="list_machine_suppliers"></datalist>
+    <datalist id="list_machine_storages"></datalist>
 
     <script src="app.js"></script>
 </body>
