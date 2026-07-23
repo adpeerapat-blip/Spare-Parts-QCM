@@ -4730,12 +4730,100 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             link.setAttribute("href", url);
             
             const dateStr = new Date().toLocaleDateString('th-TH').replace(/\//g, '-');
-            link.setAttribute("download", `ประวัติการปรับปรุงสต็อกอะไหล่_${dateStr}.csv`);
+            link.setAttribute("download", `ประวัติการปรับปรุงสต็อก_${dateStr}.csv`);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             showToast('ส่งออกไฟล์ Excel (CSV) เรียบร้อยแล้ว', 'success');
+        }
+
+        // ===== Report Pagination State & Helpers =====
+        let reportCurrentPage = 1;
+        let lastFilteredReportProducts = [];
+        let lastReportProductUsageMap = new Map();
+
+        function changeReportPage(page) {
+            reportCurrentPage = page;
+            filterReport(false);
+        }
+
+        function renderReportPagination(totalItems, currentPage, totalPages) {
+            const infoEl = document.getElementById('reportPaginationInfo');
+            const controlsEl = document.getElementById('reportPaginationControls');
+            const paginationContainer = document.getElementById('reportPagination');
+            
+            if (!infoEl || !controlsEl || !paginationContainer) return;
+
+            if (totalPages <= 1) {
+                paginationContainer.classList.add('hidden');
+                return;
+            } else {
+                paginationContainer.classList.remove('hidden');
+            }
+
+            const pageSize = 20;
+            const startItem = (currentPage - 1) * pageSize + 1;
+            const endItem = Math.min(currentPage * pageSize, totalItems);
+            infoEl.innerHTML = `แสดง <span class="font-bold text-slate-800">${startItem} - ${endItem}</span> จากทั้งหมด <span class="font-bold text-slate-800">${totalItems}</span> รายการ (หน้า <span class="font-bold text-blue-600">${currentPage}</span> / ${totalPages})`;
+
+            let buttonsHtml = '';
+
+            // First page <<
+            buttonsHtml += `
+                <button onclick="changeReportPage(1)" ${currentPage === 1 ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าแรก">
+                    <i class="fa-solid fa-angles-left"></i>
+                </button>
+            `;
+
+            // Prev page <
+            buttonsHtml += `
+                <button onclick="changeReportPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าก่อนหน้า">
+                    <i class="fa-solid fa-angle-left mr-1"></i> ก่อนหน้า
+                </button>
+            `;
+
+            // Page numbers
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                buttonsHtml += `<button onclick="changeReportPage(1)" class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition shadow-sm">1</button>`;
+                if (startPage > 2) {
+                    buttonsHtml += `<span class="px-1 text-gray-400 text-xs font-bold">...</span>`;
+                }
+            }
+
+            for (let p = startPage; p <= endPage; p++) {
+                if (p === currentPage) {
+                    buttonsHtml += `<button class="px-3.5 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-extrabold shadow-md shadow-blue-500/20 cursor-default">${p}</button>`;
+                } else {
+                    buttonsHtml += `<button onclick="changeReportPage(${p})" class="px-3.5 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm">${p}</button>`;
+                }
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    buttonsHtml += `<span class="px-1 text-gray-400 text-xs font-bold">...</span>`;
+                }
+                buttonsHtml += `<button onclick="changeReportPage(${totalPages})" class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition shadow-sm">${totalPages}</button>`;
+            }
+
+            // Next page >
+            buttonsHtml += `
+                <button onclick="changeReportPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าถัดไป">
+                    ถัดไป <i class="fa-solid fa-angle-right ml-1"></i>
+                </button>
+            `;
+
+            // Last page >>
+            buttonsHtml += `
+                <button onclick="changeReportPage(${totalPages})" ${currentPage === totalPages ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าสุดท้าย">
+                    <i class="fa-solid fa-angles-right"></i>
+                </button>
+            `;
+
+            controlsEl.innerHTML = buttonsHtml;
         }
 
         // ===== Report Analytics Client Logic =====
@@ -4921,7 +5009,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             filterReport();
         }
 
-        function filterReport() {
+        function filterReport(resetPage = true) {
+            if (resetPage) {
+                reportCurrentPage = 1;
+            }
             const selectedMach = document.getElementById('report_filter_mach').value;
             const selectedReq = document.getElementById('report_filter_req').value;
             const selectedMonth = document.getElementById('report_filter_month').value;
@@ -4942,14 +5033,14 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                      if (endDate && tDateOnly > endDate) return false;
                      
                      if (selectedMonth !== 'all') {
-                         const tMonth = t.date.substring(5, 7);
-                         if (tMonth !== selectedMonth) return false;
+                          const tMonth = t.date.substring(5, 7);
+                          if (tMonth !== selectedMonth) return false;
                      }
                      
                      if (selectedYear !== 'all') {
-                         const tYearAD = parseInt(t.date.substring(0, 4));
-                         const tYearBE = tYearAD + 543;
-                         if (String(tYearBE) !== String(selectedYear)) return false;
+                          const tYearAD = parseInt(t.date.substring(0, 4));
+                          const tYearBE = tYearAD + 543;
+                          if (String(tYearBE) !== String(selectedYear)) return false;
                      }
                 }
                 return true;
@@ -4987,43 +5078,69 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                 return qty > 0;
             });
 
-            let html = '';
+            // Save for exporting to Excel
+            lastFilteredReportProducts = productsToRender;
+            lastReportProductUsageMap = productUsageMap;
+
             let totalQtySum = 0;
             let totalCostSum = 0;
             let totalMidSum = 0;
 
-            productsToRender.forEach((p, index) => {
+            productsToRender.forEach((p) => {
                 const qty = productUsageMap.get(String(p.id)) || 0;
                 const cost = parseFloat(String(p.cost).replace(/,/g, '')) || 0;
                 const priceA = parseFloat(String(p.price_a).replace(/,/g, '')) || 0;
-                const priceB = parseFloat(String(p.price_b).replace(/,/g, '')) || 0;
-                const priceC = parseFloat(String(p.price_c).replace(/,/g, '')) || 0;
 
                 totalQtySum += qty;
                 totalCostSum += qty * cost;
                 totalMidSum += qty * priceA;
-
-                html += `
-                    <tr class="hover:bg-slate-50 transition border-b border-gray-100 last:border-0">
-                        <td class="p-4 text-center text-gray-500">${index + 1}</td>
-                        <td class="p-4 font-bold text-gray-900">${escapeHTML(p.id)}</td>
-                        <td class="p-4 text-gray-700 max-w-xs truncate" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</td>
-                        <td class="p-4 text-center font-extrabold text-blue-600 text-base">${qty.toLocaleString('th-TH')}</td>
-                        <td class="p-4 text-right text-gray-600">฿${cost.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td class="p-4 text-right text-emerald-600 font-semibold">฿${priceA.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td class="p-4 text-right text-gray-600">฿${priceB.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td class="p-4 text-right text-gray-600">฿${priceC.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    </tr>
-                `;
             });
 
-            if (productsToRender.length === 0) {
+            const totalItems = productsToRender.length;
+            const pageSize = 20;
+            const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+            if (reportCurrentPage > totalPages) reportCurrentPage = totalPages;
+            if (reportCurrentPage < 1) reportCurrentPage = 1;
+
+            renderReportPagination(totalItems, reportCurrentPage, totalPages);
+
+            let html = '';
+            if (totalItems > 0) {
+                const startIndex = (reportCurrentPage - 1) * pageSize;
+                const pagedProducts = productsToRender.slice(startIndex, startIndex + pageSize);
+
+                pagedProducts.forEach((p, index) => {
+                    const qty = productUsageMap.get(String(p.id)) || 0;
+                    const cost = parseFloat(String(p.cost).replace(/,/g, '')) || 0;
+                    const priceA = parseFloat(String(p.price_a).replace(/,/g, '')) || 0;
+                    const priceB = parseFloat(String(p.price_b).replace(/,/g, '')) || 0;
+                    const priceC = parseFloat(String(p.price_c).replace(/,/g, '')) || 0;
+
+                    const itemIndex = startIndex + index + 1;
+
+                    html += `
+                        <tr class="hover:bg-slate-50 transition border-b border-gray-100 last:border-0">
+                            <td class="p-4 text-center text-gray-500">${itemIndex}</td>
+                            <td class="p-4 font-bold text-gray-900">${escapeHTML(p.id)}</td>
+                            <td class="p-4 text-gray-700 max-w-xs truncate" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</td>
+                            <td class="p-4 text-center font-extrabold text-blue-600 text-base">${qty.toLocaleString('th-TH')}</td>
+                            <td class="p-4 text-right text-gray-600">฿${cost.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td class="p-4 text-right text-emerald-600 font-semibold">฿${priceA.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td class="p-4 text-right text-gray-600">฿${priceB.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td class="p-4 text-right text-gray-600">฿${priceC.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            if (totalItems === 0) {
                 document.getElementById('reportTableBody').innerHTML = `<tr><td colspan="8" class="p-10 text-center text-gray-400">ไม่พบข้อมูลการใช้งานอะไหล่</td></tr>`;
             } else {
                 document.getElementById('reportTableBody').innerHTML = html;
             }
 
-            document.getElementById('report_stat_total_items').innerText = `${productsToRender.length.toLocaleString('th-TH')} รายการ`;
+            document.getElementById('report_stat_total_items').innerText = `${totalItems.toLocaleString('th-TH')} รายการ`;
             document.getElementById('report_stat_total_qty').innerText = `${totalQtySum.toLocaleString('th-TH')} ชิ้น`;
             document.getElementById('report_stat_total_cost').innerText = `฿${totalCostSum.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             document.getElementById('report_stat_total_mid').innerText = `฿${totalMidSum.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
@@ -5047,28 +5164,51 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
         }
 
         function exportReportToExcel() {
-            const table = document.querySelector('#view-report table');
-            if (!table) return;
+            if (!lastFilteredReportProducts || lastFilteredReportProducts.length === 0) {
+                showToast('ไม่มีข้อมูลสำหรับส่งออก', 'warning');
+                return;
+            }
             
-            const rows = table.querySelectorAll('tr');
             let csvContent = "\uFEFF";
             
-            rows.forEach((row, rowIndex) => {
-                const cols = row.querySelectorAll('th, td');
-                const rowData = [];
-                cols.forEach((col, colIndex) => {
-                    let text = col.innerText.trim().replace(/"/g, '""');
-                    // Force Excel to treat long numeric Product ID as text (prevent scientific notation)
-                    if (rowIndex > 0 && colIndex === 1) {
-                        text = `="${text}"`;
-                    } else {
-                        if (text.includes(',') || text.includes('\n') || text.includes('"')) {
-                             text = `"${text}"`;
-                        }
+            // Headers
+            const headers = ['ลำดับ', 'รหัสสินค้า', 'ชื่อสินค้า', 'จำนวนที่เบิก', 'ราคาต้นทุน', 'ราคา (กลาง)', 'ราคา (ตัวแทน)', 'ราคา (ในเครือ)'];
+            const formattedHeaders = headers.map(h => {
+                if (h.includes(',') || h.includes('\n') || h.includes('"')) {
+                    return `"${h.replace(/"/g, '""')}"`;
+                }
+                return h;
+            });
+            csvContent += formattedHeaders.join(',') + "\r\n";
+            
+            // Rows
+            lastFilteredReportProducts.forEach((p, index) => {
+                const qty = lastReportProductUsageMap.get(String(p.id)) || 0;
+                const cost = parseFloat(String(p.cost).replace(/,/g, '')) || 0;
+                const priceA = parseFloat(String(p.price_a).replace(/,/g, '')) || 0;
+                const priceB = parseFloat(String(p.price_b).replace(/,/g, '')) || 0;
+                const priceC = parseFloat(String(p.price_c).replace(/,/g, '')) || 0;
+                
+                const rowData = [
+                    String(index + 1),
+                    `="${p.id}"`, // Force Excel to treat Product ID as text
+                    p.name,
+                    qty.toLocaleString('th-TH'),
+                    `฿${cost.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                    `฿${priceA.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                    `฿${priceB.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                    `฿${priceC.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+                ];
+                
+                const formattedRow = rowData.map(val => {
+                    let text = String(val).trim().replace(/"/g, '""');
+                    if (text.includes(',') || text.includes('\n') || text.includes('"')) {
+                        text = `"${text}"`;
                     }
-                    rowData.push(text);
+                    return text;
                 });
-                csvContent += rowData.join(',') + "\r\n";
+                
+                csvContent += formattedRow.join(',') + "\r\n";
             });
             
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
