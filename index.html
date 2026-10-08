@@ -203,6 +203,58 @@
         </div>
     </div>
 
+    <!-- Product Machines Modal (ป๊อปอัพแสดงรายการเครื่องจักรที่ใช้อะไหล่นี้) -->
+    <div id="productMachinesModal" class="fixed inset-0 bg-black/60 z-[85] flex items-center justify-center hidden backdrop-blur-sm p-4 overflow-y-auto" onclick="closeProductMachinesModal()">
+        <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl transform transition-all my-auto flex flex-col max-h-[90vh] overflow-hidden" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="p-5 sm:p-6 border-b border-gray-100 flex items-center justify-between gap-4 flex-shrink-0 bg-gradient-to-r from-slate-50 to-blue-50/40">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-blue-500/20">
+                        <i class="fa-solid fa-industry text-lg"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 mb-0.5 flex-wrap">
+                            <h3 class="text-base sm:text-lg font-bold text-gray-800">เครื่องจักรที่ใช้อะไหล่นี้</h3>
+                            <span id="pm_count_badge" class="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-0.5 rounded-full">0 เครื่อง</span>
+                        </div>
+                        <p id="pm_product_info" class="text-xs text-gray-500 truncate font-medium"></p>
+                    </div>
+                </div>
+                <button onclick="closeProductMachinesModal()" class="text-gray-400 hover:text-gray-600 hover:bg-white w-9 h-9 rounded-full flex items-center justify-center transition border border-transparent hover:border-gray-200 flex-shrink-0" title="ปิดหน้าต่าง">
+                    <i class="fa-solid fa-times text-base"></i>
+                </button>
+            </div>
+
+            <!-- Search / Filter within this modal -->
+            <div class="px-5 sm:px-6 pt-4 pb-2 flex-shrink-0 bg-white border-b border-gray-100">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="text" id="pm_search_input" oninput="filterProductMachinesList(this.value)" placeholder="ค้นหาชื่อ หรือรหัสเครื่องจักรในรายการนี้..." class="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
+                    <button type="button" id="pm_search_clear" onclick="clearProductMachinesSearch()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden text-xs p-1" title="ล้างคำค้นหา">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Machines List / Grid -->
+            <div class="p-4 sm:p-6 overflow-y-auto flex-1 bg-slate-50/50">
+                <div id="pm_machines_grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Cards will be populated here -->
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 sm:p-5 border-t border-gray-100 bg-white flex flex-col sm:flex-row items-center justify-between gap-3 flex-shrink-0">
+                <button type="button" id="pm_view_product_detail_btn" class="w-full sm:w-auto text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 border border-blue-200">
+                    <i class="fa-solid fa-circle-info"></i> ดูรายละเอียดอะไหล่นี้แบบเต็ม
+                </button>
+                <button type="button" onclick="closeProductMachinesModal()" class="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm rounded-xl transition">
+                    ปิด
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Image Lightbox Modal -->
     <div id="imageLightbox" class="fixed inset-0 bg-black/85 z-[200] flex items-center justify-center hidden backdrop-blur-sm p-4" onclick="closeImageLightbox()">
         <div class="relative max-w-5xl w-full max-h-[92vh] flex flex-col items-center" onclick="event.stopPropagation()">
@@ -515,6 +567,7 @@
                     <!-- Protected items: ซ่อนเมื่อยังไม่ล็อกอิน -->
                     <li class="protected-nav-item hidden border-t border-slate-700/30 my-1 pt-1" data-view="divider-pos"></li>
                     <li class="protected-nav-item hidden" data-view="view-pos"><a href="#" onclick="switchView('view-pos', this); initPOS();" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-calculator mr-3 w-5 text-center flex-shrink-0 text-amber-400"></i><span class="font-bold text-amber-300">ระบบเบิกจ่าย (POS)</span></a></li>
+                    <li class="protected-nav-item hidden" data-view="view-approval" id="nav-item-approval"><a href="#" onclick="switchView('view-approval', this); initApprovalView();" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-file-signature mr-3 w-5 text-center flex-shrink-0 text-emerald-400"></i><span class="font-bold text-emerald-300 flex-1">อนุมัติเอกสาร</span><span id="approvalPendingBadge" class="hidden ml-auto bg-amber-500 text-slate-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm">0</span></a></li>
                     <li class="protected-nav-item hidden" data-view="view-transactions"><a href="#" onclick="switchView('view-transactions', this); loadTransactions();" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-receipt mr-3 w-5 text-center flex-shrink-0"></i><span>ประวัติการเบิกจ่าย</span></a></li>
                     <li class="protected-nav-item hidden" data-view="view-restock"><a href="#" onclick="switchView('view-restock', this);" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-boxes-stacked mr-3 w-5 text-center flex-shrink-0 text-sky-400"></i><span class="font-bold text-sky-300">เติมสต็อกอะไหล่</span></a></li>
                     <li class="protected-nav-item hidden border-t border-slate-700/30 my-1 pt-1" data-view="divider-admin"></li>
@@ -1128,17 +1181,20 @@
                                 </h5>
                                 <div class="space-y-3 bg-white p-4 rounded-2xl border border-gray-200/60 shadow-sm">
                                     <div>
-                                        <label class="block text-[11px] font-bold text-gray-500 mb-1">ชื่อ-สกุล ผู้เบิก <span class="text-red-500">*</span></label>
+                                        <label class="block text-[11px] font-bold text-gray-500 mb-1">ชื่อผู้ประเมินซ่อม <span class="text-red-500">*</span></label>
                                         <div class="relative">
                                             <i class="fa-solid fa-user-tag absolute left-3 top-3 text-gray-400 text-xs"></i>
-                                            <input type="text" id="mobile_pos_requester" placeholder="ระบุชื่อ-สกุล ผู้เบิก" class="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 text-xs font-semibold">
+                                            <input type="text" id="mobile_pos_requester" placeholder="ระบุชื่อผู้ประเมินซ่อม" class="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 text-xs font-semibold">
                                         </div>
                                     </div>
                                     <div>
-                                        <label class="block text-[11px] font-bold text-gray-500 mb-1">แผนก/ฝ่ายงาน <span class="text-red-500">*</span></label>
+                                        <label class="block text-[11px] font-bold text-gray-500 mb-1">ผู้อนุมัติ <span class="text-red-500">*</span></label>
                                         <div class="relative">
-                                            <i class="fa-solid fa-users-gear absolute left-3 top-3 text-gray-400 text-xs"></i>
-                                            <input type="text" id="mobile_pos_department" placeholder="ระบุแผนก/ฝ่ายงาน" class="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 text-xs font-semibold">
+                                            <i class="fa-solid fa-user-check absolute left-3 top-3 text-gray-400 text-xs pointer-events-none"></i>
+                                            <select id="mobile_pos_approver" class="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 text-xs font-semibold bg-white">
+                                                <option value="">-- เลือกผู้อนุมัติ --</option>
+                                            </select>
+                                            <input type="hidden" id="mobile_pos_department">
                                         </div>
                                     </div>
                                     <div>
@@ -1161,6 +1217,109 @@
                                         <div class="relative">
                                             <i class="fa-solid fa-pen-nib absolute left-3 top-3 text-gray-400 text-xs"></i>
                                             <input type="text" id="mobile_pos_note" placeholder="ระบุวัตถุประสงค์การเบิก" class="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 text-xs font-semibold">
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-gray-500 mb-1">รายละเอียด <span class="text-[10px] text-gray-400 font-normal">(เลือกได้มากกว่า 1 ข้อ)</span></label>
+                                        <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-200 space-y-1.5 text-xs">
+                                            <label class="flex items-center gap-2 cursor-pointer text-gray-700">
+                                                <input type="checkbox" name="mobile_pos_job_detail" value="ล้างทำความสะอาด" class="rounded text-emerald-600 focus:ring-emerald-500">
+                                                <span>ล้างทำความสะอาด</span>
+                                            </label>
+                                            <label class="flex items-center gap-2 cursor-pointer text-gray-700">
+                                                <input type="checkbox" name="mobile_pos_job_detail" value="เปลี่ยนอุปกรณ์ภายในเครื่อง" class="rounded text-emerald-600 focus:ring-emerald-500">
+                                                <span>เปลี่ยนอุปกรณ์ภายในเครื่อง</span>
+                                            </label>
+                                            <label class="flex items-center gap-2 cursor-pointer text-gray-700">
+                                                <input type="checkbox" name="mobile_pos_job_detail" value="ขัดขึ้นลายขนแมว" class="rounded text-emerald-600 focus:ring-emerald-500">
+                                                <span>ขัดขึ้นลายขนแมว</span>
+                                            </label>
+                                            <label class="flex items-center gap-2 cursor-pointer text-gray-700">
+                                                <input type="checkbox" name="mobile_pos_job_detail" value="ทดสอบการทำงานของเครื่อง" class="rounded text-emerald-600 focus:ring-emerald-500">
+                                                <span>ทดสอบการทำงานของเครื่อง</span>
+                                            </label>
+                                            <div class="pt-1 border-t border-gray-200">
+                                                <label class="flex items-center gap-2 cursor-pointer text-gray-700">
+                                                    <input type="checkbox" id="mobile_pos_job_detail_other_check" onchange="toggleJobDetailOther(true)" class="rounded text-emerald-600 focus:ring-emerald-500">
+                                                    <span>อื่นๆ (พิมพ์เอง)</span>
+                                                </label>
+                                                <input type="text" id="mobile_pos_job_detail_other_text" placeholder="ระบุรายละเอียดอื่นๆ..." class="hidden mt-1.5 w-full px-2.5 py-1.5 border border-emerald-300 bg-white rounded-lg text-xs font-medium">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- ข้อมูลเพิ่มเติมสำหรับการประเมินซ่อม (Mobile) -->
+                                    <div class="pt-2 border-t border-gray-150 space-y-3">
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[11px] font-bold text-gray-500 mb-1">ประเภทลูกค้า <span class="text-red-500">*</span></label>
+                                                <select id="mobile_pos_customer_type" onchange="onPOSCustomerTypeChange(true)" class="w-full px-2 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 text-xs font-semibold bg-white">
+                                                    <option value="ลูกค้าภายใน">ลูกค้าภายใน</option>
+                                                    <option value="ลูกค้าในเครือ">ลูกค้าในเครือ</option>
+                                                    <option value="ลูกค้าตัวแทน">ลูกค้าตัวแทน</option>
+                                                    <option value="ลูกค้าภายนอก" selected>ลูกค้าภายนอก</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-[11px] font-bold text-gray-500 mb-1">ราคา <span class="text-red-500">*</span></label>
+                                                <select id="mobile_pos_price_tier" onchange="onPOSPriceTierChange(true)" class="w-full px-2 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 text-xs font-semibold bg-white">
+                                                    <option value="ต้นทุน">ต้นทุน</option>
+                                                    <option value="ราคาในเครือ">ราคาในเครือ</option>
+                                                    <option value="ราคาตัวแทน">ราคาตัวแทน</option>
+                                                    <option value="ราคากลาง" selected>ราคากลาง</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[11px] font-bold text-gray-500 mb-1">Machine model <span class="text-red-500">*</span></label>
+                                                <select id="mobile_pos_machine_model" onchange="onPOSMachineModelChange(true)" class="w-full px-2 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 text-xs font-semibold bg-white">
+                                                    <option value="">-- เลือกรุ่น --</option>
+                                                    <option value="Under-counter">Under-counter</option>
+                                                    <option value="hood type">hood type</option>
+                                                    <option value="Conveyor">Conveyor</option>
+                                                    <option value="อื่นๆ">อื่นๆ</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-[11px] font-bold text-gray-500 mb-1">ระดับงานซ่อม <span class="text-red-500">*</span></label>
+                                                <select id="mobile_pos_repair_level" onchange="onPOSRepairLevelChange(true)" class="w-full px-2 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 text-xs font-semibold bg-white">
+                                                    <option value="">-- เลือกระดับ --</option>
+                                                    <option value="A1">A1</option>
+                                                    <option value="A2">A2</option>
+                                                    <option value="B1">B1</option>
+                                                    <option value="B2">B2</option>
+                                                    <option value="C1">C1</option>
+                                                    <option value="C2">C2</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div id="mobile_pos_machine_model_other_wrap" class="hidden">
+                                            <input type="text" id="mobile_pos_machine_model_other" oninput="updatePOSLaborCost(true)" placeholder="พิมพ์ชื่อ Machine model..." class="w-full px-3 py-1.5 border border-amber-300 bg-amber-50/50 rounded-xl text-xs font-semibold">
+                                        </div>
+
+                                        <!-- Mobile Labor summary card -->
+                                        <div class="bg-amber-50/90 border border-amber-200 rounded-xl p-3 text-[11px] space-y-1.5">
+                                            <div class="flex justify-between items-center text-slate-600">
+                                                <span>ค่าอะไหล่รวม:</span>
+                                                <span id="mobile_pos_parts_subtotal" class="font-bold text-slate-800">฿0.00</span>
+                                            </div>
+                                            <div class="flex justify-between items-center text-slate-600">
+                                                <span>ค่าแรงซ่อม (<span id="mobile_pos_labor_rate_desc" class="font-semibold text-amber-700">-</span>):</span>
+                                                <div class="flex items-center gap-1">
+                                                    <span id="mobile_pos_labor_cost_display" class="font-bold text-amber-800">฿0.00</span>
+                                                    <div id="mobile_pos_labor_cost_custom_wrap" class="hidden flex items-center gap-0.5">
+                                                        <span>฿</span>
+                                                        <input type="number" id="mobile_pos_labor_cost_custom" oninput="onPOSCustomLaborCostChange(true)" class="w-20 p-1 text-right border border-amber-300 rounded-lg text-[10px] font-bold bg-white" value="0" min="0" step="100">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="border-t border-amber-200 pt-1.5 flex justify-between items-center font-bold text-slate-900 text-xs">
+                                                <span>ยอดรวมสุทธิ:</span>
+                                                <span id="mobile_pos_grand_total_display" class="text-emerald-600 font-extrabold text-sm">฿0.00</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1339,6 +1498,118 @@
                     </div>
                 </section>
 
+                <!-- ================== หน้าอนุมัติเอกสารเบิกจ่าย ================== -->
+                <section id="view-approval" class="view-section hidden w-full relative z-10">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                        <div>
+                            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-2.5">
+                                <span class="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg shadow-sm">
+                                    <i class="fa-solid fa-file-signature"></i>
+                                </span>
+                                อนุมัติเอกสารเบิกจ่ายอะไหล่
+                            </h2>
+                            <p class="text-gray-500 text-sm mt-1" id="approvalViewSubtitle">ตรวจสอบและพิจารณาอนุมัติ/ไม่อนุมัติใบขอเบิกอะไหล่จากการประเมินซ่อม</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="initApprovalView(true)" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-sm font-semibold shadow-sm transition hover:shadow">
+                                <i class="fa-solid fa-rotate text-emerald-600"></i> รีเฟรชข้อมูล
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Statistics Summary Cards -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div onclick="setApprovalStatusFilter('Pending')" class="cursor-pointer bg-white rounded-2xl border-2 border-amber-200/80 hover:border-amber-400 p-4 shadow-sm hover:shadow-md transition-all flex items-center gap-3.5 group">
+                            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 group-hover:bg-amber-100 flex items-center justify-center flex-shrink-0 transition">
+                                <i class="fa-solid fa-hourglass-half text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">รออนุมัติ</p>
+                                <h3 id="approval_stat_pending" class="text-xl sm:text-2xl font-black text-amber-600 mt-0.5">0 รายการ</h3>
+                            </div>
+                        </div>
+
+                        <div onclick="setApprovalStatusFilter('Approved')" class="cursor-pointer bg-white rounded-2xl border-2 border-emerald-200/80 hover:border-emerald-400 p-4 shadow-sm hover:shadow-md transition-all flex items-center gap-3.5 group">
+                            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 flex items-center justify-center flex-shrink-0 transition">
+                                <i class="fa-solid fa-circle-check text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">อนุมัติแล้ว</p>
+                                <h3 id="approval_stat_approved" class="text-xl sm:text-2xl font-black text-emerald-600 mt-0.5">0 รายการ</h3>
+                            </div>
+                        </div>
+
+                        <div onclick="setApprovalStatusFilter('Rejected')" class="cursor-pointer bg-white rounded-2xl border-2 border-rose-200/80 hover:border-rose-400 p-4 shadow-sm hover:shadow-md transition-all flex items-center gap-3.5 group">
+                            <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 group-hover:bg-rose-100 flex items-center justify-center flex-shrink-0 transition">
+                                <i class="fa-solid fa-circle-xmark text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">ไม่อนุมัติ</p>
+                                <h3 id="approval_stat_rejected" class="text-xl sm:text-2xl font-black text-rose-600 mt-0.5">0 รายการ</h3>
+                            </div>
+                        </div>
+
+                        <div onclick="setApprovalStatusFilter('all')" class="cursor-pointer bg-white rounded-2xl border-2 border-slate-200/80 hover:border-slate-400 p-4 shadow-sm hover:shadow-md transition-all flex items-center gap-3.5 group">
+                            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-100 flex items-center justify-center flex-shrink-0 transition">
+                                <i class="fa-solid fa-folder-open text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">ทั้งหมดในระบบ</p>
+                                <h3 id="approval_stat_total" class="text-xl sm:text-2xl font-black text-slate-800 mt-0.5">0 รายการ</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search & Filter Bar -->
+                    <div class="flex flex-col md:flex-row justify-start items-center gap-3 mb-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm w-full">
+                        <div class="relative w-full md:w-80 flex-shrink-0">
+                            <i class="fa-solid fa-search absolute left-3.5 top-3.5 text-gray-400"></i>
+                            <input type="text" id="searchApprovalInput" onkeyup="renderApprovalTable()" placeholder="ค้นหา เลขที่ใบเบิก, ผู้ประเมิน, เครื่องจักร..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm transition">
+                        </div>
+                        
+                        <div class="w-full md:w-48 flex-shrink-0">
+                            <select id="filterApprovalStatus" onchange="renderApprovalTable()" class="w-full p-2.5 border border-gray-200 rounded-xl bg-white text-sm cursor-pointer text-gray-700 font-medium">
+                                <option value="all">-- ทุกสถานะอนุมัติ --</option>
+                                <option value="Pending" selected>⏳ รออนุมัติ (Pending)</option>
+                                <option value="Approved">✅ อนุมัติแล้ว (Approved)</option>
+                                <option value="Rejected">❌ ไม่อนุมัติ (Rejected)</option>
+                            </select>
+                        </div>
+
+                        <!-- ตัวกรองเฉพาะ Admin: กรองตามผู้อนุมัติ -->
+                        <div id="adminApprovalFilterWrap" class="w-full md:w-60 flex-shrink-0 hidden">
+                            <select id="filterApprovalApprover" onchange="renderApprovalTable()" class="w-full p-2.5 border border-emerald-300 rounded-xl bg-emerald-50/50 text-sm cursor-pointer text-emerald-900 font-medium">
+                                <option value="all">-- ดูผู้อนุมัติทุกคน --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- ตารางรายการเอกสารขออนุมัติ -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden w-full">
+                        <div class="overflow-x-auto w-full table-scroll pb-2">
+                            <table class="min-w-full text-left text-sm whitespace-nowrap">
+                                <thead class="bg-slate-800 text-white">
+                                    <tr>
+                                        <th class="p-4 w-12 text-center font-medium rounded-tl-lg">ลำดับ</th>
+                                        <th class="p-4 font-medium">เลขที่ใบเบิก</th>
+                                        <th class="p-4 font-medium">วันเวลาที่ขอเบิก</th>
+                                        <th class="p-4 font-medium">ผู้ประเมินซ่อม</th>
+                                        <th class="p-4 font-medium">ผู้อนุมัติที่ระบุ</th>
+                                        <th class="p-4 font-medium">เครื่องจักร / โมเดล</th>
+                                        <th class="p-4 font-medium text-center">ระดับงานซ่อม</th>
+                                        <th class="p-4 font-medium text-right text-emerald-300">มูลค่ารวมสุทธิ</th>
+                                        <th class="p-4 font-medium text-center">สถานะการอนุมัติ</th>
+                                        <th class="p-4 font-medium text-center rounded-tr-lg">การพิจารณา</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="approvalTableBody" class="divide-y divide-gray-100 bg-white">
+                                    <!-- เรนเดอร์ด้วย JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- ================== หน้าประวัติการเบิกจ่าย ================== -->
                 <section id="view-transactions" class="view-section hidden w-full relative z-10">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -1352,7 +1623,7 @@
                     <div class="flex flex-col md:flex-row justify-start items-center gap-4 mb-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm w-full">
                         <div class="relative w-full md:w-80 flex-shrink-0">
                             <i class="fa-solid fa-search absolute left-3.5 top-3.5 text-gray-400"></i>
-                            <input type="text" id="searchTransactionInput" onkeyup="renderTransactionsTable()" placeholder="ค้นหา เลขที่ใบเบิก หรือพนักงาน..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm transition">
+                            <input type="text" id="searchTransactionInput" onkeyup="renderTransactionsTable()" placeholder="ค้นหา เลขที่ใบเบิก, พนักงาน หรือ Serial Number..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm transition">
                         </div>
                         
                         <div class="w-full md:w-56 flex-shrink-0">
@@ -1376,8 +1647,10 @@
                                         <th class="p-4 font-medium">ผู้ขอเบิกอะไหล่</th>
                                         <th class="p-4 font-medium">แผนก/ฝ่าย</th>
                                         <th class="p-4 font-medium">ใช้กับเครื่องจักร</th>
+                                        <th class="p-4 font-medium">Serial Number</th>
                                         <th class="p-4 font-medium text-right text-blue-200">มูลค่าใบเบิก</th>
-                                        <th class="p-4 font-medium text-center">สถานะ</th>
+                                        <th class="p-4 font-medium text-center">สถานะรายการ</th>
+                                        <th class="p-4 font-medium text-center">สถานะเอกสาร</th>
                                         <th class="p-4 font-medium text-center rounded-tr-lg">จัดการ</th>
                                     </tr>
                                 </thead>
@@ -1673,7 +1946,7 @@
                     <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
                             <h2 class="text-2xl font-bold text-gray-800"><i class="fa-solid fa-users-gear text-amber-500 mr-2"></i>จัดการรายชื่อสมาชิกผู้ใช้งาน</h2>
-                            <p class="text-sm text-gray-500 mt-1">แก้ไขสิทธิ์การใช้งาน ลบผู้ใช้ และกำหนดระดับราคาสินค้า</p>
+                            <p class="text-sm text-gray-500 mt-1">แก้ไขสิทธิ์การใช้งาน สิทธิ์อนุมัติเอกสาร ลบผู้ใช้ และกำหนดระดับราคาสินค้า</p>
                         </div>
                     </div>
 
@@ -1700,6 +1973,7 @@
                                         <th scope="col" class="px-4 py-3 font-semibold">แผนก / ฝ่าย</th>
                                         <th scope="col" class="px-4 py-3 font-semibold">ติดต่อ (เบอร์/อีเมล)</th>
                                         <th scope="col" class="px-4 py-3 font-semibold text-center">สิทธิ์การใช้งาน</th>
+                                        <th scope="col" class="px-4 py-3 font-semibold text-center">สิทธิ์อนุมัติเอกสาร</th>
                                         <th scope="col" class="px-4 py-3 font-semibold text-center">ระดับราคาที่ได้</th>
                                         <th scope="col" class="px-4 py-3 font-semibold text-center">การจัดการ</th>
                                     </tr>
@@ -1955,12 +2229,15 @@
                             <form id="formPOSCheckout" onsubmit="submitPOSCheckout(event)">
                                 <div class="space-y-4 mb-6">
                                     <div>
-                                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">ชื่อพนักงานผู้เบิกอะไหล่ <span class="text-red-500">*</span></label>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">ชื่อผู้ประเมินซ่อม <span class="text-red-500">*</span></label>
                                         <input type="text" id="pos_requester" required placeholder="เช่น นายประหยัด ดีงาม" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition text-sm">
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">แผนก/ฝ่ายงาน <span class="text-red-500">*</span></label>
-                                        <input type="text" id="pos_department" required placeholder="เช่น ซ่อมบำรุง (Maintenance)" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition text-sm">
+                                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">ผู้อนุมัติ <span class="text-red-500">*</span></label>
+                                        <select id="pos_approver" required class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition text-sm bg-white font-medium">
+                                            <option value="">-- เลือกผู้อนุมัติ --</option>
+                                        </select>
+                                        <input type="hidden" id="pos_department">
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
@@ -1976,6 +2253,107 @@
                                     <div>
                                         <label class="block text-sm font-semibold text-gray-700 mb-1.5">วัตถุประสงค์ในการเบิก / หมายเหตุ <span class="text-red-500">*</span></label>
                                         <textarea id="pos_note" required rows="2" placeholder="เช่น เปลี่ยนเนื่องจากแกนพัง หรือรอบเดินเบาสะดุด..." class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition text-sm resize-none"></textarea>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">รายละเอียด <span class="text-xs text-gray-400 font-normal">(เลือกได้มากกว่า 1 ข้อ)</span></label>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 p-3 rounded-xl border border-gray-200 text-sm">
+                                            <label class="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 select-none">
+                                                <input type="checkbox" name="pos_job_detail" value="ล้างทำความสะอาด" class="rounded text-amber-500 focus:ring-amber-400 w-4 h-4">
+                                                <span>ล้างทำความสะอาด</span>
+                                            </label>
+                                            <label class="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 select-none">
+                                                <input type="checkbox" name="pos_job_detail" value="เปลี่ยนอุปกรณ์ภายในเครื่อง" class="rounded text-amber-500 focus:ring-amber-400 w-4 h-4">
+                                                <span>เปลี่ยนอุปกรณ์ภายในเครื่อง</span>
+                                            </label>
+                                            <label class="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 select-none">
+                                                <input type="checkbox" name="pos_job_detail" value="ขัดขึ้นลายขนแมว" class="rounded text-amber-500 focus:ring-amber-400 w-4 h-4">
+                                                <span>ขัดขึ้นลายขนแมว</span>
+                                            </label>
+                                            <label class="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 select-none">
+                                                <input type="checkbox" name="pos_job_detail" value="ทดสอบการทำงานของเครื่อง" class="rounded text-amber-500 focus:ring-amber-400 w-4 h-4">
+                                                <span>ทดสอบการทำงานของเครื่อง</span>
+                                            </label>
+                                            <div class="sm:col-span-2 pt-1 border-t border-gray-200/60 mt-1">
+                                                <label class="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 select-none">
+                                                    <input type="checkbox" id="pos_job_detail_other_check" onchange="toggleJobDetailOther(false)" class="rounded text-amber-500 focus:ring-amber-400 w-4 h-4">
+                                                    <span>อื่นๆ (พิมพ์เอง)</span>
+                                                </label>
+                                                <input type="text" id="pos_job_detail_other_text" placeholder="ระบุรายละเอียดอื่นๆ..." class="hidden mt-2 w-full p-2.5 border border-amber-300 bg-white rounded-xl focus:ring-2 focus:ring-amber-500/50 text-sm">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ข้อมูลการประเมินซ่อมและคิดราคาเพิ่มเติม -->
+                                    <div class="pt-3 border-t border-gray-200/80 space-y-4">
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-semibold text-gray-700 mb-1.5">ประเภทลูกค้า <span class="text-red-500">*</span></label>
+                                                <select id="pos_customer_type" onchange="onPOSCustomerTypeChange(false)" required class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition text-sm bg-white font-medium">
+                                                    <option value="ลูกค้าภายใน">ลูกค้าภายใน</option>
+                                                    <option value="ลูกค้าในเครือ">ลูกค้าในเครือ</option>
+                                                    <option value="ลูกค้าตัวแทน">ลูกค้าตัวแทน</option>
+                                                    <option value="ลูกค้าภายนอก" selected>ลูกค้าภายนอก</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-semibold text-gray-700 mb-1.5">ราคา <span class="text-red-500">*</span></label>
+                                                <select id="pos_price_tier" onchange="onPOSPriceTierChange(false)" required class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition text-sm bg-white font-medium">
+                                                    <option value="ต้นทุน">ต้นทุน</option>
+                                                    <option value="ราคาในเครือ">ราคาในเครือ</option>
+                                                    <option value="ราคาตัวแทน">ราคาตัวแทน</option>
+                                                    <option value="ราคากลาง" selected>ราคากลาง</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Machine model <span class="text-red-500">*</span></label>
+                                                <select id="pos_machine_model" onchange="onPOSMachineModelChange(false)" required class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition text-sm bg-white font-medium">
+                                                    <option value="">-- เลือกรุ่นเครื่อง --</option>
+                                                    <option value="Under-counter">Under-counter</option>
+                                                    <option value="hood type">hood type</option>
+                                                    <option value="Conveyor">Conveyor</option>
+                                                    <option value="อื่นๆ">อื่นๆ (พิมพ์เองได้)</option>
+                                                </select>
+                                                <input type="text" id="pos_machine_model_other" oninput="updatePOSLaborCost(false)" placeholder="พิมพ์ชื่อ Machine model เอง..." class="hidden mt-2 w-full p-2.5 border border-amber-300 bg-amber-50/40 rounded-xl focus:ring-2 focus:ring-amber-500/50 text-sm">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-semibold text-gray-700 mb-1.5">ตัวเลือกระดับงานซ่อม <span class="text-red-500">*</span></label>
+                                                <select id="pos_repair_level" onchange="onPOSRepairLevelChange(false)" required class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition text-sm bg-white font-medium">
+                                                    <option value="">-- เลือกระดับงานซ่อม --</option>
+                                                    <option value="A1">A1</option>
+                                                    <option value="A2">A2</option>
+                                                    <option value="B1">B1</option>
+                                                    <option value="B2">B2</option>
+                                                    <option value="C1">C1</option>
+                                                    <option value="C2">C2</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- การ์ดคำนวณและแสดงค่าแรง + สรุปยอดรวม -->
+                                        <div class="bg-gradient-to-br from-amber-50/80 to-orange-50/50 border border-amber-200/90 rounded-2xl p-4 text-xs space-y-2.5 shadow-sm">
+                                            <div class="flex justify-between items-center text-slate-600">
+                                                <span><i class="fa-solid fa-boxes-stacked mr-1.5 text-amber-600"></i>รวมค่าอะไหล่ (<span id="pos_parts_count" class="font-bold text-slate-800">0</span> ชิ้น):</span>
+                                                <span id="pos_parts_subtotal" class="font-bold text-slate-800 text-sm">฿0.00</span>
+                                            </div>
+                                            <div class="flex justify-between items-center text-slate-600">
+                                                <span><i class="fa-solid fa-screwdriver-wrench mr-1.5 text-amber-600"></i>ค่าแรงงานซ่อม (<span id="pos_labor_rate_desc" class="font-semibold text-amber-700">ยังไม่ระบุ</span>):</span>
+                                                <div class="flex items-center gap-2">
+                                                    <span id="pos_labor_cost_display" class="font-bold text-amber-800 text-sm">฿0.00</span>
+                                                    <div id="pos_labor_cost_custom_wrap" class="hidden flex items-center gap-1">
+                                                        <span class="text-[11px] text-gray-500">฿</span>
+                                                        <input type="number" id="pos_labor_cost_custom" oninput="onPOSCustomLaborCostChange(false)" class="w-24 p-1.5 text-right border border-amber-300 rounded-lg text-xs font-bold bg-white focus:ring-1 focus:ring-amber-500" value="0" min="0" step="100">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="border-t border-amber-200 pt-2.5 flex justify-between items-center font-bold text-slate-900">
+                                                <span class="text-sm"><i class="fa-solid fa-receipt mr-1.5 text-emerald-600"></i>ยอดรวมทั้งสิ้น (อะไหล่ + ค่าแรง):</span>
+                                                <span id="pos_grand_total_display" class="text-lg text-emerald-600 font-extrabold">฿0.00</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -2095,20 +2473,41 @@
                                     <p id="tdm_status" class="font-bold"></p>
                                 </div>
                                 <div>
-                                    <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">พนักงานผู้ขอเบิก:</p>
+                                    <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">ผู้ประเมินซ่อม:</p>
                                     <p id="tdm_requester" class="font-bold text-gray-700"></p>
                                 </div>
                                 <div>
-                                    <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">สังกัดฝ่าย/แผนก:</p>
-                                    <p id="tdm_department" class="font-bold text-gray-700"></p>
+                                    <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">ผู้อนุมัติ:</p>
+                                    <p id="tdm_approver" class="font-bold text-indigo-700"></p>
+                                    <span id="tdm_department" class="hidden"></span>
                                 </div>
                                 <div>
-                                    <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">ใช้งานสำหรับเครื่องจักร:</p>
+                                    <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">ประเภทลูกค้า:</p>
+                                    <p id="tdm_customer_type" class="font-bold text-gray-700"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">ระดับราคา:</p>
+                                    <p id="tdm_price_tier" class="font-bold text-gray-700"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">เครื่องจักร / รุ่น:</p>
                                     <p id="tdm_machine" class="font-bold text-gray-700"></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Serial Number:</p>
                                     <p id="tdm_serial_number" class="font-bold text-gray-700"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Machine Model:</p>
+                                    <p id="tdm_machine_model" class="font-bold text-gray-700"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">ระดับงานซ่อม:</p>
+                                    <p id="tdm_repair_level" class="font-bold text-amber-700"></p>
+                                </div>
+                                <div class="col-span-1 sm:col-span-2">
+                                    <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">รายละเอียดงาน:</p>
+                                    <div id="tdm_job_details" class="flex flex-wrap gap-1.5 mt-1 min-h-[28px]"></div>
                                 </div>
                                 <div class="col-span-1 sm:col-span-2">
                                     <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">หมายเหตุเพิ่มเติม:</p>
@@ -2136,10 +2535,20 @@
                                 </div>
                             </div>
                             
-                            <!-- มูลค่ารวมสุทธิ -->
-                            <div class="flex justify-between items-center bg-blue-50 border border-blue-100 p-4 rounded-xl">
-                                <span class="text-sm font-bold text-blue-800">มูลค่ารวมใบเบิกสุทธิ:</span>
-                                <span id="tdm_total_price" class="text-xl font-extrabold text-blue-700">฿0.00</span>
+                            <!-- มูลค่ารวมสุทธิและสรุปค่าแรง -->
+                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-4 rounded-2xl space-y-2">
+                                <div class="flex justify-between items-center text-xs text-slate-600">
+                                    <span>รวมค่าอะไหล่:</span>
+                                    <span id="tdm_parts_total" class="font-bold text-slate-800 text-sm">฿0.00</span>
+                                </div>
+                                <div class="flex justify-between items-center text-xs text-slate-600">
+                                    <span>ค่าแรงงานซ่อม:</span>
+                                    <span id="tdm_labor_cost" class="font-bold text-amber-800 text-sm">฿0.00</span>
+                                </div>
+                                <div class="border-t border-blue-200/80 pt-2 flex justify-between items-center">
+                                    <span class="text-sm font-bold text-blue-900">มูลค่ารวมใบเบิกสุทธิ:</span>
+                                    <span id="tdm_total_price" class="text-xl font-black text-blue-700">฿0.00</span>
+                                </div>
                             </div>
                         </div>
                         
@@ -2161,6 +2570,160 @@
                                 <button id="tdmPrintBtn" onclick="" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 transition font-semibold text-sm flex items-center gap-1.5">
                                     <i class="fa-solid fa-print"></i>
                                     พิมพ์ใบเบิกอะไหล่
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================== Approval Review & Action Modal ================== -->
+                <div id="approvalActionModal" class="fixed inset-0 bg-gray-900/60 z-[100] flex items-center justify-center hidden backdrop-blur-sm p-4 overflow-y-auto" onclick="closeApprovalModal()">
+                    <div class="bg-white rounded-3xl w-full max-w-3xl shadow-2xl transform transition-all my-auto max-h-[92vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+                        <!-- Modal Header -->
+                        <div class="flex justify-between items-center p-6 border-b border-gray-100 flex-shrink-0 bg-slate-900 text-white">
+                            <div class="flex items-center gap-3">
+                                <span class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg border border-emerald-500/30">
+                                    <i class="fa-solid fa-file-signature"></i>
+                                </span>
+                                <div>
+                                    <h3 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                                        พิจารณาอนุมัติใบขอเบิกอะไหล่
+                                        <span id="aam_status_pill" class="text-xs px-2.5 py-0.5 rounded-full font-bold"></span>
+                                    </h3>
+                                    <p class="text-xs text-slate-400 mt-0.5" id="aam_tx_id">เลขที่ใบเบิก: QCM-XXXXXX</p>
+                                </div>
+                            </div>
+                            <button onclick="closeApprovalModal()" class="text-slate-400 hover:text-white transition p-2 rounded-lg hover:bg-slate-800">
+                                <i class="fa-solid fa-times text-lg"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Modal Body -->
+                        <div class="p-6 overflow-y-auto hide-scroll flex-1 space-y-5">
+                            <!-- Information Grid -->
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs">
+                                <div>
+                                    <span class="text-slate-400 block font-semibold uppercase">วันเวลาที่ขอเบิก:</span>
+                                    <span id="aam_date" class="font-bold text-slate-800 mt-0.5 block"></span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block font-semibold uppercase">ผู้ประเมินซ่อม:</span>
+                                    <span id="aam_requester" class="font-bold text-slate-800 mt-0.5 block"></span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block font-semibold uppercase">ผู้อนุมัติที่ระบุ:</span>
+                                    <span id="aam_approver" class="font-bold text-indigo-700 mt-0.5 block"></span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block font-semibold uppercase">ระดับงานซ่อม:</span>
+                                    <span id="aam_repair_level" class="font-bold text-amber-700 mt-0.5 block"></span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block font-semibold uppercase">ประเภทลูกค้า:</span>
+                                    <span id="aam_customer_type" class="font-bold text-slate-800 mt-0.5 block"></span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block font-semibold uppercase">ระดับราคา:</span>
+                                    <span id="aam_price_tier" class="font-bold text-slate-800 mt-0.5 block"></span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block font-semibold uppercase">เครื่องจักร:</span>
+                                    <span id="aam_machine" class="font-bold text-slate-800 mt-0.5 block"></span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block font-semibold uppercase">Serial / Model:</span>
+                                    <span id="aam_machine_detail" class="font-bold text-slate-800 mt-0.5 block"></span>
+                                </div>
+                                <div class="col-span-2 sm:col-span-4 bg-white p-3 rounded-xl border border-slate-200 mt-1">
+                                    <span class="text-slate-400 block font-semibold uppercase text-[10px]">วัตถุประสงค์ในการเบิก / หมายเหตุ:</span>
+                                    <p id="aam_note" class="text-slate-700 mt-1 whitespace-pre-line text-xs leading-relaxed font-medium"></p>
+                                </div>
+                                <div class="col-span-2 sm:col-span-4 bg-white p-3 rounded-xl border border-slate-200 mt-1">
+                                    <span class="text-slate-400 block font-semibold uppercase text-[10px]">รายละเอียดงาน:</span>
+                                    <div id="aam_job_details" class="flex flex-wrap gap-1.5 mt-1 min-h-[24px]"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Parts Item Table -->
+                            <div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                        <i class="fa-solid fa-boxes-stacked text-blue-500"></i> รายการอะไหล่ที่ขอเบิก
+                                        <span id="aamItemsChangedBadge" class="hidden text-[11px] font-bold text-amber-700 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full animate-pulse">
+                                            <i class="fa-solid fa-pen-to-square mr-1"></i> มีการแก้ไขรายการ
+                                        </span>
+                                    </h4>
+                                    <button type="button" id="aamAddPartBtn" onclick="promptAddApprovalItem()" class="hidden px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm active:scale-95">
+                                        <i class="fa-solid fa-plus-circle text-blue-600"></i> เพิ่มรายการอะไหล่
+                                    </button>
+                                </div>
+                                <div class="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                                    <div class="overflow-x-auto w-full table-scroll">
+                                        <table class="min-w-full text-left text-xs whitespace-nowrap">
+                                            <thead class="bg-slate-800 text-white">
+                                                <tr>
+                                                    <th class="p-3 font-medium">รหัสอะไหล่</th>
+                                                    <th class="p-3 font-medium">ชื่อรายการสินค้า</th>
+                                                    <th class="p-3 font-medium text-right">จำนวนเบิก</th>
+                                                    <th class="p-3 font-medium text-right">ราคาต่อหน่วย</th>
+                                                    <th class="p-3 font-medium text-right">ยอดรวม</th>
+                                                    <th id="aam_th_actions" class="p-3 font-medium text-center">จัดการ</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="aamItemsTableBody" class="divide-y divide-gray-100 bg-white">
+                                                <!-- เรนเดอร์ด้วย JS -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Cost Breakdown -->
+                            <div class="bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border border-emerald-100 p-4 rounded-2xl space-y-2">
+                                <div class="flex justify-between items-center text-xs text-slate-600">
+                                    <span>รวมค่าอะไหล่:</span>
+                                    <span id="aam_parts_total" class="font-bold text-slate-800 text-sm">฿0.00</span>
+                                </div>
+                                <div class="flex justify-between items-center text-xs text-slate-600">
+                                    <span>ค่าแรงงานซ่อม:</span>
+                                    <span id="aam_labor_cost" class="font-bold text-amber-800 text-sm">฿0.00</span>
+                                </div>
+                                <div class="border-t border-emerald-200/80 pt-2 flex justify-between items-center">
+                                    <span class="text-sm font-bold text-emerald-950">ยอดรวมสุทธิทั้งสิ้น:</span>
+                                    <span id="aam_total_price" class="text-xl font-black text-emerald-700">฿0.00</span>
+                                </div>
+                            </div>
+
+                            <!-- History Banner (if already reviewed) -->
+                            <div id="aam_history_banner" class="hidden p-4 rounded-2xl border text-xs">
+                                <div class="flex items-center gap-2 font-bold mb-1" id="aam_history_title"></div>
+                                <p class="text-slate-600" id="aam_history_meta"></p>
+                                <p class="mt-2 text-slate-800 bg-white/80 p-2.5 rounded-xl border border-current/20 whitespace-pre-line" id="aam_history_note"></p>
+                            </div>
+
+                            <!-- Review Decision Input Box (visible when Pending) -->
+                            <div id="aam_decision_box" class="bg-amber-50/60 border border-amber-200/80 p-4 rounded-2xl space-y-3">
+                                <label class="block text-xs font-bold text-amber-900">
+                                    <i class="fa-solid fa-comment-dots mr-1"></i> ความเห็น / หมายเหตุประกอบการพิจารณา:
+                                </label>
+                                <textarea id="aam_approval_note" rows="2" placeholder="ระบุข้อคิดเห็น (ไม่บังคับสำหรับอนุมัติ / แนะนำให้ระบุหากไม่อนุมัติ)..." class="w-full p-3 border border-amber-200 rounded-xl bg-white text-xs focus:ring-2 focus:ring-emerald-500/50 focus:outline-none transition"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Modal Footer -->
+                        <div class="p-5 bg-slate-50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-3 flex-shrink-0">
+                            <div>
+                                <button onclick="closeApprovalModal()" class="w-full sm:w-auto px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-100 transition font-medium text-sm">
+                                    ปิดหน้าต่าง
+                                </button>
+                            </div>
+                            
+                            <div class="flex items-center gap-2 w-full sm:w-auto justify-end" id="aam_action_buttons">
+                                <button id="aamRejectBtn" onclick="handleRejectApproval()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md shadow-rose-600/20 transition font-semibold text-sm flex items-center gap-1.5 active:scale-95">
+                                    <i class="fa-solid fa-times-circle"></i> ไม่อนุมัติคำขอ
+                                </button>
+                                <button id="aamApproveBtn" onclick="handleApproveApproval()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-lg shadow-emerald-600/25 transition font-bold text-sm flex items-center gap-1.5 active:scale-95">
+                                    <i class="fa-solid fa-circle-check"></i> อนุมัติคำขอเบิก
                                 </button>
                             </div>
                         </div>
@@ -2253,6 +2816,10 @@
     <datalist id="list_machine_suppliers"></datalist>
     <datalist id="list_machine_storages"></datalist>
 
-    <script src="app.js"></script>
+    <!-- Modular Application Scripts -->
+    <script src="js/common.js"></script>
+    <script src="js/catalog.js"></script>
+    <script src="js/requisition.js"></script>
+    <script src="js/restock.js"></script>
 </body>
 </html>
