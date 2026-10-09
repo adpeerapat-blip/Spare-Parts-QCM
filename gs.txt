@@ -437,6 +437,13 @@ function syncToFirebase(appData) {
       contentType: "application/json",
       payload: JSON.stringify(appData.lots || []),
       muteHttpExceptions: true
+    },
+    {
+      url: baseUrl + "appData/lastUpdated.json" + (FIREBASE_SECRET ? "?auth=" + FIREBASE_SECRET : ""),
+      method: "put",
+      contentType: "application/json",
+      payload: JSON.stringify(Date.now()),
+      muteHttpExceptions: true
     }
   ];
   

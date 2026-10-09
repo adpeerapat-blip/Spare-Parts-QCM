@@ -43,9 +43,19 @@ function getFormattedDateTimeString() {
     return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 }
 
+let currentLastUpdated = 0;
+let updateViewsDebounceTimer = null;
+
+function scheduleUpdateViews() {
+    if (updateViewsDebounceTimer) clearTimeout(updateViewsDebounceTimer);
+    updateViewsDebounceTimer = setTimeout(() => {
+        updateAllViews();
+    }, 120);
+}
+
 function invalidateLocalCache() {
     try {
-        localStorage.setItem(LS_CACHE_KEY, JSON.stringify({ data: db, ts: Date.now() }));
+        localStorage.setItem(LS_CACHE_KEY, JSON.stringify({ data: db, lastUpdated: currentLastUpdated, ts: Date.now() }));
     } catch(e) {}
 }
         
@@ -599,6 +609,10 @@ let transactions = [];
             if (typeof updateApprovalBadge === 'function') {
                 updateApprovalBadge();
             }
+        }
+
+        function updateUserUI() {
+            updateAuthUI();
         }
 
         // ===== SweetAlert2 Notification System =====
@@ -1310,7 +1324,8 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
         let resolveFirstFetch = null;
 
         async function fetchData(forceRefresh = false) {
-            // 1. ดึงข้อมูลจาก Cache ใน LocalStorage ขึ้นมาแสดงก่อนทันทีเพื่อความรวดเร็ว
+            // 1. ดึงข้อมูลจาก Cache ใน LocalStorage ขึ้นมาแสดงก่อนทันทีใน 0 ms
+            let hasLoadedFromCache = false;
             try {
                 const raw = localStorage.getItem(LS_CACHE_KEY);
                 if (raw) {
@@ -1320,85 +1335,60 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
                         && cached.data.products.length > 0;
                     if (hasData) {
                         db = cached.data;
+                        currentLastUpdated = cached.lastUpdated || 0;
                         updateAllViews();
+                        hasLoadedFromCache = true;
                     }
                 }
             } catch (e) {
                 try { localStorage.removeItem(LS_CACHE_KEY); } catch(_) {}
             }
 
-            // 2. ถ้ามีการกด Force Refresh หรือแอปยังไม่มีข้อมูลเลย ให้แสดง loading
+            // 2. ถ้ามี forceRefresh หรือยังไม่มีข้อมูลในแคช ให้แสดง loading
             const hasNoData = !db || !db.products || db.products.length === 0;
             if (forceRefresh || hasNoData) {
                 showLoading('กำลังซิงค์ข้อมูลระบบ...');
             }
 
-            // 3. เริ่มต้นเปิด Real-time Listener (ถ้ายังไม่ได้รัน)
+            // 3. เริ่มต้นเปิด Smart Sync & Granular Real-time Listeners
             if (!isFirebaseListenerInitialized) {
                 isFirebaseListenerInitialized = true;
                 
-                firebaseListenerPromise = new Promise((resolve, reject) => {
+                firebaseListenerPromise = new Promise(async (resolve, reject) => {
                     resolveFirstFetch = resolve;
-                    
                     try {
-                        // ใช้ Firebase Realtime Database SDK เพื่อเปิดฟังข้อมูลแบบ Real-time (WebSocket)
-                        firebase.database().ref().on('value', async (snapshot) => {
-                            try {
-                                const fbData = snapshot.val();
-                                let hasValidData = false;
-                                if (fbData) {
-                                    const appDataNode = fbData.appData || {};
-                                    const allUsers = ensureArray(fbData.users);
-                                    const approvers = allUsers.filter(u => !!u.canApprove).map(u => ({
-                                        fullName: u.fullName || "",
-                                        email: u.email || "",
-                                        department: u.department || "",
-                                        role: u.role || "User"
-                                    }));
+                        // เช็ค timestamp การอัปเดตล่าสุดจาก Firebase (ใช้เน็ตแค่ 8 Bytes!)
+                        let serverLastUpdated = 0;
+                        try {
+                            const snap = await firebase.database().ref('appData/lastUpdated').get();
+                            serverLastUpdated = Number(snap.val()) || 0;
+                        } catch(e) {}
 
-                                    const consolidated = {
-                                        products: ensureArray(appDataNode.products),
-                                        machines: ensureArray(appDataNode.machines),
-                                        mappings: ensureArray((fbData.mappings && Object.keys(fbData.mappings).length > 0) ? fbData.mappings : appDataNode.mappings),
-                                        settings: appDataNode.settings || {},
-                                        manuals: ensureArray(appDataNode.manuals),
-                                        lots: ensureArray((fbData.lots && Object.keys(fbData.lots).length > 0) ? fbData.lots : appDataNode.lots),
-                                        approvers: approvers
-                                    };
+                        const isCacheValid = hasLoadedFromCache && currentLastUpdated && (currentLastUpdated === serverLastUpdated) && !forceRefresh;
 
-                                    if (consolidated.products && consolidated.products.length > 0) {
-                                        db = consolidated;
-                                        invalidateLocalCache();
-                                        updateAllViews();
-                                        hasValidData = true;
-                                    }
-                                }
+                        if (!isCacheValid || hasNoData) {
+                            console.log("[Firebase Smart Sync] Cache missing or updated. Fetching full dataset once...");
+                            await reloadFullDataFromFirebase(serverLastUpdated);
+                        } else {
+                            console.log("[Firebase Smart Sync] Cache is fresh (0 bytes downloaded for catalog).");
+                        }
 
-                                if (!hasValidData && (!db || !db.products || db.products.length === 0)) {
-                                    console.warn("Firebase ยังไม่มีข้อมูล กำลังดึงข้อมูลจาก Google Apps Script Backup...");
-                                    await _fetchFromBackupServer();
-                                }
-                            } catch (err) {
-                                console.error("Error in Firebase real-time listener callback:", err);
-                            } finally {
-                                if (resolveFirstFetch) {
-                                    resolveFirstFetch();
-                                    resolveFirstFetch = null;
-                                }
-                                hideLoading();
-                            }
-                        }, (fbErr) => {
-                            console.warn("Real-time sync failed. Falling back to Google Apps Script:", fbErr);
-                            _fetchFromBackupServer().then(resolve).catch(reject);
-                        });
+                        // เปิดการดักฟังเฉพาะจุด (Granular Listeners) - ประหยัด Bandwidth 99%+
+                        setupGranularFirebaseListeners();
                     } catch (err) {
-                        console.error("Firebase SDK Listener Setup Error:", err);
-                        _fetchFromBackupServer().then(resolve).catch(reject);
+                        console.error("Firebase Smart Listener Setup Error:", err);
+                        await _fetchFromBackupServer();
+                    } finally {
+                        if (resolveFirstFetch) {
+                            resolveFirstFetch();
+                            resolveFirstFetch = null;
+                        }
+                        hideLoading();
                     }
                 });
             } else {
                 if (forceRefresh) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    await reloadFullDataFromFirebase();
                     hideLoading();
                     showToast('ข้อมูลเป็นปัจจุบันแล้ว');
                 }
@@ -1407,6 +1397,112 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
             if (firebaseListenerPromise) {
                 await firebaseListenerPromise;
             }
+        }
+
+        async function reloadFullDataFromFirebase(knownTimestamp = null) {
+            try {
+                const [appDataSnap, mappingsSnap, lotsSnap, usersSnap] = await Promise.all([
+                    firebase.database().ref('appData').get(),
+                    firebase.database().ref('mappings').get(),
+                    firebase.database().ref('lots').get(),
+                    firebase.database().ref('users').get()
+                ]);
+
+                const appDataNode = appDataSnap.val() || {};
+                const mappingsVal = mappingsSnap.val();
+                const lotsVal = lotsSnap.val();
+                const allUsers = ensureArray(usersSnap.val());
+                const approvers = allUsers.filter(u => !!u.canApprove).map(u => ({
+                    fullName: u.fullName || "",
+                    email: u.email || "",
+                    department: u.department || "",
+                    role: u.role || "User"
+                }));
+
+                const consolidated = {
+                    products: ensureArray(appDataNode.products),
+                    machines: ensureArray(appDataNode.machines),
+                    mappings: ensureArray((mappingsVal && Object.keys(mappingsVal).length > 0) ? mappingsVal : appDataNode.mappings),
+                    settings: appDataNode.settings || {},
+                    manuals: ensureArray(appDataNode.manuals),
+                    lots: ensureArray((lotsVal && Object.keys(lotsVal).length > 0) ? lotsVal : appDataNode.lots),
+                    approvers: approvers
+                };
+
+                if (consolidated.products && consolidated.products.length > 0) {
+                    db = consolidated;
+                    if (knownTimestamp) {
+                        currentLastUpdated = knownTimestamp;
+                    } else {
+                        try {
+                            const snap = await firebase.database().ref('appData/lastUpdated').get();
+                            currentLastUpdated = Number(snap.val()) || Date.now();
+                        } catch(_) {
+                            currentLastUpdated = Date.now();
+                        }
+                    }
+                    invalidateLocalCache();
+                    updateAllViews();
+                } else {
+                    console.warn("Firebase ยังไม่มีข้อมูล กำลังดึงข้อมูลจาก Google Apps Script Backup...");
+                    await _fetchFromBackupServer();
+                }
+            } catch(e) {
+                console.error("reloadFullDataFromFirebase error:", e);
+                await _fetchFromBackupServer();
+            }
+        }
+
+        function setupGranularFirebaseListeners() {
+            // 1. ดักฟังเฉพาะสินค้าที่เปลี่ยน (ส่งข้อมูลเฉพาะสินค้านั้น ~300 bytes แทนที่จะส่งทั้ง 570 KB)
+            firebase.database().ref('appData/products').on('child_changed', (snap) => {
+                const updated = snap.val();
+                if (!updated || !updated.id || !db || !Array.isArray(db.products)) return;
+                const pId = String(updated.id).trim();
+                const idx = db.products.findIndex(p => String(p.id).trim() === pId);
+                if (idx !== -1) {
+                    db.products[idx] = updated;
+                } else {
+                    db.products.push(updated);
+                }
+                invalidateLocalCache();
+                scheduleUpdateViews();
+            });
+
+            // 2. ดักฟังเครื่องจักรที่เปลี่ยน (~200 bytes)
+            firebase.database().ref('appData/machines').on('child_changed', (snap) => {
+                const updated = snap.val();
+                if (!updated || !updated.id || !db || !Array.isArray(db.machines)) return;
+                const mId = String(updated.id).trim();
+                const idx = db.machines.findIndex(m => String(m.id).trim() === mId);
+                if (idx !== -1) {
+                    db.machines[idx] = updated;
+                } else {
+                    db.machines.push(updated);
+                }
+                invalidateLocalCache();
+                scheduleUpdateViews();
+            });
+
+            // 3. ดักฟังการตั้งค่า (~50 bytes)
+            firebase.database().ref('appData/settings').on('value', (snap) => {
+                const newSettings = snap.val();
+                if (newSettings && db) {
+                    db.settings = newSettings;
+                    invalidateLocalCache();
+                    scheduleUpdateViews();
+                }
+            });
+
+            // 4. ดักฟังกรณีมีคนกด Sync ทั้งหมดจาก Google Sheets (ใช้เน็ตเพียง 8 bytes ในการแจ้งเตือน)
+            firebase.database().ref('appData/lastUpdated').on('value', async (snap) => {
+                const serverTs = Number(snap.val()) || 0;
+                if (serverTs && currentLastUpdated && serverTs > currentLastUpdated) {
+                    console.log("[Firebase Realtime] Full sync triggered from Google Sheets. Reloading data...");
+                    currentLastUpdated = serverTs;
+                    await reloadFullDataFromFirebase(serverTs);
+                }
+            });
         }
 
         async function _fetchFromBackupServer() {
@@ -1580,7 +1676,9 @@ const BYPASS_ACTIONS = [
     'registerUser',
     'updateUserByAdmin',
     'deleteUserByAdmin',
-    'updateSelfProfile'
+    'updateSelfProfile',
+    'updateUserApprovalPermission',
+    'getApprovers'
 ];
 
 async function handleActionDirectlyOnFirebase(action, payload) {
@@ -1612,6 +1710,11 @@ async function handleActionDirectlyOnFirebase(action, payload) {
                 return { status: 'success', message: 'ลบผู้ใช้สำเร็จ' };
             case 'updateSelfProfile':
                 return { status: 'success', data: await executeDirectUpdateSelfProfile(payload), message: 'อัปเดตโปรไฟล์สำเร็จ' };
+            case 'updateUserApprovalPermission':
+                const permRes = await executeDirectUpdateUserApprovalPermission(payload);
+                return { status: 'success', data: permRes, message: 'อัปเดตสิทธิ์อนุมัติสำเร็จ' };
+            case 'getApprovers':
+                return { status: 'success', data: await executeDirectGetApprovers() };
             case 'checkoutOrder':
                 return { status: 'success', data: await executeDirectCheckout(payload), message: 'บันทึกใบเบิกและหักสต็อกสำเร็จ' };
             case 'restockProduct':
@@ -1644,10 +1747,24 @@ async function handleActionDirectlyOnFirebase(action, payload) {
 
 let transactionsCache = null;
 
+async function executeDirectGetTransactions() {
+    if (transactionsCache) {
+        return transactionsCache;
+    }
+    const snapshot = await firebase.database().ref('transactions').limitToLast(500).get();
+    transactionsCache = ensureArray(snapshot.val()).reverse();
+    return transactionsCache;
+}
+
 async function executeDirectEditProduct(payload) {
-    const snapshot = await firebase.database().ref('appData/products').get();
-    let products = ensureArray(snapshot.val());
-    const index = products.findIndex(p => String(p.id).trim() === String(payload.id).trim());
+    const pId = String(payload.id).trim();
+    let products = (db && Array.isArray(db.products) && db.products.length > 0) ? db.products : [];
+    let index = products.findIndex(p => String(p.id).trim() === pId);
+    if (index === -1) {
+        const snapshot = await firebase.database().ref('appData/products').get();
+        products = ensureArray(snapshot.val());
+        index = products.findIndex(p => String(p.id).trim() === pId);
+    }
     if (index === -1) throw new Error("ไม่พบรหัสสินค้าที่ต้องการแก้ไข");
     const oldProduct = products[index];
     const cost = parseFloat(payload.cost) || 0;
@@ -1657,57 +1774,65 @@ async function executeDirectEditProduct(payload) {
     const pC = parseFloat(payload.price_c) > 0 ? parseFloat(payload.price_c) : Math.ceil(cost * 1.3);
     const stockQty = (payload.stock_qty !== undefined && payload.stock_qty !== "") ? parseFloat(payload.stock_qty) : (parseFloat(oldProduct.stock_qty) || 0);
     
-    products[index] = {
+    const updated = {
         id: payload.id, name: payload.name, unit: payload.unit, cost: cost,
         price_a: pA, price_b: pB, price_c: pC,
         category: payload.category, note: payload.note, image_url: oldProduct.image_url || "",
         stock_qty: stockQty, group: payload.group || "", supplier: payload.supplier || "", storage: payload.storage || ""
     };
-    await firebase.database().ref('appData/products').set(products);
+    
+    // อัปเดตเฉพาะรายการนี้ใน Firebase (ประหยัดเน็ตเหลือ ~300 bytes)
+    await firebase.database().ref('appData/products/' + index).set(updated);
+    products[index] = updated;
     db.products = products;
     invalidateLocalCache();
 }
 
 async function executeDirectEditMachine(payload) {
-    const snapshot = await firebase.database().ref('appData/machines').get();
-    let machines = ensureArray(snapshot.val());
-    const index = machines.findIndex(m => String(m.id).trim() === String(payload.id).trim());
+    const mId = String(payload.id).trim();
+    let machines = (db && Array.isArray(db.machines) && db.machines.length > 0) ? db.machines : [];
+    let index = machines.findIndex(m => String(m.id).trim() === mId);
+    if (index === -1) {
+        const snapshot = await firebase.database().ref('appData/machines').get();
+        machines = ensureArray(snapshot.val());
+        index = machines.findIndex(m => String(m.id).trim() === mId);
+    }
     if (index === -1) throw new Error("ไม่พบเครื่องจักรที่ต้องการแก้ไข");
     const oldMachine = machines[index];
-    machines[index] = {
+    const updated = {
         id: payload.id, name: payload.name, image_url: oldMachine.image_url || "", cost: parseFloat(payload.cost) || 0,
         price_a: parseFloat(payload.price_a) || 0, price_b: parseFloat(payload.price_b) || 0, price_c: parseFloat(payload.price_c) || 0,
         note: payload.note || "", group: payload.group || "", supplier: payload.supplier || "", storage: payload.storage || ""
     };
-    await firebase.database().ref('appData/machines').set(machines);
+    // อัปเดตเฉพาะรายการนี้ใน Firebase
+    await firebase.database().ref('appData/machines/' + index).set(updated);
+    machines[index] = updated;
     db.machines = machines;
     invalidateLocalCache();
 }
 
 async function executeDirectEditManual(payload) {
-    const snapshot = await firebase.database().ref('appData/manuals').get();
-    let manuals = ensureArray(snapshot.val());
-    const index = manuals.findIndex(m => String(m.id).trim() === String(payload.id).trim());
+    const manId = String(payload.id).trim();
+    let manuals = (db && Array.isArray(db.manuals)) ? db.manuals : [];
+    let index = manuals.findIndex(m => String(m.id).trim() === manId);
+    if (index === -1) {
+        const snapshot = await firebase.database().ref('appData/manuals').get();
+        manuals = ensureArray(snapshot.val());
+        index = manuals.findIndex(m => String(m.id).trim() === manId);
+    }
     if (index === -1) throw new Error("ไม่พบคู่มือที่ต้องการแก้ไข");
     const oldManual = manuals[index];
-    manuals[index] = {
+    const updated = {
         id: payload.id, title: payload.title || "", description: payload.description || "",
         file_url: oldManual.file_url || "", file_type: payload.file_type || oldManual.file_type,
         uploaded_at: oldManual.uploaded_at || ""
     };
-    await firebase.database().ref('appData/manuals').set(manuals);
+    // อัปเดตเฉพาะรายการนี้ใน Firebase
+    await firebase.database().ref('appData/manuals/' + index).set(updated);
+    manuals[index] = updated;
     db.manuals = manuals;
     invalidateLocalCache();
-    return { file_url: oldManual.file_url || "" };
-}
-
-async function executeDirectGetTransactions() {
-    if (transactionsCache) {
-        return transactionsCache;
-    }
-    const snapshot = await firebase.database().ref('transactions').get();
-    transactionsCache = ensureArray(snapshot.val()).reverse();
-    return transactionsCache;
+    return updated;
 }
 
 function getDefaultUsersList() {
@@ -1877,19 +2002,82 @@ async function executeDirectUpdateSelfProfile(payload) {
     };
 }
 
-async function executeDirectCheckout(payload) {
-    const snapshot = await firebase.database().ref().get();
-    const fbData = snapshot.val() || {};
+async function executeDirectUpdateUserApprovalPermission(payload) {
+    const targetEmail = String(payload.targetEmail || payload.email || "").trim().toLowerCase();
+    const canApprove = !!payload.canApprove;
+    const snapshot = await firebase.database().ref('users').get();
+    let users = ensureArray(snapshot.val());
     
-    let products = ensureArray(fbData.appData?.products);
-    let lots = ensureArray(fbData.lots);
-    let transactions = ensureArray(fbData.transactions);
+    const index = users.findIndex(u => String(u.email || "").toLowerCase() === targetEmail);
+    if (index === -1) throw new Error("ไม่พบข้อมูลผู้ใช้งานที่ต้องการแก้ไข");
+    
+    users[index].canApprove = canApprove;
+    
+    // บันทึกเฉพาะฟิลด์ canApprove ใน users/{index}
+    await firebase.database().ref(`users/${index}/canApprove`).set(canApprove);
+    
+    // อัปเดตรายชื่อผู้อนุมัติใน db.approvers ทันที
+    const approvers = users.filter(u => !!u.canApprove).map(u => ({
+        fullName: u.fullName || "",
+        email: u.email || "",
+        department: u.department || "",
+        role: u.role || "User"
+    }));
+    if (db) db.approvers = approvers;
+    
+    invalidateLocalCache();
+    return { status: 'success', canApprove: canApprove };
+}
+
+async function executeDirectGetApprovers() {
+    const snapshot = await firebase.database().ref('users').get();
+    const users = ensureArray(snapshot.val());
+    const approvers = users.filter(u => !!u.canApprove).map(u => ({
+        fullName: u.fullName || "",
+        email: u.email || "",
+        department: u.department || "",
+        role: u.role || "User"
+    }));
+    if (db) db.approvers = approvers;
+    return approvers;
+}
+
+async function executeDirectCheckout(payload) {
+    let products = (db && Array.isArray(db.products) && db.products.length > 0) ? db.products : [];
+    const promises = [
+        firebase.database().ref('lots').get(),
+        firebase.database().ref('transactions').get()
+    ];
+    if (products.length === 0) {
+        promises.push(firebase.database().ref('appData/products').get());
+    }
+    const [lotsSnap, txSnap, optionalProdSnap] = await Promise.all(promises);
+    if (optionalProdSnap) {
+        products = ensureArray(optionalProdSnap.val());
+    }
+    let lots = ensureArray(lotsSnap.val());
+    let transactions = ensureArray(txSnap.val());
+    
+    // ตรวจสอบสต็อกล่าสุดเฉพาะสินค้าในตะกร้า (ใช้เน็ตแค่หลักสิบ bytes แทน 450 KB)
+    for (const item of (payload.cart || [])) {
+        const pId = String(item.id).trim();
+        const pIdx = products.findIndex(p => String(p.id).trim() === pId);
+        if (pIdx !== -1) {
+            try {
+                const freshSnap = await firebase.database().ref(`appData/products/${pIdx}/stock_qty`).get();
+                if (freshSnap.exists()) {
+                    products[pIdx].stock_qty = freshSnap.val();
+                }
+            } catch(_) {}
+        }
+    }
     
     const cart = payload.cart;
     const prodMap = {};
     products.forEach(p => { prodMap[String(p.id).trim()] = p; });
     
     // ตรวจสอบสต็อก
+    const initialLotsLen = lots.length;
     cart.forEach(item => {
         const pId = String(item.id).trim();
         const product = prodMap[pId];
@@ -1921,20 +2109,29 @@ async function executeDirectCheckout(payload) {
     
     // ตัดสต็อก FIFO
     const checkoutItems = [];
+    const modifiedProdIndices = new Set();
+    const modifiedLotsMap = new Map();
+    
     cart.forEach(item => {
         const pId = String(item.id).trim();
         const product = prodMap[pId];
+        const pIndex = products.findIndex(p => String(p.id).trim() === pId);
+        if (pIndex !== -1) modifiedProdIndices.add(pIndex);
+        
         let neededQty = item.qty;
         
-        const availableLots = lots.filter(l => String(l.product_id).trim() === pId && (parseFloat(l.remaining_qty) || 0) > 0)
-                                  .sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+        const availableLotsWithIndex = lots
+            .map((lot, idx) => ({ lot, idx }))
+            .filter(o => String(o.lot.product_id).trim() === pId && (parseFloat(o.lot.remaining_qty) || 0) > 0)
+            .sort((a, b) => new Date(a.lot.created_at || 0) - new Date(b.lot.created_at || 0));
         
-        availableLots.forEach(lot => {
+        availableLotsWithIndex.forEach(({ lot, idx }) => {
             if (neededQty <= 0) return;
             const remaining = parseFloat(lot.remaining_qty) || 0;
             const takeQty = Math.min(remaining, neededQty);
             
             lot.remaining_qty = remaining - takeQty;
+            modifiedLotsMap.set(idx, lot.remaining_qty);
             neededQty -= takeQty;
             
             let lotPrice = item.price;
@@ -2011,10 +2208,19 @@ async function executeDirectCheckout(payload) {
     };
     transactions.push(newTransaction);
     
+    // Multi-Path Granular Update (ส่งเฉพาะจุดที่เปลี่ยน ประหยัดเน็ต 99%+)
     const updates = {};
-    updates["appData/products"] = products;
-    updates["lots"] = lots;
-    updates["transactions"] = transactions;
+    modifiedProdIndices.forEach(pIdx => {
+        updates[`appData/products/${pIdx}/stock_qty`] = products[pIdx].stock_qty;
+    });
+    modifiedLotsMap.forEach((qty, lIdx) => {
+        updates[`lots/${lIdx}/remaining_qty`] = qty;
+    });
+    for (let i = initialLotsLen; i < lots.length; i++) {
+        updates[`lots/${i}`] = lots[i];
+    }
+    updates[`transactions/${transactions.length - 1}`] = newTransaction;
+    
     await firebase.database().ref().update(updates);
     transactionsCache = null;
     
@@ -2022,21 +2228,31 @@ async function executeDirectCheckout(payload) {
     db.lots = lots;
     db.transactions = transactions;
     invalidateLocalCache();
+    scheduleUpdateViews();
     
     return { transaction_id: txId, items: checkoutItems };
 }
 
 async function executeDirectRestock(payload) {
-    const snapshot = await firebase.database().ref().get();
-    const fbData = snapshot.val() || {};
-    
-    let products = ensureArray(fbData.appData?.products);
-    let lots = ensureArray(fbData.lots);
-    let transactions = ensureArray(fbData.transactions);
+    let products = (db && Array.isArray(db.products) && db.products.length > 0) ? db.products : [];
+    const promises = [
+        firebase.database().ref('lots').get(),
+        firebase.database().ref('transactions').get()
+    ];
+    if (products.length === 0) {
+        promises.push(firebase.database().ref('appData/products').get());
+    }
+    const [lotsSnap, txSnap, optionalProdSnap] = await Promise.all(promises);
+    if (optionalProdSnap) {
+        products = ensureArray(optionalProdSnap.val());
+    }
+    let lots = ensureArray(lotsSnap.val());
+    let transactions = ensureArray(txSnap.val());
     
     const pId = String(payload.id).trim();
-    const product = products.find(p => String(p.id).trim() === pId);
-    if (!product) throw new Error("ไม่พบของที่ต้องการปรับปรุงสต็อก");
+    const pIndex = products.findIndex(p => String(p.id).trim() === pId);
+    if (pIndex === -1) throw new Error("ไม่พบของที่ต้องการปรับปรุงสต็อก");
+    const product = products[pIndex];
     
     const qty = parseFloat(payload.qty) || 0;
     const cost = (payload.cost !== undefined && payload.cost !== "") ? parseFloat(payload.cost) : (parseFloat(product.cost) || 0);
@@ -2050,7 +2266,7 @@ async function executeDirectRestock(payload) {
     const dateStr = getFormattedDateTimeString();
     
     const lotId = "LOT-" + datePrefix + "-" + String(Date.now()).slice(-6);
-    lots.push({
+    const newLot = {
         lot_id: lotId,
         product_id: pId,
         cost: cost,
@@ -2061,7 +2277,7 @@ async function executeDirectRestock(payload) {
         remaining_qty: qty,
         created_at: dateStr,
         note: payload.note || "เติมสต็อกอะไหล่"
-    });
+    };
     
     const currentStock = parseFloat(product.stock_qty) || 0;
     const newStock = currentStock + qty;
@@ -2107,59 +2323,86 @@ async function executeDirectRestock(payload) {
             subtotal: qty * cost
         }]
     };
-    transactions.push(newRestockTx);
     
+    // Multi-path granular write - ส่งเฉพาะข้อมูลที่เปลี่ยน ประหยัดเน็ต 99.9%
     const updates = {};
-    updates["appData/products"] = products;
-    updates["lots"] = lots;
-    updates["transactions"] = transactions;
+    updates[`appData/products/${pIndex}/stock_qty`] = newStock;
+    updates[`appData/products/${pIndex}/cost`] = cost;
+    updates[`appData/products/${pIndex}/price_a`] = pA;
+    updates[`appData/products/${pIndex}/price_b`] = pB;
+    updates[`appData/products/${pIndex}/price_c`] = pC;
+    updates[`lots/${lots.length}`] = newLot;
+    updates[`transactions/${transactions.length}`] = newRestockTx;
     await firebase.database().ref().update(updates);
+    
+    lots.push(newLot);
+    transactions.push(newRestockTx);
     transactionsCache = null;
     
     db.products = products;
     db.lots = lots;
     db.transactions = transactions;
     invalidateLocalCache();
+    scheduleUpdateViews();
     
     return { new_stock: newStock, transaction_id: txId, lot_id: lotId };
 }
 
 async function executeDirectCancelTransaction(payload) {
-    const snapshot = await firebase.database().ref().get();
-    const fbData = snapshot.val() || {};
-    
-    let products = ensureArray(fbData.appData?.products);
-    let lots = ensureArray(fbData.lots);
-    let transactions = ensureArray(fbData.transactions);
+    let products = (db && Array.isArray(db.products) && db.products.length > 0) ? db.products : [];
+    const promises = [
+        firebase.database().ref('lots').get(),
+        firebase.database().ref('transactions').get()
+    ];
+    if (products.length === 0) {
+        promises.push(firebase.database().ref('appData/products').get());
+    }
+    const [lotsSnap, txSnap, optionalProdSnap] = await Promise.all(promises);
+    if (optionalProdSnap) {
+        products = ensureArray(optionalProdSnap.val());
+    }
+    let lots = ensureArray(lotsSnap.val());
+    let transactions = ensureArray(txSnap.val());
     
     const txId = String(payload.transaction_id).trim();
-    const tx = transactions.find(t => String(t.id).trim() === txId);
-    if (!tx) throw new Error("ไม่พบรายการใบเบิกที่ต้องการยกเลิก");
+    const txIndex = transactions.findIndex(t => String(t.id).trim() === txId);
+    if (txIndex === -1) throw new Error("ไม่พบรายการใบเบิกที่ต้องการยกเลิก");
+    const tx = transactions[txIndex];
     if (tx.status === "Cancelled") throw new Error("ใบเบิกนี้ถูกยกเลิกไปแล้ว");
+    
+    const updates = {};
+    const modifiedProdIndices = new Set();
+    const modifiedLotsMap = new Map();
     
     // คืนสต็อก
     if (Array.isArray(tx.items)) {
         tx.items.forEach(it => {
             const pId = String(it.product_id).trim();
-            const product = products.find(p => String(p.id).trim() === pId);
-            if (product) {
-                product.stock_qty = (parseFloat(product.stock_qty) || 0) + (parseFloat(it.qty) || 0);
+            const pIndex = products.findIndex(p => String(p.id).trim() === pId);
+            if (pIndex !== -1) {
+                products[pIndex].stock_qty = (parseFloat(products[pIndex].stock_qty) || 0) + (parseFloat(it.qty) || 0);
+                modifiedProdIndices.add(pIndex);
             }
             if (it.lot_id) {
-                const targetLot = lots.find(l => String(l.lot_id).trim() === String(it.lot_id).trim());
-                if (targetLot) {
-                    targetLot.remaining_qty = (parseFloat(targetLot.remaining_qty) || 0) + (parseFloat(it.qty) || 0);
+                const lIndex = lots.findIndex(l => String(l.lot_id).trim() === String(it.lot_id).trim());
+                if (lIndex !== -1) {
+                    lots[lIndex].remaining_qty = (parseFloat(lots[lIndex].remaining_qty) || 0) + (parseFloat(it.qty) || 0);
+                    modifiedLotsMap.set(lIndex, lots[lIndex].remaining_qty);
                 }
             }
         });
     }
     
     tx.status = "Cancelled";
+    updates[`transactions/${txIndex}/status`] = "Cancelled";
     
-    const updates = {};
-    updates["appData/products"] = products;
-    updates["lots"] = lots;
-    updates["transactions"] = transactions;
+    modifiedProdIndices.forEach(pIdx => {
+        updates[`appData/products/${pIdx}/stock_qty`] = products[pIdx].stock_qty;
+    });
+    modifiedLotsMap.forEach((remQty, lIdx) => {
+        updates[`lots/${lIdx}/remaining_qty`] = remQty;
+    });
+    
     await firebase.database().ref().update(updates);
     transactionsCache = null;
     
@@ -2167,15 +2410,24 @@ async function executeDirectCancelTransaction(payload) {
     db.lots = lots;
     db.transactions = transactions;
     invalidateLocalCache();
+    scheduleUpdateViews();
 }
 
 async function executeDirectUpdateApprovalStatus(payload) {
-    const snapshot = await firebase.database().ref().get();
-    const fbData = snapshot.val() || {};
-    
-    let products = ensureArray(fbData.appData?.products);
-    let lots = ensureArray(fbData.lots);
-    let transactions = ensureArray(fbData.transactions);
+    let products = (db && Array.isArray(db.products) && db.products.length > 0) ? db.products : [];
+    const promises = [
+        firebase.database().ref('lots').get(),
+        firebase.database().ref('transactions').get()
+    ];
+    if (products.length === 0) {
+        promises.push(firebase.database().ref('appData/products').get());
+    }
+    const [lotsSnap, txSnap, optionalProdSnap] = await Promise.all(promises);
+    if (optionalProdSnap) {
+        products = ensureArray(optionalProdSnap.val());
+    }
+    let lots = ensureArray(lotsSnap.val());
+    let transactions = ensureArray(txSnap.val());
     
     const txId = String(payload.transaction_id).trim();
     const txIndex = transactions.findIndex(t => String(t.id).trim() === txId);
@@ -2193,6 +2445,10 @@ async function executeDirectUpdateApprovalStatus(payload) {
     const dateStr = getFormattedDateTimeString();
     const hasUpdatedItems = Array.isArray(payload.updated_items) && payload.updated_items.length > 0;
     
+    const updates = {};
+    const modifiedProdIndices = new Set();
+    const modifiedLotsMap = new Map();
+    
     if (newStatus === "Rejected") {
         targetTx.approval_status = "Rejected";
         targetTx.approval_date = dateStr;
@@ -2205,18 +2461,21 @@ async function executeDirectUpdateApprovalStatus(payload) {
         if (Array.isArray(targetTx.items)) {
             targetTx.items.forEach(it => {
                 const pId = String(it.product_id).trim();
-                const product = products.find(p => String(p.id).trim() === pId);
-                if (product) {
-                    product.stock_qty = (parseFloat(product.stock_qty) || 0) + (parseFloat(it.qty) || 0);
+                const pIndex = products.findIndex(p => String(p.id).trim() === pId);
+                if (pIndex !== -1) {
+                    products[pIndex].stock_qty = (parseFloat(products[pIndex].stock_qty) || 0) + (parseFloat(it.qty) || 0);
+                    modifiedProdIndices.add(pIndex);
                 }
                 if (it.lot_id) {
-                    const targetLot = lots.find(l => String(l.lot_id).trim() === String(it.lot_id).trim());
-                    if (targetLot) {
-                        targetLot.remaining_qty = (parseFloat(targetLot.remaining_qty) || 0) + (parseFloat(it.qty) || 0);
+                    const lIndex = lots.findIndex(l => String(l.lot_id).trim() === String(it.lot_id).trim());
+                    if (lIndex !== -1) {
+                        lots[lIndex].remaining_qty = (parseFloat(lots[lIndex].remaining_qty) || 0) + (parseFloat(it.qty) || 0);
+                        modifiedLotsMap.set(lIndex, lots[lIndex].remaining_qty);
                     }
                 }
             });
         }
+        updates[`transactions/${txIndex}`] = targetTx;
     } else {
         // 'Approved' หรือ 'Pending' (แก้ไขรายการ)
         if (hasUpdatedItems) {
@@ -2224,14 +2483,16 @@ async function executeDirectUpdateApprovalStatus(payload) {
             if (Array.isArray(targetTx.items)) {
                 targetTx.items.forEach(oldItem => {
                     const oldPid = String(oldItem.product_id).trim();
-                    const oldProd = products.find(p => String(p.id).trim() === oldPid);
-                    if (oldProd) {
-                        oldProd.stock_qty = (parseFloat(oldProd.stock_qty) || 0) + (parseFloat(oldItem.qty) || 0);
+                    const pIndex = products.findIndex(p => String(p.id).trim() === oldPid);
+                    if (pIndex !== -1) {
+                        products[pIndex].stock_qty = (parseFloat(products[pIndex].stock_qty) || 0) + (parseFloat(oldItem.qty) || 0);
+                        modifiedProdIndices.add(pIndex);
                     }
                     if (oldItem.lot_id) {
-                        const targetLot = lots.find(l => String(l.lot_id).trim() === String(oldItem.lot_id).trim());
-                        if (targetLot) {
-                            targetLot.remaining_qty = (parseFloat(targetLot.remaining_qty) || 0) + (parseFloat(oldItem.qty) || 0);
+                        const lIndex = lots.findIndex(l => String(l.lot_id).trim() === String(oldItem.lot_id).trim());
+                        if (lIndex !== -1) {
+                            lots[lIndex].remaining_qty = (parseFloat(lots[lIndex].remaining_qty) || 0) + (parseFloat(oldItem.qty) || 0);
+                            modifiedLotsMap.set(lIndex, lots[lIndex].remaining_qty);
                         }
                     }
                 });
@@ -2257,17 +2518,23 @@ async function executeDirectUpdateApprovalStatus(payload) {
             payload.updated_items.forEach(item => {
                 const pId = String(item.product_id || item.id).trim();
                 const product = prodMap[pId];
+                const pIndex = products.findIndex(p => String(p.id).trim() === pId);
+                if (pIndex !== -1) modifiedProdIndices.add(pIndex);
+                
                 let neededQty = parseFloat(item.qty) || 0;
                 
-                const availableLots = lots.filter(l => String(l.product_id).trim() === pId && (parseFloat(l.remaining_qty) || 0) > 0)
-                                          .sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+                const availableLotsWithIndex = lots
+                    .map((lot, idx) => ({ lot, idx }))
+                    .filter(o => String(o.lot.product_id).trim() === pId && (parseFloat(o.lot.remaining_qty) || 0) > 0)
+                    .sort((a, b) => new Date(a.lot.created_at || 0) - new Date(b.lot.created_at || 0));
                 
-                availableLots.forEach(lot => {
+                availableLotsWithIndex.forEach(({ lot, idx }) => {
                     if (neededQty <= 0) return;
                     const remaining = parseFloat(lot.remaining_qty) || 0;
                     const takeQty = Math.min(remaining, neededQty);
                     
                     lot.remaining_qty = remaining - takeQty;
+                    modifiedLotsMap.set(idx, lot.remaining_qty);
                     neededQty -= takeQty;
                     
                     const price = parseFloat(item.price) || (parseFloat(lot.price_a) || 0);
@@ -2297,12 +2564,16 @@ async function executeDirectUpdateApprovalStatus(payload) {
         targetTx.approval_by = approverName;
         targetTx.approval_by_email = approverEmail;
         targetTx.approval_note = note;
+        updates[`transactions/${txIndex}`] = targetTx;
     }
     
-    const updates = {};
-    updates["appData/products"] = products;
-    updates["lots"] = lots;
-    updates["transactions"] = transactions;
+    modifiedProdIndices.forEach(pIdx => {
+        updates[`appData/products/${pIdx}/stock_qty`] = products[pIdx].stock_qty;
+    });
+    modifiedLotsMap.forEach((remQty, lIdx) => {
+        updates[`lots/${lIdx}/remaining_qty`] = remQty;
+    });
+    
     await firebase.database().ref().update(updates);
     transactionsCache = null;
     
@@ -2310,6 +2581,7 @@ async function executeDirectUpdateApprovalStatus(payload) {
     db.lots = lots;
     db.transactions = transactions;
     invalidateLocalCache();
+    scheduleUpdateViews();
     
     return { status: "success", transaction: targetTx };
 }
@@ -2326,27 +2598,30 @@ async function executeDirectDeleteTransaction(payload) {
 }
 
 async function executeDirectAddMapping(payload) {
-    const snapshot = await firebase.database().ref('mappings').get();
-    let mappings = ensureArray(snapshot.val());
     const machId = String(payload.machine_id).trim();
     const prodId = String(payload.product_id).trim();
+    let mappings = (db && Array.isArray(db.mappings)) ? db.mappings : [];
     if (!mappings.some(m => String(m.machine_id).trim() === machId && String(m.product_id).trim() === prodId)) {
-        mappings.push({ machine_id: machId, product_id: prodId });
-        await firebase.database().ref('mappings').set(mappings);
+        const nextIndex = mappings.length;
+        const newMap = { machine_id: machId, product_id: prodId };
+        await firebase.database().ref('mappings/' + nextIndex).set(newMap);
+        mappings.push(newMap);
         db.mappings = mappings;
         invalidateLocalCache();
     }
 }
 
 async function executeDirectDeleteMapping(payload) {
-    const snapshot = await firebase.database().ref('mappings').get();
-    let mappings = ensureArray(snapshot.val());
     const machId = String(payload.machine_id).trim();
     const prodId = String(payload.product_id).trim();
-    mappings = mappings.filter(m => !(String(m.machine_id).trim() === machId && String(m.product_id).trim() === prodId));
-    await firebase.database().ref('mappings').set(mappings);
-    db.mappings = mappings;
-    invalidateLocalCache();
+    let mappings = (db && Array.isArray(db.mappings)) ? db.mappings : [];
+    const idx = mappings.findIndex(m => String(m.machine_id).trim() === machId && String(m.product_id).trim() === prodId);
+    if (idx !== -1) {
+        mappings.splice(idx, 1);
+        await firebase.database().ref('mappings').set(mappings);
+        db.mappings = mappings;
+        invalidateLocalCache();
+    }
 }
 
 async function executeDirectSaveSettings(payload) {
