@@ -7,6 +7,47 @@
  */
 
 const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByGfYMg80KCM8n9fS4pn6JMrGa7hKG2oOR3H1brsQDtrcs1/exec';
+const FIREBASE_DB_URL = 'https://pricelist-qcm-default-rtdb.asia-southeast1.firebasedatabase.app/.json';
+const LS_CACHE_KEY = 'spareparts_qcm_cache_v1';
+
+// ป้องกันปัญหาแคชค้างจากโปรเจกต์อื่น (เช่น LDT) บน origin/localhost เดียวกัน
+try {
+    localStorage.removeItem('spareparts_cache_v1');
+} catch (_) {}
+
+
+function ensureArray(val) {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'object') {
+        if (val.email || val.transaction_id || (val.id && val.name)) {
+            return [val];
+        }
+        return Object.keys(val)
+            .sort((a, b) => Number(a) - Number(b))
+            .map(k => val[k]);
+    }
+    return [];
+}
+
+async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function getFormattedDateTimeString() {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+
+function invalidateLocalCache() {
+    try {
+        localStorage.setItem(LS_CACHE_KEY, JSON.stringify({ data: db, ts: Date.now() }));
+    } catch(e) {}
+}
         
         let db = { products: [], machines: [], mappings: [] };
         let isShowCostInCatalog = false;
@@ -638,7 +679,122 @@ let transactions = [];
             if (cardManageManuals) cardManageManuals.classList.toggle('hidden', !hasAccess('view-manage-manuals'));
 
             const cardMachines = document.getElementById('card-settings-machines');
-            if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machines'));
+if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machines'));
+
+            const cardBackup = document.getElementById('card-settings-backup');
+            if (cardBackup) {
+                const isAdmin = isLoggedIn && currentUser && currentUser.role === 'ADMIN';
+                cardBackup.classList.toggle('hidden', !isAdmin);
+            }
+        }
+
+        async function runManualBackup(type) {
+            if (!isLoggedIn || !currentUser || currentUser.role !== 'ADMIN') {
+                showToast('คุณไม่มีสิทธิ์เข้าถึงส่วนนี้', 'error');
+                return;
+            }
+            
+            const action = type === 'json' ? 'backupFirebaseToDrive' : 'backupFirebaseToSheets';
+            const titleMsg = type === 'json' ? 'สำรองข้อมูล Firebase -> JSON Drive' : 'สำรองข้อมูล Firebase -> Google Sheet';
+            
+            const htmlContent = `
+                <div class="text-left text-xs space-y-2 max-h-60 overflow-y-auto p-2 border border-slate-100 rounded-2xl">
+                    <p class="text-slate-500 mb-2 font-medium">กรุณาเลือกประเภทข้อมูลที่ต้องการสำรอง:</p>
+                    <label class="flex items-center space-x-2.5 p-2 rounded hover:bg-slate-50 cursor-pointer">
+                        <input type="checkbox" id="backup-products" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <span class="text-slate-700">📦 ข้อมูลสินค้าและอะไหล่ (Products)</span>
+                    </label>
+                    <label class="flex items-center space-x-2.5 p-2 rounded hover:bg-slate-50 cursor-pointer">
+                        <input type="checkbox" id="backup-machines" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <span class="text-slate-700">⚙️ เครื่องจักร (Machines)</span>
+                    </label>
+                    <label class="flex items-center space-x-2.5 p-2 rounded hover:bg-slate-50 cursor-pointer">
+                        <input type="checkbox" id="backup-mappings" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <span class="text-slate-700">🔗 การจับคู่สินค้า-เครื่องจักร (Mappings)</span>
+                    </label>
+                    <label class="flex items-center space-x-2.5 p-2 rounded hover:bg-slate-50 cursor-pointer">
+                        <input type="checkbox" id="backup-transactions" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <span class="text-slate-700">📝 ประวัติการทำรายการ (Transactions)</span>
+                    </label>
+                    <label class="flex items-center space-x-2.5 p-2 rounded hover:bg-slate-50 cursor-pointer">
+                        <input type="checkbox" id="backup-lots" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <span class="text-slate-700">📊 ประวัติล็อตสินค้า (Lots)</span>
+                    </label>
+                    <label class="flex items-center space-x-2.5 p-2 rounded hover:bg-slate-50 cursor-pointer">
+                        <input type="checkbox" id="backup-manuals" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <span class="text-slate-700">📚 คู่มือการใช้งาน (Manuals)</span>
+                    </label>
+                    <label class="flex items-center space-x-2.5 p-2 rounded hover:bg-slate-50 cursor-pointer">
+                        <input type="checkbox" id="backup-users" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <span class="text-slate-700">👥 ข้อมูลผู้ใช้งาน (Users)</span>
+                    </label>
+                    <label class="flex items-center space-x-2.5 p-2 rounded hover:bg-slate-50 cursor-pointer">
+                        <input type="checkbox" id="backup-settings" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <span class="text-slate-700">🔧 การตั้งค่าระบบ (Settings)</span>
+                    </label>
+                </div>
+            `;
+                
+            const result = await Swal.fire({
+                title: titleMsg,
+                html: htmlContent,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'ยืนยันการสำรองข้อมูล',
+                cancelButtonText: 'ยกเลิก',
+                customClass: {
+                    popup: 'rounded-3xl max-w-sm',
+                    confirmButton: 'rounded-xl font-semibold !text-[11px]',
+                    cancelButton: 'rounded-xl font-semibold !text-[11px]',
+                },
+                preConfirm: () => {
+                    const targets = [];
+                    const keys = ['products', 'machines', 'mappings', 'transactions', 'lots', 'manuals', 'users', 'settings'];
+                    keys.forEach(k => {
+                        const el = document.getElementById('backup-' + k);
+                        if (el && el.checked) {
+                            targets.push(k);
+                        }
+                    });
+                    
+                    if (targets.length === 0) {
+                        Swal.showValidationMessage('กรุณาเลือกข้อมูลอย่างน้อย 1 รายการ');
+                        return false;
+                    }
+                    return targets;
+                }
+            });
+            
+            if (result.isConfirmed && result.value) {
+                showLoading('กำลังสำรองข้อมูล กรุณารอสักครู่...');
+                try {
+                    const res = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: action,
+                            payload: { 
+                                requesterEmail: currentUser.email,
+                                targets: result.value
+                            }
+                        })
+                    });
+                    
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    const resData = await res.json();
+                    
+                    if (resData.status === 'success') {
+                        showToast(resData.message || 'สำรองข้อมูลสำเร็จ', 'success');
+                    } else {
+                        throw new Error(resData.message || 'เกิดข้อผิดพลาดในการสำรองข้อมูล');
+                    }
+                } catch (error) {
+                    showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+                } finally {
+                    hideLoading();
+                }
+            }
         }
 
         function openSelfSettingsModal() {
@@ -1148,61 +1304,128 @@ let transactions = [];
             hideLoading();
         }
 
-        const LS_CACHE_KEY = 'spareparts_cache_v1';
-        const LS_CACHE_TTL = 5 * 60 * 1000; // 5 นาที (ms)
+        // LS_CACHE_KEY is defined globally at top of file
+        let isFirebaseListenerInitialized = false;
+        let firebaseListenerPromise = null;
+        let resolveFirstFetch = null;
 
         async function fetchData(forceRefresh = false) {
-            // ถ้าไม่ได้บังคับ refresh → ตรวจสอบ localStorage cache ก่อน
-            if (!forceRefresh) {
-                try {
-                    const raw = localStorage.getItem(LS_CACHE_KEY);
-                    if (raw) {
-                        const cached = JSON.parse(raw);
-                        const age = Date.now() - (cached.ts || 0);
-                        const hasData = cached.data
-                            && Array.isArray(cached.data.products)
-                            && cached.data.products.length > 0;
-
-                        if (age < LS_CACHE_TTL && hasData) {
-                            // ข้อมูล cache ยังสดและไม่ว่าง → แสดงทันที
-                            db = cached.data;
-                            updateAllViews();
-                            // ดึงข้อมูลใหม่เบื้องหลัง (ไม่แสดง spinner)
-                            _fetchFromServer(true);
-                            return;
-                        }
+            // 1. ดึงข้อมูลจาก Cache ใน LocalStorage ขึ้นมาแสดงก่อนทันทีเพื่อความรวดเร็ว
+            try {
+                const raw = localStorage.getItem(LS_CACHE_KEY);
+                if (raw) {
+                    const cached = JSON.parse(raw);
+                    const hasData = cached.data
+                        && Array.isArray(cached.data.products)
+                        && cached.data.products.length > 0;
+                    if (hasData) {
+                        db = cached.data;
+                        updateAllViews();
                     }
-                } catch(e) {
-                    // localStorage มีปัญหา → ล้าง cache แล้วดึงใหม่
-                    try { localStorage.removeItem(LS_CACHE_KEY); } catch(_) {}
+                }
+            } catch (e) {
+                try { localStorage.removeItem(LS_CACHE_KEY); } catch(_) {}
+            }
+
+            // 2. ถ้ามีการกด Force Refresh หรือแอปยังไม่มีข้อมูลเลย ให้แสดง loading
+            const hasNoData = !db || !db.products || db.products.length === 0;
+            if (forceRefresh || hasNoData) {
+                showLoading('กำลังซิงค์ข้อมูลระบบ...');
+            }
+
+            // 3. เริ่มต้นเปิด Real-time Listener (ถ้ายังไม่ได้รัน)
+            if (!isFirebaseListenerInitialized) {
+                isFirebaseListenerInitialized = true;
+                
+                firebaseListenerPromise = new Promise((resolve, reject) => {
+                    resolveFirstFetch = resolve;
+                    
+                    try {
+                        // ใช้ Firebase Realtime Database SDK เพื่อเปิดฟังข้อมูลแบบ Real-time (WebSocket)
+                        firebase.database().ref().on('value', async (snapshot) => {
+                            try {
+                                const fbData = snapshot.val();
+                                let hasValidData = false;
+                                if (fbData) {
+                                    const appDataNode = fbData.appData || {};
+                                    const allUsers = ensureArray(fbData.users);
+                                    const approvers = allUsers.filter(u => !!u.canApprove).map(u => ({
+                                        fullName: u.fullName || "",
+                                        email: u.email || "",
+                                        department: u.department || "",
+                                        role: u.role || "User"
+                                    }));
+
+                                    const consolidated = {
+                                        products: ensureArray(appDataNode.products),
+                                        machines: ensureArray(appDataNode.machines),
+                                        mappings: ensureArray((fbData.mappings && Object.keys(fbData.mappings).length > 0) ? fbData.mappings : appDataNode.mappings),
+                                        settings: appDataNode.settings || {},
+                                        manuals: ensureArray(appDataNode.manuals),
+                                        lots: ensureArray((fbData.lots && Object.keys(fbData.lots).length > 0) ? fbData.lots : appDataNode.lots),
+                                        approvers: approvers
+                                    };
+
+                                    if (consolidated.products && consolidated.products.length > 0) {
+                                        db = consolidated;
+                                        invalidateLocalCache();
+                                        updateAllViews();
+                                        hasValidData = true;
+                                    }
+                                }
+
+                                if (!hasValidData && (!db || !db.products || db.products.length === 0)) {
+                                    console.warn("Firebase ยังไม่มีข้อมูล กำลังดึงข้อมูลจาก Google Apps Script Backup...");
+                                    await _fetchFromBackupServer();
+                                }
+                            } catch (err) {
+                                console.error("Error in Firebase real-time listener callback:", err);
+                            } finally {
+                                if (resolveFirstFetch) {
+                                    resolveFirstFetch();
+                                    resolveFirstFetch = null;
+                                }
+                                hideLoading();
+                            }
+                        }, (fbErr) => {
+                            console.warn("Real-time sync failed. Falling back to Google Apps Script:", fbErr);
+                            _fetchFromBackupServer().then(resolve).catch(reject);
+                        });
+                    } catch (err) {
+                        console.error("Firebase SDK Listener Setup Error:", err);
+                        _fetchFromBackupServer().then(resolve).catch(reject);
+                    }
+                });
+            } else {
+                if (forceRefresh) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    hideLoading();
+                    showToast('ข้อมูลเป็นปัจจุบันแล้ว');
                 }
             }
 
-            // ไม่มี cache / cache หมดอายุ / ข้อมูลว่าง → ดึงจาก server + แสดง spinner
-            showLoading('กำลังดึงข้อมูลระบบ...');
-            await _fetchFromServer(false);
+            if (firebaseListenerPromise) {
+                await firebaseListenerPromise;
+            }
         }
 
-        async function _fetchFromServer(background = false) {
+        async function _fetchFromBackupServer() {
             try {
                 const res = await fetch(API_URL + '?action=getAppData', { method: 'GET' });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
-
-                // ตรวจสอบว่าข้อมูลที่ได้กลับมา valid ก่อน cache
+                
                 if (data && Array.isArray(data.products)) {
-                    try {
-                        localStorage.setItem(LS_CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
-                    } catch(e) { /* storage full → ข้ามได้ */ }
                     db = data;
+                    invalidateLocalCache();
                     updateAllViews();
                 } else {
                     throw new Error('ข้อมูลที่ได้รับไม่ถูกต้อง');
                 }
             } catch (error) {
-                if (!background) showToast('ไม่สามารถดึงข้อมูลได้: ' + error.message, 'error');
+                showToast('ไม่สามารถดึงข้อมูลได้: ' + error.message, 'error');
             }
-            if (!background) hideLoading();
+            hideLoading();
         }
 
         function updateAllViews() {
@@ -1334,3 +1557,839 @@ let transactions = [];
             if(!document.getElementById('filterMachine').value) document.getElementById('filterMachine').value = 'all';
         }
 
+
+// ==========================================
+// Firebase Direct Backend Bypass Interceptor
+// ==========================================
+
+const BYPASS_ACTIONS = [
+    'editProduct',
+    'editMachine',
+    'editManual',
+    'getTransactions',
+    'checkoutOrder',
+    'restockProduct',
+    'cancelTransaction',
+    'updateApprovalStatus',
+    'deleteTransaction',
+    'addMapping',
+    'deleteMapping',
+    'saveSettings',
+    'getUsersList',
+    'loginUser',
+    'registerUser',
+    'updateUserByAdmin',
+    'deleteUserByAdmin',
+    'updateSelfProfile'
+];
+
+async function handleActionDirectlyOnFirebase(action, payload) {
+    try {
+        switch (action) {
+            case 'editProduct':
+                await executeDirectEditProduct(payload);
+                return { status: 'success', message: 'บันทึกแก้ไขสินค้าสำเร็จ' };
+            case 'editMachine':
+                await executeDirectEditMachine(payload);
+                return { status: 'success', message: 'บันทึกแก้ไขเครื่องจักรสำเร็จ' };
+            case 'editManual':
+                const manualRes = await executeDirectEditManual(payload);
+                return { status: 'success', data: manualRes, message: 'บันทึกแก้ไขคู่มือสำเร็จ' };
+            case 'getTransactions':
+                return { status: 'success', data: await executeDirectGetTransactions() };
+            case 'loginUser':
+                return { status: 'success', data: await executeDirectLogin(payload) };
+            case 'registerUser':
+                await executeDirectRegister(payload);
+                return { status: 'success', message: 'สมัครสมาชิกสำเร็จ รอการอนุมัติสิทธิ์' };
+            case 'getUsersList':
+                return { status: 'success', data: await executeDirectGetUsersList(payload) };
+            case 'updateUserByAdmin':
+                await executeDirectUpdateUserByAdmin(payload);
+                return { status: 'success', message: 'อัปเดตข้อมูลผู้ใช้สำเร็จ' };
+            case 'deleteUserByAdmin':
+                await executeDirectDeleteUserByAdmin(payload);
+                return { status: 'success', message: 'ลบผู้ใช้สำเร็จ' };
+            case 'updateSelfProfile':
+                return { status: 'success', data: await executeDirectUpdateSelfProfile(payload), message: 'อัปเดตโปรไฟล์สำเร็จ' };
+            case 'checkoutOrder':
+                return { status: 'success', data: await executeDirectCheckout(payload), message: 'บันทึกใบเบิกและหักสต็อกสำเร็จ' };
+            case 'restockProduct':
+                return { status: 'success', data: await executeDirectRestock(payload), message: 'เติมสต็อกสำเร็จ' };
+            case 'cancelTransaction':
+                await executeDirectCancelTransaction(payload);
+                return { status: 'success', message: 'ยกเลิกใบเบิกและคืนสต็อกสำเร็จ' };
+            case 'updateApprovalStatus':
+                const appRes = await executeDirectUpdateApprovalStatus(payload);
+                return { status: 'success', data: appRes, message: payload.approval_status === 'Approved' ? 'อนุมัติเอกสารสำเร็จ' : (payload.approval_status === 'Rejected' ? 'ปฏิเสธเอกสารและคืนสต็อกสำเร็จ' : 'บันทึกการแก้ไขรายการอะไหล่สำเร็จ') };
+            case 'deleteTransaction':
+                await executeDirectDeleteTransaction(payload);
+                return { status: 'success', message: 'ลบประวัติใบเบิกสำเร็จ' };
+            case 'addMapping':
+                await executeDirectAddMapping(payload);
+                return { status: 'success', message: 'บันทึกการจับคู่สำเร็จ' };
+            case 'deleteMapping':
+                await executeDirectDeleteMapping(payload);
+                return { status: 'success', message: 'ลบการจับคู่สำเร็จ' };
+            case 'saveSettings':
+                await executeDirectSaveSettings(payload);
+                return { status: 'success', message: 'บันทึกการตั้งค่าสำเร็จ' };
+            default:
+                throw new Error("Action not supported directly on Firebase");
+        }
+    } catch (e) {
+        return { status: 'error', message: e.message };
+    }
+}
+
+let transactionsCache = null;
+
+async function executeDirectEditProduct(payload) {
+    const snapshot = await firebase.database().ref('appData/products').get();
+    let products = ensureArray(snapshot.val());
+    const index = products.findIndex(p => String(p.id).trim() === String(payload.id).trim());
+    if (index === -1) throw new Error("ไม่พบรหัสสินค้าที่ต้องการแก้ไข");
+    const oldProduct = products[index];
+    const cost = parseFloat(payload.cost) || 0;
+    
+    const pA = parseFloat(payload.price_a) > 0 ? parseFloat(payload.price_a) : Math.ceil(cost * 2.1);
+    const pB = parseFloat(payload.price_b) > 0 ? parseFloat(payload.price_b) : Math.ceil(cost * 1.7);
+    const pC = parseFloat(payload.price_c) > 0 ? parseFloat(payload.price_c) : Math.ceil(cost * 1.3);
+    const stockQty = (payload.stock_qty !== undefined && payload.stock_qty !== "") ? parseFloat(payload.stock_qty) : (parseFloat(oldProduct.stock_qty) || 0);
+    
+    products[index] = {
+        id: payload.id, name: payload.name, unit: payload.unit, cost: cost,
+        price_a: pA, price_b: pB, price_c: pC,
+        category: payload.category, note: payload.note, image_url: oldProduct.image_url || "",
+        stock_qty: stockQty, group: payload.group || "", supplier: payload.supplier || "", storage: payload.storage || ""
+    };
+    await firebase.database().ref('appData/products').set(products);
+    db.products = products;
+    invalidateLocalCache();
+}
+
+async function executeDirectEditMachine(payload) {
+    const snapshot = await firebase.database().ref('appData/machines').get();
+    let machines = ensureArray(snapshot.val());
+    const index = machines.findIndex(m => String(m.id).trim() === String(payload.id).trim());
+    if (index === -1) throw new Error("ไม่พบเครื่องจักรที่ต้องการแก้ไข");
+    const oldMachine = machines[index];
+    machines[index] = {
+        id: payload.id, name: payload.name, image_url: oldMachine.image_url || "", cost: parseFloat(payload.cost) || 0,
+        price_a: parseFloat(payload.price_a) || 0, price_b: parseFloat(payload.price_b) || 0, price_c: parseFloat(payload.price_c) || 0,
+        note: payload.note || "", group: payload.group || "", supplier: payload.supplier || "", storage: payload.storage || ""
+    };
+    await firebase.database().ref('appData/machines').set(machines);
+    db.machines = machines;
+    invalidateLocalCache();
+}
+
+async function executeDirectEditManual(payload) {
+    const snapshot = await firebase.database().ref('appData/manuals').get();
+    let manuals = ensureArray(snapshot.val());
+    const index = manuals.findIndex(m => String(m.id).trim() === String(payload.id).trim());
+    if (index === -1) throw new Error("ไม่พบคู่มือที่ต้องการแก้ไข");
+    const oldManual = manuals[index];
+    manuals[index] = {
+        id: payload.id, title: payload.title || "", description: payload.description || "",
+        file_url: oldManual.file_url || "", file_type: payload.file_type || oldManual.file_type,
+        uploaded_at: oldManual.uploaded_at || ""
+    };
+    await firebase.database().ref('appData/manuals').set(manuals);
+    db.manuals = manuals;
+    invalidateLocalCache();
+    return { file_url: oldManual.file_url || "" };
+}
+
+async function executeDirectGetTransactions() {
+    if (transactionsCache) {
+        return transactionsCache;
+    }
+    const snapshot = await firebase.database().ref('transactions').get();
+    transactionsCache = ensureArray(snapshot.val()).reverse();
+    return transactionsCache;
+}
+
+function getDefaultUsersList() {
+    return [
+        {
+            fullName: "Admin Nakyeet",
+            department: "IT",
+            phone: "0999999999",
+            email: "nakyeet@gmail.com",
+            passwordHash: "15e2b0d3c33891ebb0f1ef609ec419420c20e320ce94c65fbc8c3312448eb225", // SHA-256 for "123456789"
+            role: "ADMIN",
+            priceLevel: "A",
+            userType: "insource",
+            canApprove: true
+        }
+    ];
+}
+
+async function executeDirectLogin(payload) {
+    const username = String(payload.username).trim().toLowerCase();
+    const password = String(payload.password);
+    if (!username || !password) throw new Error("กรุณากรอกข้อมูลการเข้าสู่ระบบ");
+    
+    const snapshot = await firebase.database().ref('users').get();
+    let users = ensureArray(snapshot.val());
+    if (users.length === 0) {
+        users = getDefaultUsersList();
+        await firebase.database().ref('users').set(users);
+    } else if (!users.some(u => String(u.email || "").toLowerCase() === 'nakyeet@gmail.com')) {
+        users.push(...getDefaultUsersList());
+        await firebase.database().ref('users').set(users);
+    }
+
+    const hash = await sha256(password);
+    
+    const user = users.find(u => (String(u.email || "").toLowerCase() === username || String(u.phone || "").trim() === username));
+    if (!user) throw new Error("ไม่พบชื่อผู้ใช้ (อีเมลหรือเบอร์โทรศัพท์) ในระบบ");
+    if (user.passwordHash !== hash) throw new Error("รหัสผ่านไม่ถูกต้อง");
+    
+    return {
+        fullName: user.fullName,
+        department: user.department,
+        phone: user.phone,
+        email: user.email,
+        role: user.role,
+        priceLevel: user.priceLevel || "A",
+        userType: user.userType || "insource",
+        canApprove: !!user.canApprove
+    };
+}
+
+async function executeDirectRegister(payload) {
+    const fullName = String(payload.fullName || "").trim();
+    const department = String(payload.department || "").trim();
+    const phone = String(payload.phone || "").trim();
+    const email = String(payload.email || "").trim().toLowerCase();
+    const password = String(payload.password || "");
+    const userType = payload.userType ? String(payload.userType).trim() : "";
+    if (!fullName || !department || !phone || !email || !password || !userType) {
+        throw new Error("กรุณากรอกข้อมูลและเลือกประเภทบุคคลให้ครบถ้วน");
+    }
+    
+    const snapshot = await firebase.database().ref('users').get();
+    let users = ensureArray(snapshot.val());
+    if (users.length === 0) {
+        users = getDefaultUsersList();
+    }
+    
+    if (users.some(u => String(u.email || "").toLowerCase() === email)) throw new Error("อีเมลนี้ถูกใช้สมัครสมาชิกแล้ว");
+    if (users.some(u => String(u.phone || "").trim() === phone)) throw new Error("เบอร์โทรศัพท์นี้ถูกใช้สมัครสมาชิกแล้ว");
+    
+    const newUser = {
+        fullName: fullName,
+        department: department,
+        phone: phone,
+        email: email,
+        passwordHash: await sha256(password),
+        role: "user",
+        priceLevel: "A",
+        userType: userType,
+        canApprove: false
+    };
+    users.push(newUser);
+    await firebase.database().ref('users').set(users);
+    invalidateLocalCache();
+}
+
+async function executeDirectGetUsersList(payload) {
+    const snapshot = await firebase.database().ref('users').get();
+    let users = ensureArray(snapshot.val());
+    if (users.length === 0) {
+        users = getDefaultUsersList();
+        await firebase.database().ref('users').set(users);
+    }
+    return users;
+}
+
+async function executeDirectUpdateUserByAdmin(payload) {
+    const email = String(payload.targetEmail || payload.email || "").trim().toLowerCase();
+    const snapshot = await firebase.database().ref('users').get();
+    const users = ensureArray(snapshot.val());
+    
+    const index = users.findIndex(u => String(u.email || "").toLowerCase() === email);
+    if (index === -1) throw new Error("ไม่พบอีเมลผู้ใช้ที่ต้องการแก้ไข");
+    
+    users[index].fullName = String(payload.fullName || users[index].fullName).trim();
+    users[index].department = String(payload.department || users[index].department).trim();
+    users[index].phone = String(payload.phone || users[index].phone).trim();
+    users[index].role = String(payload.newRole || payload.role || users[index].role).trim();
+    users[index].priceLevel = String(payload.newPriceLevel || payload.priceLevel || users[index].priceLevel || "A").trim();
+    users[index].userType = String(payload.newUserType || payload.userType || users[index].userType || "insource").trim();
+    if (payload.canApprove !== undefined) {
+        users[index].canApprove = !!payload.canApprove;
+    }
+    
+    if (payload.password) {
+        users[index].passwordHash = await sha256(payload.password);
+    }
+    await firebase.database().ref('users').set(users);
+    invalidateLocalCache();
+}
+
+async function executeDirectDeleteUserByAdmin(payload) {
+    const email = String(payload.targetEmail || payload.email || "").trim().toLowerCase();
+    const snapshot = await firebase.database().ref('users').get();
+    let users = ensureArray(snapshot.val());
+    
+    users = users.filter(u => String(u.email || "").toLowerCase() !== email);
+    await firebase.database().ref('users').set(users);
+    invalidateLocalCache();
+}
+
+async function executeDirectUpdateSelfProfile(payload) {
+    const currentEmail = String(payload.currentEmail || "").trim().toLowerCase();
+    const snapshot = await firebase.database().ref('users').get();
+    const users = ensureArray(snapshot.val());
+    
+    const index = users.findIndex(u => String(u.email || "").toLowerCase() === currentEmail);
+    if (index === -1) throw new Error("ไม่พบข้อมูลบัญชีผู้ใช้ในระบบ");
+    
+    const newEmail = String(payload.email || "").trim().toLowerCase();
+    if (newEmail !== currentEmail && users.some(u => String(u.email || "").toLowerCase() === newEmail)) {
+        throw new Error("อีเมลใหม่นี้ถูกใช้งานแล้ว");
+    }
+    
+    users[index].fullName = String(payload.fullName || users[index].fullName).trim();
+    users[index].department = String(payload.department || users[index].department).trim();
+    users[index].phone = String(payload.phone || users[index].phone).trim();
+    users[index].email = newEmail;
+    
+    if (payload.password) {
+        users[index].passwordHash = await sha256(payload.password);
+    }
+    
+    await firebase.database().ref('users').set(users);
+    invalidateLocalCache();
+    
+    return {
+        fullName: users[index].fullName,
+        department: users[index].department,
+        phone: users[index].phone,
+        email: users[index].email,
+        role: users[index].role,
+        priceLevel: users[index].priceLevel || "A",
+        userType: users[index].userType || "insource",
+        canApprove: !!users[index].canApprove
+    };
+}
+
+async function executeDirectCheckout(payload) {
+    const snapshot = await firebase.database().ref().get();
+    const fbData = snapshot.val() || {};
+    
+    let products = ensureArray(fbData.appData?.products);
+    let lots = ensureArray(fbData.lots);
+    let transactions = ensureArray(fbData.transactions);
+    
+    const cart = payload.cart;
+    const prodMap = {};
+    products.forEach(p => { prodMap[String(p.id).trim()] = p; });
+    
+    // ตรวจสอบสต็อก
+    cart.forEach(item => {
+        const pId = String(item.id).trim();
+        const product = prodMap[pId];
+        if (!product) throw new Error("ไม่พบอะไหล่รหัส " + pId + " ในระบบ");
+        
+        const stockQty = parseFloat(product.stock_qty) || 0;
+        if (stockQty < item.qty) {
+            throw new Error("สต็อกไม่เพียงพอ: อะไหล่ " + (product.name || pId) + " (" + pId + ") มีคงเหลือ " + stockQty + " ชิ้น แต่พยายามเบิก " + item.qty + " ชิ้น");
+        }
+        
+        const prodLots = lots.filter(l => String(l.product_id).trim() === pId && (parseFloat(l.remaining_qty) || 0) > 0);
+        const totalLotQty = prodLots.reduce((sum, l) => sum + (parseFloat(l.remaining_qty) || 0), 0);
+        if (totalLotQty < stockQty) {
+            const diff = stockQty - totalLotQty;
+            lots.push({
+                lot_id: "LOT-SUPP-" + pId + "-" + Date.now(),
+                product_id: pId,
+                cost: parseFloat(product.cost) || 0,
+                price_a: parseFloat(product.price_a) || 0,
+                price_b: parseFloat(product.price_b) || 0,
+                price_c: parseFloat(product.price_c) || 0,
+                initial_qty: diff,
+                remaining_qty: diff,
+                created_at: getFormattedDateTimeString(),
+                note: "Lot สำรองคงเหลือ"
+            });
+        }
+    });
+    
+    // ตัดสต็อก FIFO
+    const checkoutItems = [];
+    cart.forEach(item => {
+        const pId = String(item.id).trim();
+        const product = prodMap[pId];
+        let neededQty = item.qty;
+        
+        const availableLots = lots.filter(l => String(l.product_id).trim() === pId && (parseFloat(l.remaining_qty) || 0) > 0)
+                                  .sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+        
+        availableLots.forEach(lot => {
+            if (neededQty <= 0) return;
+            const remaining = parseFloat(lot.remaining_qty) || 0;
+            const takeQty = Math.min(remaining, neededQty);
+            
+            lot.remaining_qty = remaining - takeQty;
+            neededQty -= takeQty;
+            
+            let lotPrice = item.price;
+            if (item.priceLevel === 'A' && lot.price_a) lotPrice = parseFloat(lot.price_a) || 0;
+            else if (item.priceLevel === 'B' && lot.price_b) lotPrice = parseFloat(lot.price_b) || 0;
+            else if (item.priceLevel === 'C' && lot.price_c) lotPrice = parseFloat(lot.price_c) || 0;
+            
+            checkoutItems.push({
+                detail_id: "",
+                product_id: pId,
+                lot_id: lot.lot_id,
+                qty: takeQty,
+                unit_cost: parseFloat(lot.cost) || 0,
+                price: lotPrice,
+                subtotal: takeQty * lotPrice
+            });
+        });
+        
+        product.stock_qty = (parseFloat(product.stock_qty) || 0) - item.qty;
+    });
+    
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const datePrefix = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+    const dateStr = getFormattedDateTimeString();
+    
+    let counter = 1;
+    if (transactions.length > 0) {
+        for (let i = transactions.length - 1; i >= 0; i--) {
+            const lastTx = transactions[i];
+            if (lastTx && lastTx.id && String(lastTx.id).indexOf("QCM-" + datePrefix) === 0) {
+                const parts = String(lastTx.id).split("-");
+                const lastNum = parseInt(parts[2], 10);
+                if (!isNaN(lastNum)) {
+                    counter = lastNum + 1;
+                    break;
+                }
+            }
+        }
+    }
+    const txId = "QCM-" + datePrefix + "-" + String(counter).padStart(4, '0');
+    
+    let calcTotalPrice = 0;
+    checkoutItems.forEach((it, idx) => {
+        it.detail_id = txId + "-" + (idx + 1);
+        calcTotalPrice += it.subtotal;
+    });
+    
+    const laborCost = parseFloat(payload.labor_cost) || 0;
+    const partsTotal = parseFloat(payload.parts_total) || calcTotalPrice;
+    const grandTotal = parseFloat(payload.total_price) || (calcTotalPrice + laborCost);
+    
+    const newTransaction = {
+        id: txId,
+        date: dateStr,
+        requester: payload.requester || "",
+        department: payload.department || "",
+        approver: payload.approver || "",
+        approver_email: payload.approver_email || "",
+        customer_type: payload.customer_type || "",
+        price_tier: payload.price_tier || "",
+        machine_model: payload.machine_model || "",
+        repair_level: payload.repair_level || "",
+        labor_cost: laborCost,
+        parts_total: partsTotal,
+        machine_id: payload.machine_id,
+        serial_number: payload.serial_number || "",
+        total_price: grandTotal,
+        note: payload.note || "",
+        job_details: payload.job_details || "",
+        status: "Success",
+        approval_status: payload.approval_status || "Pending",
+        items: checkoutItems
+    };
+    transactions.push(newTransaction);
+    
+    const updates = {};
+    updates["appData/products"] = products;
+    updates["lots"] = lots;
+    updates["transactions"] = transactions;
+    await firebase.database().ref().update(updates);
+    transactionsCache = null;
+    
+    db.products = products;
+    db.lots = lots;
+    db.transactions = transactions;
+    invalidateLocalCache();
+    
+    return { transaction_id: txId, items: checkoutItems };
+}
+
+async function executeDirectRestock(payload) {
+    const snapshot = await firebase.database().ref().get();
+    const fbData = snapshot.val() || {};
+    
+    let products = ensureArray(fbData.appData?.products);
+    let lots = ensureArray(fbData.lots);
+    let transactions = ensureArray(fbData.transactions);
+    
+    const pId = String(payload.id).trim();
+    const product = products.find(p => String(p.id).trim() === pId);
+    if (!product) throw new Error("ไม่พบของที่ต้องการปรับปรุงสต็อก");
+    
+    const qty = parseFloat(payload.qty) || 0;
+    const cost = (payload.cost !== undefined && payload.cost !== "") ? parseFloat(payload.cost) : (parseFloat(product.cost) || 0);
+    const pA = (payload.price_a !== undefined && payload.price_a !== "") ? parseFloat(payload.price_a) : (parseFloat(product.price_a) || 0);
+    const pB = (payload.price_b !== undefined && payload.price_b !== "") ? parseFloat(payload.price_b) : (parseFloat(product.price_b) || 0);
+    const pC = (payload.price_c !== undefined && payload.price_c !== "") ? parseFloat(payload.price_c) : (parseFloat(product.price_c) || 0);
+    
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const datePrefix = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+    const dateStr = getFormattedDateTimeString();
+    
+    const lotId = "LOT-" + datePrefix + "-" + String(Date.now()).slice(-6);
+    lots.push({
+        lot_id: lotId,
+        product_id: pId,
+        cost: cost,
+        price_a: pA,
+        price_b: pB,
+        price_c: pC,
+        initial_qty: qty,
+        remaining_qty: qty,
+        created_at: dateStr,
+        note: payload.note || "เติมสต็อกอะไหล่"
+    });
+    
+    const currentStock = parseFloat(product.stock_qty) || 0;
+    const newStock = currentStock + qty;
+    product.stock_qty = newStock;
+    product.cost = cost;
+    product.price_a = pA;
+    product.price_b = pB;
+    product.price_c = pC;
+    
+    let counter = 1;
+    if (transactions.length > 0) {
+        for (let i = transactions.length - 1; i >= 0; i--) {
+            const lastTx = transactions[i];
+            if (lastTx && lastTx.id && String(lastTx.id).indexOf("QCM-RE-" + datePrefix) === 0) {
+                const parts = String(lastTx.id).split("-");
+                const lastNum = parseInt(parts[3], 10);
+                if (!isNaN(lastNum)) {
+                    counter = lastNum + 1;
+                    break;
+                }
+            }
+        }
+    }
+    const txId = "QCM-RE-" + datePrefix + "-" + String(counter).padStart(4, '0');
+    
+    const newRestockTx = {
+        id: txId,
+        date: dateStr,
+        requester: payload.requester || "ระบบเติมสต็อก",
+        department: payload.department || "สโตร์ (Restock)",
+        machine_id: "",
+        serial_number: "",
+        total_price: qty * cost,
+        note: payload.note || ("เติมสต็อก (Lot: " + lotId + ")"),
+        status: "Restock",
+        items: [{
+            detail_id: txId + "-1",
+            product_id: pId,
+            lot_id: lotId,
+            qty: qty,
+            unit_cost: cost,
+            price: pA,
+            subtotal: qty * cost
+        }]
+    };
+    transactions.push(newRestockTx);
+    
+    const updates = {};
+    updates["appData/products"] = products;
+    updates["lots"] = lots;
+    updates["transactions"] = transactions;
+    await firebase.database().ref().update(updates);
+    transactionsCache = null;
+    
+    db.products = products;
+    db.lots = lots;
+    db.transactions = transactions;
+    invalidateLocalCache();
+    
+    return { new_stock: newStock, transaction_id: txId, lot_id: lotId };
+}
+
+async function executeDirectCancelTransaction(payload) {
+    const snapshot = await firebase.database().ref().get();
+    const fbData = snapshot.val() || {};
+    
+    let products = ensureArray(fbData.appData?.products);
+    let lots = ensureArray(fbData.lots);
+    let transactions = ensureArray(fbData.transactions);
+    
+    const txId = String(payload.transaction_id).trim();
+    const tx = transactions.find(t => String(t.id).trim() === txId);
+    if (!tx) throw new Error("ไม่พบรายการใบเบิกที่ต้องการยกเลิก");
+    if (tx.status === "Cancelled") throw new Error("ใบเบิกนี้ถูกยกเลิกไปแล้ว");
+    
+    // คืนสต็อก
+    if (Array.isArray(tx.items)) {
+        tx.items.forEach(it => {
+            const pId = String(it.product_id).trim();
+            const product = products.find(p => String(p.id).trim() === pId);
+            if (product) {
+                product.stock_qty = (parseFloat(product.stock_qty) || 0) + (parseFloat(it.qty) || 0);
+            }
+            if (it.lot_id) {
+                const targetLot = lots.find(l => String(l.lot_id).trim() === String(it.lot_id).trim());
+                if (targetLot) {
+                    targetLot.remaining_qty = (parseFloat(targetLot.remaining_qty) || 0) + (parseFloat(it.qty) || 0);
+                }
+            }
+        });
+    }
+    
+    tx.status = "Cancelled";
+    
+    const updates = {};
+    updates["appData/products"] = products;
+    updates["lots"] = lots;
+    updates["transactions"] = transactions;
+    await firebase.database().ref().update(updates);
+    transactionsCache = null;
+    
+    db.products = products;
+    db.lots = lots;
+    db.transactions = transactions;
+    invalidateLocalCache();
+}
+
+async function executeDirectUpdateApprovalStatus(payload) {
+    const snapshot = await firebase.database().ref().get();
+    const fbData = snapshot.val() || {};
+    
+    let products = ensureArray(fbData.appData?.products);
+    let lots = ensureArray(fbData.lots);
+    let transactions = ensureArray(fbData.transactions);
+    
+    const txId = String(payload.transaction_id).trim();
+    const txIndex = transactions.findIndex(t => String(t.id).trim() === txId);
+    if (txIndex === -1) throw new Error("ไม่พบรหัสใบเบิก " + txId);
+    
+    const targetTx = transactions[txIndex];
+    if (targetTx.approval_status === "Approved" || targetTx.approval_status === "Rejected") {
+        throw new Error("เอกสารนี้ได้รับการพิจารณาไปแล้ว (" + targetTx.approval_status + ")");
+    }
+    
+    const newStatus = payload.approval_status;
+    const note = payload.approval_note || "";
+    const approverName = payload.approved_by || "";
+    const approverEmail = payload.approved_by_email || "";
+    const dateStr = getFormattedDateTimeString();
+    const hasUpdatedItems = Array.isArray(payload.updated_items) && payload.updated_items.length > 0;
+    
+    if (newStatus === "Rejected") {
+        targetTx.approval_status = "Rejected";
+        targetTx.approval_date = dateStr;
+        targetTx.approval_by = approverName;
+        targetTx.approval_by_email = approverEmail;
+        targetTx.approval_note = note;
+        targetTx.status = "Cancelled";
+        
+        // คืนสต็อกและล็อตเดิม
+        if (Array.isArray(targetTx.items)) {
+            targetTx.items.forEach(it => {
+                const pId = String(it.product_id).trim();
+                const product = products.find(p => String(p.id).trim() === pId);
+                if (product) {
+                    product.stock_qty = (parseFloat(product.stock_qty) || 0) + (parseFloat(it.qty) || 0);
+                }
+                if (it.lot_id) {
+                    const targetLot = lots.find(l => String(l.lot_id).trim() === String(it.lot_id).trim());
+                    if (targetLot) {
+                        targetLot.remaining_qty = (parseFloat(targetLot.remaining_qty) || 0) + (parseFloat(it.qty) || 0);
+                    }
+                }
+            });
+        }
+    } else {
+        // 'Approved' หรือ 'Pending' (แก้ไขรายการ)
+        if (hasUpdatedItems) {
+            // 1. คืนสต็อกและล็อตเดิมชั่วคราวก่อนคำนวณใหม่
+            if (Array.isArray(targetTx.items)) {
+                targetTx.items.forEach(oldItem => {
+                    const oldPid = String(oldItem.product_id).trim();
+                    const oldProd = products.find(p => String(p.id).trim() === oldPid);
+                    if (oldProd) {
+                        oldProd.stock_qty = (parseFloat(oldProd.stock_qty) || 0) + (parseFloat(oldItem.qty) || 0);
+                    }
+                    if (oldItem.lot_id) {
+                        const targetLot = lots.find(l => String(l.lot_id).trim() === String(oldItem.lot_id).trim());
+                        if (targetLot) {
+                            targetLot.remaining_qty = (parseFloat(targetLot.remaining_qty) || 0) + (parseFloat(oldItem.qty) || 0);
+                        }
+                    }
+                });
+            }
+            
+            // 2. ตรวจสอบสต็อกสำหรับรายการใหม่
+            const prodMap = {};
+            products.forEach(p => { prodMap[String(p.id).trim()] = p; });
+            
+            payload.updated_items.forEach(item => {
+                const pId = String(item.product_id || item.id).trim();
+                const q = parseFloat(item.qty) || 0;
+                if (q <= 0) throw new Error("จำนวนอะไหล่ต้องมากกว่า 0");
+                const product = prodMap[pId];
+                if (!product) throw new Error("ไม่พบรหัสสินค้า " + pId + " ในระบบ");
+                if ((parseFloat(product.stock_qty) || 0) < q) {
+                    throw new Error("สต็อกไม่เพียงพอสำหรับ " + (product.name || pId));
+                }
+            });
+            
+            // 3. หักสต็อกและจัดสรร Lot ใหม่
+            const newItems = [];
+            payload.updated_items.forEach(item => {
+                const pId = String(item.product_id || item.id).trim();
+                const product = prodMap[pId];
+                let neededQty = parseFloat(item.qty) || 0;
+                
+                const availableLots = lots.filter(l => String(l.product_id).trim() === pId && (parseFloat(l.remaining_qty) || 0) > 0)
+                                          .sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+                
+                availableLots.forEach(lot => {
+                    if (neededQty <= 0) return;
+                    const remaining = parseFloat(lot.remaining_qty) || 0;
+                    const takeQty = Math.min(remaining, neededQty);
+                    
+                    lot.remaining_qty = remaining - takeQty;
+                    neededQty -= takeQty;
+                    
+                    const price = parseFloat(item.price) || (parseFloat(lot.price_a) || 0);
+                    newItems.push({
+                        detail_id: targetTx.id + "-" + (newItems.length + 1),
+                        product_id: pId,
+                        lot_id: lot.lot_id,
+                        qty: takeQty,
+                        unit_cost: parseFloat(lot.cost) || 0,
+                        price: price,
+                        subtotal: takeQty * price
+                    });
+                });
+                
+                product.stock_qty = (parseFloat(product.stock_qty) || 0) - (parseFloat(item.qty) || 0);
+            });
+            
+            const calcPartsTotal = newItems.reduce((sum, it) => sum + (it.subtotal || 0), 0);
+            const laborCost = parseFloat(targetTx.labor_cost) || 0;
+            targetTx.items = newItems;
+            targetTx.parts_total = calcPartsTotal;
+            targetTx.total_price = calcPartsTotal + laborCost;
+        }
+        
+        targetTx.approval_status = newStatus;
+        targetTx.approval_date = dateStr;
+        targetTx.approval_by = approverName;
+        targetTx.approval_by_email = approverEmail;
+        targetTx.approval_note = note;
+    }
+    
+    const updates = {};
+    updates["appData/products"] = products;
+    updates["lots"] = lots;
+    updates["transactions"] = transactions;
+    await firebase.database().ref().update(updates);
+    transactionsCache = null;
+    
+    db.products = products;
+    db.lots = lots;
+    db.transactions = transactions;
+    invalidateLocalCache();
+    
+    return { status: "success", transaction: targetTx };
+}
+
+async function executeDirectDeleteTransaction(payload) {
+    const txId = String(payload.transaction_id || payload.id).trim();
+    const snapshot = await firebase.database().ref('transactions').get();
+    let transactions = ensureArray(snapshot.val());
+    transactions = transactions.filter(t => String(t.id).trim() !== txId);
+    await firebase.database().ref('transactions').set(transactions);
+    transactionsCache = null;
+    db.transactions = transactions;
+    invalidateLocalCache();
+}
+
+async function executeDirectAddMapping(payload) {
+    const snapshot = await firebase.database().ref('mappings').get();
+    let mappings = ensureArray(snapshot.val());
+    const machId = String(payload.machine_id).trim();
+    const prodId = String(payload.product_id).trim();
+    if (!mappings.some(m => String(m.machine_id).trim() === machId && String(m.product_id).trim() === prodId)) {
+        mappings.push({ machine_id: machId, product_id: prodId });
+        await firebase.database().ref('mappings').set(mappings);
+        db.mappings = mappings;
+        invalidateLocalCache();
+    }
+}
+
+async function executeDirectDeleteMapping(payload) {
+    const snapshot = await firebase.database().ref('mappings').get();
+    let mappings = ensureArray(snapshot.val());
+    const machId = String(payload.machine_id).trim();
+    const prodId = String(payload.product_id).trim();
+    mappings = mappings.filter(m => !(String(m.machine_id).trim() === machId && String(m.product_id).trim() === prodId));
+    await firebase.database().ref('mappings').set(mappings);
+    db.mappings = mappings;
+    invalidateLocalCache();
+}
+
+async function executeDirectSaveSettings(payload) {
+    const snapshot = await firebase.database().ref('appData/settings').get();
+    let settings = snapshot.val() || {};
+    settings.isShowPriceBForGuest = Boolean(payload.isShowPriceBForGuest);
+    settings.isShowPriceCForGuest = Boolean(payload.isShowPriceCForGuest);
+    await firebase.database().ref('appData/settings').set(settings);
+    db.settings = settings;
+    invalidateLocalCache();
+}
+
+// Global Fetch Interceptor to bypass Apps Script
+const originalFetch = window.fetch;
+window.fetch = async function (url, options) {
+    if (typeof url === 'string' && url.includes(API_URL) && options && options.method === 'POST') {
+        try {
+            const body = JSON.parse(options.body);
+            const action = body.action;
+            const payload = body.payload;
+            
+            if (BYPASS_ACTIONS.includes(action)) {
+                // If there's an image/file upload, let it go to Apps Script
+                if (action === 'editProduct' && payload && payload.imageBase64) {
+                    console.log("[Firebase Bypass] editProduct has image, letting Apps Script handle it.");
+                } else if (action === 'editMachine' && payload && payload.imageBase64) {
+                    console.log("[Firebase Bypass] editMachine has image, letting Apps Script handle it.");
+                } else if (action === 'editManual' && payload && payload.file_url && payload.file_url.indexOf("data:") === 0) {
+                    console.log("[Firebase Bypass] editManual has file payload, letting Apps Script handle it.");
+                } else {
+                    console.log("[Firebase Bypass] Intercepting action: " + action);
+                    const result = await handleActionDirectlyOnFirebase(action, payload);
+                    return new Response(JSON.stringify(result), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+            }
+        } catch (e) {
+            console.error("Fetch interceptor parse error: ", e);
+        }
+    }
+    return originalFetch.apply(this, arguments);
+};
+
+console.log("[Firebase Bypass] Interceptor activated successfully.");
