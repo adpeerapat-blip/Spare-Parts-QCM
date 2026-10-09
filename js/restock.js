@@ -785,6 +785,8 @@
         let reportCurrentPage = 1;
         let lastFilteredReportProducts = [];
         let lastReportProductUsageMap = new Map();
+        let lastReportProductMachinesMap = new Map();
+        let lastReportProductSerialsMap = new Map();
 
         function changeReportPage(page) {
             reportCurrentPage = page;
@@ -1090,12 +1092,28 @@
             });
 
             const productUsageMap = new Map();
+            const productMachinesMap = new Map();
+            const productSerialsMap = new Map();
+
             activeTx.forEach(t => {
                 if (t.items && Array.isArray(t.items)) {
+                    const machObj = t.machine_id ? (db.machines || []).find(m => String(m.id).trim() === String(t.machine_id).trim()) : null;
+                    const machName = machObj ? (machObj.name || machObj.id) : (t.machine_model || t.machine_id || '');
+                    const sn = String(t.serial_number || '').trim();
+
                     t.items.forEach(item => {
-                        const pId = String(item.product_id);
+                        const pId = String(item.product_id).trim();
                         const currentQty = productUsageMap.get(pId) || 0;
                         productUsageMap.set(pId, currentQty + parseFloat(item.qty || 0));
+
+                        if (machName) {
+                            if (!productMachinesMap.has(pId)) productMachinesMap.set(pId, new Set());
+                            productMachinesMap.get(pId).add(machName);
+                        }
+                        if (sn) {
+                            if (!productSerialsMap.has(pId)) productSerialsMap.set(pId, new Set());
+                            productSerialsMap.get(pId).add(sn);
+                        }
                     });
                 }
             });
@@ -1110,7 +1128,12 @@
             const searchKeywords = searchVal.split(/\s+/).filter(k => k.length > 0);
             if (searchKeywords.length > 0) {
                 productsToRender = productsToRender.filter(p => {
-                    const txt = `${p.id} ${p.name}`.toLowerCase();
+                    const pIdStr = String(p.id).trim();
+                    const machSet = productMachinesMap.get(pIdStr) || new Set();
+                    const snSet = productSerialsMap.get(pIdStr) || new Set();
+                    const machText = Array.from(machSet).join(' ');
+                    const snText = Array.from(snSet).join(' ');
+                    const txt = `${p.id} ${p.name} ${machText} ${snText}`.toLowerCase();
                     return searchKeywords.every(k => txt.includes(k));
                 });
             }
@@ -1124,6 +1147,8 @@
             // Save for exporting to Excel
             lastFilteredReportProducts = productsToRender;
             lastReportProductUsageMap = productUsageMap;
+            lastReportProductMachinesMap = productMachinesMap;
+            lastReportProductSerialsMap = productSerialsMap;
 
             let totalQtySum = 0;
             let totalCostSum = 0;
@@ -1162,11 +1187,20 @@
 
                     const itemIndex = startIndex + index + 1;
 
+                    const pIdStr = String(p.id).trim();
+                    const machSet = productMachinesMap.get(pIdStr) || new Set();
+                    const machDisplay = Array.from(machSet).join(', ') || '-';
+
+                    const snSet = productSerialsMap.get(pIdStr) || new Set();
+                    const snDisplay = Array.from(snSet).join(', ') || '-';
+
                     html += `
                         <tr class="hover:bg-slate-50 transition border-b border-gray-100 last:border-0">
                             <td class="p-4 text-center text-gray-500">${itemIndex}</td>
                             <td class="p-4 font-bold text-gray-900">${escapeHTML(p.id)}</td>
                             <td class="p-4 text-gray-700 max-w-xs truncate" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</td>
+                            <td class="p-4 text-gray-700 max-w-xs truncate font-medium" title="${escapeHTML(machDisplay)}">${escapeHTML(machDisplay)}</td>
+                            <td class="p-4 text-gray-600 font-mono text-xs max-w-xs truncate" title="${escapeHTML(snDisplay)}">${escapeHTML(snDisplay)}</td>
                             <td class="p-4 text-center font-extrabold text-blue-600 text-base">${qty.toLocaleString('th-TH')}</td>
                             <td class="p-4 text-right text-gray-600">฿${cost.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                             <td class="p-4 text-right text-emerald-600 font-semibold">฿${priceA.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
@@ -1178,7 +1212,7 @@
             }
 
             if (totalItems === 0) {
-                document.getElementById('reportTableBody').innerHTML = `<tr><td colspan="8" class="p-10 text-center text-gray-400">ไม่พบข้อมูลการใช้งานอะไหล่</td></tr>`;
+                document.getElementById('reportTableBody').innerHTML = `<tr><td colspan="10" class="p-10 text-center text-gray-400">ไม่พบข้อมูลการใช้งานอะไหล่</td></tr>`;
             } else {
                 document.getElementById('reportTableBody').innerHTML = html;
             }
@@ -1215,7 +1249,7 @@
             let csvContent = "\uFEFF";
             
             // Headers
-            const headers = ['ลำดับ', 'รหัสสินค้า', 'ชื่อสินค้า', 'จำนวนที่เบิก', 'ราคาต้นทุน', 'ราคา (กลาง)', 'ราคา (ตัวแทน)', 'ราคา (ในเครือ)'];
+            const headers = ['ลำดับ', 'รหัสสินค้า', 'ชื่อสินค้า', 'เครื่องจักร', 'Serial Number', 'จำนวนที่เบิก', 'ราคาต้นทุน', 'ราคา (กลาง)', 'ราคา (ตัวแทน)', 'ราคา (ในเครือ)'];
             const formattedHeaders = headers.map(h => {
                 if (h.includes(',') || h.includes('\n') || h.includes('"')) {
                     return `"${h.replace(/"/g, '""')}"`;
@@ -1232,10 +1266,20 @@
                 const priceB = parseFloat(String(p.price_b).replace(/,/g, '')) || 0;
                 const priceC = parseFloat(String(p.price_c).replace(/,/g, '')) || 0;
                 
+                const pIdStr = String(p.id).trim();
+                const machSet = (lastReportProductMachinesMap && lastReportProductMachinesMap.get(pIdStr)) || new Set();
+                const machText = Array.from(machSet).join(', ') || '-';
+
+                const snSet = (lastReportProductSerialsMap && lastReportProductSerialsMap.get(pIdStr)) || new Set();
+                const snText = Array.from(snSet).join(', ') || '-';
+                const formattedSn = (snText === '-' || !snText) ? '-' : `="${snText.replace(/"/g, '""')}"`;
+
                 const rowData = [
                     String(index + 1),
                     `="${p.id}"`, // Force Excel to treat Product ID as text
                     p.name,
+                    machText,
+                    formattedSn,
                     qty.toLocaleString('th-TH'),
                     `฿${cost.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
                     `฿${priceA.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
