@@ -787,6 +787,7 @@
         let lastReportProductUsageMap = new Map();
         let lastReportProductMachinesMap = new Map();
         let lastReportProductSerialsMap = new Map();
+        let lastActiveTransactions = [];
 
         function changeReportPage(page) {
             reportCurrentPage = page;
@@ -1149,6 +1150,7 @@
             lastReportProductUsageMap = productUsageMap;
             lastReportProductMachinesMap = productMachinesMap;
             lastReportProductSerialsMap = productSerialsMap;
+            lastActiveTransactions = activeTx;
 
             let totalQtySum = 0;
             let totalCostSum = 0;
@@ -1240,7 +1242,162 @@
             filterReport();
         }
 
-        function exportReportToExcel() {
+        // ส่งออกรายงานแบบละเอียด (กางรายชิ้น / แยกแถวตามวัน-เวลา, เครื่องจักร, S/N เดี่ยว)
+        function exportReportDetailedToExcel() {
+            if (!lastActiveTransactions || lastActiveTransactions.length === 0) {
+                showToast('ไม่มีข้อมูลสำหรับส่งออก', 'warning');
+                return;
+            }
+
+            const allowedProductIds = new Set((lastFilteredReportProducts || []).map(p => String(p.id).trim()));
+            const prodMap = new Map();
+            (db.products || []).forEach(p => {
+                prodMap.set(String(p.id).trim(), p);
+            });
+            const machMap = new Map();
+            (db.machines || []).forEach(m => {
+                machMap.set(String(m.id).trim(), m);
+            });
+
+            let csvContent = "\uFEFF"; // UTF-8 BOM
+
+            const headers = [
+                'ลำดับ',
+                'วันที่',
+                'เวลา',
+                'เลขที่ใบเบิก',
+                'ผู้ขอเบิก',
+                'แผนก',
+                'รหัสสินค้า',
+                'ชื่อสินค้า',
+                'หมวดหมู่',
+                'เครื่องจักร',
+                'Serial Number',
+                'จำนวนที่เบิก',
+                'หน่วยนับ',
+                'ราคาต้นทุน',
+                'ราคา (กลาง)',
+                'ราคา (ตัวแทน)',
+                'ราคา (ในเครือ)',
+                'รวมมูลค่า (กลาง)',
+                'หมายเหตุ'
+            ];
+
+            const formattedHeaders = headers.map(h => {
+                if (h.includes(',') || h.includes('\n') || h.includes('"')) {
+                    return `"${h.replace(/"/g, '""')}"`;
+                }
+                return h;
+            });
+            csvContent += formattedHeaders.join(',') + "\r\n";
+
+            let rowCount = 0;
+
+            lastActiveTransactions.forEach(t => {
+                if (t.status === 'Cancelled' || t.status === 'Restock') return;
+
+                const dateStr = String(t.date || '').trim();
+                const datePart = dateStr.length >= 10 ? dateStr.substring(0, 10) : (dateStr || '-');
+                const timePart = dateStr.length >= 19 ? dateStr.substring(11, 19) : (dateStr.split(' ')[1] || '-');
+
+                const mId = String(t.machine_id || '').trim();
+                const machObj = mId ? machMap.get(mId) : null;
+                const machDisplay = machObj ? (machObj.name || machObj.id) : (t.machine_model || mId || '-');
+
+                const rawSn = String(t.serial_number || '').trim();
+                const snDisplay = rawSn ? rawSn : '-';
+                const formattedSn = (snDisplay === '-' || !snDisplay) ? '-' : `="${snDisplay.replace(/"/g, '""')}"`;
+
+                const reqName = String(t.requester || '-').trim();
+                const deptName = String(t.department || '-').trim();
+                const txDocId = String(t.id || '-').trim();
+                const txNote = String(t.note || '').trim();
+
+                (t.items || []).forEach(item => {
+                    const pIdStr = String(item.product_id).trim();
+                    if (allowedProductIds.size > 0 && !allowedProductIds.has(pIdStr)) {
+                        return;
+                    }
+
+                    rowCount++;
+                    const product = prodMap.get(pIdStr);
+                    const pName = product ? String(product.name || '').trim() : String(item.name || pIdStr).trim();
+                    const pCat = product ? String(product.category || 'ทั่วไป').trim() : 'ทั่วไป';
+                    const pUnit = product ? String(product.unit || 'ชิ้น').trim() : 'ชิ้น';
+
+                    const qty = parseFloat(item.qty || 0);
+                    const cost = product ? (parseFloat(String(product.cost).replace(/,/g, '')) || 0) : (parseFloat(item.unit_cost || 0));
+                    const priceA = product ? (parseFloat(String(product.price_a).replace(/,/g, '')) || 0) : (parseFloat(item.price || 0));
+                    const priceB = product ? (parseFloat(String(product.price_b).replace(/,/g, '')) || 0) : 0;
+                    const priceC = product ? (parseFloat(String(product.price_c).replace(/,/g, '')) || 0) : 0;
+                    const subtotalA = qty * priceA;
+
+                    const rowData = [
+                        String(rowCount),
+                        datePart,
+                        timePart,
+                        `="${txDocId}"`,
+                        reqName,
+                        deptName,
+                        `="${pIdStr}"`,
+                        pName,
+                        pCat,
+                        machDisplay,
+                        formattedSn,
+                        qty.toLocaleString('th-TH'),
+                        pUnit,
+                        `฿${cost.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                        `฿${priceA.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                        `฿${priceB.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                        `฿${priceC.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                        `฿${subtotalA.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                        txNote || '-'
+                    ];
+
+                    const formattedRow = rowData.map(val => {
+                        let text = String(val).trim().replace(/"/g, '""');
+                        if (text.includes(',') || text.includes('\n') || text.includes('"')) {
+                            text = `"${text}"`;
+                        }
+                        return text;
+                    });
+
+                    csvContent += formattedRow.join(',') + "\r\n";
+                });
+            });
+
+            if (rowCount === 0) {
+                showToast('ไม่มีรายการเบิกอะไหล่ที่ตรงกับเงื่อนไข', 'warning');
+                return;
+            }
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+
+            const startDate = document.getElementById('report_filter_start_date')?.value;
+            const endDate = document.getElementById('report_filter_end_date')?.value;
+            let fileDateLabel = '';
+            if (startDate && endDate) {
+                fileDateLabel = `_${startDate}_ถึง_${endDate}`;
+            } else if (startDate) {
+                fileDateLabel = `_ตั้งแต่_${startDate}`;
+            } else {
+                const dateStr = new Date().toLocaleDateString('th-TH').replace(/\//g, '-');
+                fileDateLabel = `_${dateStr}`;
+            }
+
+            link.setAttribute("download", `รายงานการเบิกใช้อะไหล่_รายรายการ${fileDateLabel}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast(`ส่งออกรายการเบิกแบบละเอียด (${rowCount} รายการ) เรียบร้อยแล้ว`, 'success');
+        }
+
+        // ส่งออกรายงานแบบสรุปสะสมตามชนิดอะไหล่
+        function exportReportSummaryToExcel() {
             if (!lastFilteredReportProducts || lastFilteredReportProducts.length === 0) {
                 showToast('ไม่มีข้อมูลสำหรับส่งออก', 'warning');
                 return;
@@ -1248,7 +1405,6 @@
             
             let csvContent = "\uFEFF";
             
-            // Headers
             const headers = ['ลำดับ', 'รหัสสินค้า', 'ชื่อสินค้า', 'เครื่องจักร', 'Serial Number', 'จำนวนที่เบิก', 'ราคาต้นทุน', 'ราคา (กลาง)', 'ราคา (ตัวแทน)', 'ราคา (ในเครือ)'];
             const formattedHeaders = headers.map(h => {
                 if (h.includes(',') || h.includes('\n') || h.includes('"')) {
@@ -1258,15 +1414,14 @@
             });
             csvContent += formattedHeaders.join(',') + "\r\n";
             
-            // Rows
             lastFilteredReportProducts.forEach((p, index) => {
-                const qty = lastReportProductUsageMap.get(String(p.id)) || 0;
+                const pIdStr = String(p.id).trim();
+                const qty = lastReportProductUsageMap.get(pIdStr) || 0;
                 const cost = parseFloat(String(p.cost).replace(/,/g, '')) || 0;
                 const priceA = parseFloat(String(p.price_a).replace(/,/g, '')) || 0;
                 const priceB = parseFloat(String(p.price_b).replace(/,/g, '')) || 0;
                 const priceC = parseFloat(String(p.price_c).replace(/,/g, '')) || 0;
                 
-                const pIdStr = String(p.id).trim();
                 const machSet = (lastReportProductMachinesMap && lastReportProductMachinesMap.get(pIdStr)) || new Set();
                 const machText = Array.from(machSet).join(', ') || '-';
 
@@ -1276,7 +1431,7 @@
 
                 const rowData = [
                     String(index + 1),
-                    `="${p.id}"`, // Force Excel to treat Product ID as text
+                    `="${p.id}"`,
                     p.name,
                     machText,
                     formattedSn,
@@ -1304,11 +1459,65 @@
             link.setAttribute("href", url);
             
             const dateStr = new Date().toLocaleDateString('th-TH').replace(/\//g, '-');
-            link.setAttribute("download", `รายงานการเบิกใช้อะไหล่_${dateStr}.csv`);
+            link.setAttribute("download", `รายงานสรุปยอดเบิกตามอะไหล่_${dateStr}.csv`);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            showToast('ส่งออกไฟล์ Excel (CSV) เรียบร้อยแล้ว', 'success');
+            showToast('ส่งออกไฟล์สรุปยอดเบิก (CSV) เรียบร้อยแล้ว', 'success');
+        }
+
+        // ตัวเลือกการส่งออก Excel พร้อมหน้าต่าง SweetAlert ให้เลือก
+        function exportReportToExcel(mode = null) {
+            if (mode === 'detailed') {
+                exportReportDetailedToExcel();
+                return;
+            }
+            if (mode === 'summary') {
+                exportReportSummaryToExcel();
+                return;
+            }
+
+            Swal.fire({
+                title: '<i class="fa-solid fa-file-excel text-emerald-600 mr-2"></i>เลือกรูปแบบการส่งออก Excel',
+                html: `
+                    <div class="text-left text-xs space-y-3 mt-2 text-gray-600">
+                        <p>กรุณาเลือกรูปแบบรายงานการเบิกใช้อะไหล่ที่ต้องการ:</p>
+                        <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                            <p class="font-bold text-emerald-800 text-xs flex items-center gap-1.5 mb-1">
+                                <i class="fa-solid fa-list-check text-emerald-600"></i> รายการเบิกแบบละเอียด (กางรายชิ้น) [แนะนำ]
+                            </p>
+                            <p class="text-[11px] text-emerald-700">กางแยกรายแถว ระบุวันที่-เวลา, เลขที่ใบเบิก, ผู้ขอเบิก, เครื่องจักร และ Serial Number ชัดเจนในแต่ละชิ้น</p>
+                        </div>
+                        <div class="p-3 bg-blue-50 rounded-xl border border-blue-200">
+                            <p class="font-bold text-blue-800 text-xs flex items-center gap-1.5 mb-1">
+                                <i class="fa-solid fa-chart-pie text-blue-600"></i> สรุปยอดรวมสะสมตามอะไหล่
+                            </p>
+                            <p class="text-[11px] text-blue-700">แสดงสรุป 1 แถวต่อ 1 ชนิดอะไหล่ พร้อมยอดรวมจำนวนที่เบิกทั้งหมด</p>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-list-check mr-1.5"></i>ส่งออกรายการเบิกแบบละเอียด',
+                confirmButtonColor: '#059669',
+                denyButtonText: '<i class="fa-solid fa-chart-pie mr-1.5"></i>ส่งออกสรุปยอดรวมตามอะไหล่',
+                denyButtonColor: '#2563eb',
+                showDenyButton: true,
+                cancelButtonText: 'ยกเลิก',
+                cancelButtonColor: '#6b7280',
+                reverseButtons: false,
+                customClass: {
+                    popup: 'rounded-2xl',
+                    confirmButton: 'rounded-xl font-semibold !text-xs !py-2.5 !px-3',
+                    denyButton: 'rounded-xl font-semibold !text-xs !py-2.5 !px-3',
+                    cancelButton: 'rounded-xl font-semibold !text-xs'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    exportReportDetailedToExcel();
+                } else if (result.isDenied) {
+                    exportReportSummaryToExcel();
+                }
+            });
         }
 
