@@ -1405,7 +1405,7 @@
             
             let csvContent = "\uFEFF";
             
-            const headers = ['ลำดับ', 'รหัสสินค้า', 'ชื่อสินค้า', 'เครื่องจักร', 'Serial Number', 'จำนวนที่เบิก', 'ราคาต้นทุน', 'ราคา (กลาง)', 'ราคา (ตัวแทน)', 'ราคา (ในเครือ)'];
+            const headers = ['รหัสสินค้า', 'ชื่อสินค้า', 'จำนวนที่เบิกรวม', 'ราคาต้นทุน', 'ราคา (กลาง)', 'ราคา (ตัวแทน)', 'ราคา (ในเครือ)'];
             const formattedHeaders = headers.map(h => {
                 if (h.includes(',') || h.includes('\n') || h.includes('"')) {
                     return `"${h.replace(/"/g, '""')}"`;
@@ -1414,27 +1414,17 @@
             });
             csvContent += formattedHeaders.join(',') + "\r\n";
             
-            lastFilteredReportProducts.forEach((p, index) => {
+            lastFilteredReportProducts.forEach((p) => {
                 const pIdStr = String(p.id).trim();
                 const qty = lastReportProductUsageMap.get(pIdStr) || 0;
                 const cost = parseFloat(String(p.cost).replace(/,/g, '')) || 0;
                 const priceA = parseFloat(String(p.price_a).replace(/,/g, '')) || 0;
                 const priceB = parseFloat(String(p.price_b).replace(/,/g, '')) || 0;
                 const priceC = parseFloat(String(p.price_c).replace(/,/g, '')) || 0;
-                
-                const machSet = (lastReportProductMachinesMap && lastReportProductMachinesMap.get(pIdStr)) || new Set();
-                const machText = Array.from(machSet).join(', ') || '-';
-
-                const snSet = (lastReportProductSerialsMap && lastReportProductSerialsMap.get(pIdStr)) || new Set();
-                const snText = Array.from(snSet).join(', ') || '-';
-                const formattedSn = (snText === '-' || !snText) ? '-' : `="${snText.replace(/"/g, '""')}"`;
 
                 const rowData = [
-                    String(index + 1),
                     `="${p.id}"`,
                     p.name,
-                    machText,
-                    formattedSn,
                     qty.toLocaleString('th-TH'),
                     `฿${cost.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
                     `฿${priceA.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
@@ -1458,8 +1448,18 @@
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
             
-            const dateStr = new Date().toLocaleDateString('th-TH').replace(/\//g, '-');
-            link.setAttribute("download", `รายงานสรุปยอดเบิกตามอะไหล่_${dateStr}.csv`);
+            const startDate = document.getElementById('report_filter_start_date')?.value;
+            const endDate = document.getElementById('report_filter_end_date')?.value;
+            let fileDateLabel = '';
+            if (startDate && endDate) {
+                fileDateLabel = `_${startDate}_ถึง_${endDate}`;
+            } else if (startDate) {
+                fileDateLabel = `_ตั้งแต่_${startDate}`;
+            } else {
+                const dateStr = new Date().toLocaleDateString('th-TH').replace(/\//g, '-');
+                fileDateLabel = `_${dateStr}`;
+            }
+            link.setAttribute("download", `รายงานสรุปยอดเบิกตามอะไหล่${fileDateLabel}.csv`);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();

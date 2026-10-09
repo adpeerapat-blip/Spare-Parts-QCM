@@ -5764,7 +5764,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             let csvContent = "\uFEFF";
             
             // Headers
-            const headers = ['ลำดับ', 'รหัสสินค้า', 'ชื่อสินค้า', 'จำนวนที่เบิก', 'ราคาต้นทุน', 'ราคา (กลาง)', 'ราคา (ตัวแทน)', 'ราคา (ในเครือ)'];
+            const headers = ['รหัสสินค้า', 'ชื่อสินค้า', 'จำนวนที่เบิกรวม', 'ราคาต้นทุน', 'ราคา (กลาง)', 'ราคา (ตัวแทน)', 'ราคา (ในเครือ)'];
             const formattedHeaders = headers.map(h => {
                 if (h.includes(',') || h.includes('\n') || h.includes('"')) {
                     return `"${h.replace(/"/g, '""')}"`;
@@ -5774,7 +5774,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             csvContent += formattedHeaders.join(',') + "\r\n";
             
             // Rows
-            lastFilteredReportProducts.forEach((p, index) => {
+            lastFilteredReportProducts.forEach((p) => {
                 const qty = lastReportProductUsageMap.get(String(p.id)) || 0;
                 const cost = parseFloat(String(p.cost).replace(/,/g, '')) || 0;
                 const priceA = parseFloat(String(p.price_a).replace(/,/g, '')) || 0;
@@ -5782,7 +5782,6 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                 const priceC = parseFloat(String(p.price_c).replace(/,/g, '')) || 0;
                 
                 const rowData = [
-                    String(index + 1),
                     `="${p.id}"`, // Force Excel to treat Product ID as text
                     p.name,
                     qty.toLocaleString('th-TH'),
