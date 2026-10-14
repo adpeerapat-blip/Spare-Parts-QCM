@@ -2158,21 +2158,28 @@ async function executeDirectCheckout(payload) {
     const datePrefix = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
     const dateStr = getFormattedDateTimeString();
     
-    let counter = 1;
-    if (transactions.length > 0) {
-        for (let i = transactions.length - 1; i >= 0; i--) {
-            const lastTx = transactions[i];
-            if (lastTx && lastTx.id && String(lastTx.id).indexOf("QCM-" + datePrefix) === 0) {
-                const parts = String(lastTx.id).split("-");
-                const lastNum = parseInt(parts[2], 10);
-                if (!isNaN(lastNum)) {
-                    counter = lastNum + 1;
-                    break;
-                }
+    // ค้นหาเลขที่เอกสารสูงสุดของวันนี้จากทุกรายการ (ป้องกันปัญหา array สลับลำดับหรือมีประเภทอื่นคั่น)
+    const existingIds = new Set(transactions.map(t => (t && t.id ? String(t.id).trim() : "")));
+    let maxCounter = 0;
+    const reqRegex = new RegExp(`^QCM-${datePrefix}-(\\d+)$`);
+    
+    transactions.forEach(t => {
+        if (!t || !t.id) return;
+        const match = String(t.id).trim().match(reqRegex);
+        if (match) {
+            const num = parseInt(match[1], 10);
+            if (!isNaN(num) && num > maxCounter) {
+                maxCounter = num;
             }
         }
+    });
+    
+    let counter = maxCounter + 1;
+    let txId = `QCM-${datePrefix}-${String(counter).padStart(4, '0')}`;
+    while (existingIds.has(txId)) {
+        counter++;
+        txId = `QCM-${datePrefix}-${String(counter).padStart(4, '0')}`;
     }
-    const txId = "QCM-" + datePrefix + "-" + String(counter).padStart(4, '0');
     
     let calcTotalPrice = 0;
     checkoutItems.forEach((it, idx) => {
@@ -2287,21 +2294,27 @@ async function executeDirectRestock(payload) {
     product.price_b = pB;
     product.price_c = pC;
     
-    let counter = 1;
-    if (transactions.length > 0) {
-        for (let i = transactions.length - 1; i >= 0; i--) {
-            const lastTx = transactions[i];
-            if (lastTx && lastTx.id && String(lastTx.id).indexOf("QCM-RE-" + datePrefix) === 0) {
-                const parts = String(lastTx.id).split("-");
-                const lastNum = parseInt(parts[3], 10);
-                if (!isNaN(lastNum)) {
-                    counter = lastNum + 1;
-                    break;
-                }
+    const existingIds = new Set(transactions.map(t => (t && t.id ? String(t.id).trim() : "")));
+    let maxCounter = 0;
+    const reRegex = new RegExp(`^QCM-RE-${datePrefix}-(\\d+)$`);
+    
+    transactions.forEach(t => {
+        if (!t || !t.id) return;
+        const match = String(t.id).trim().match(reRegex);
+        if (match) {
+            const num = parseInt(match[1], 10);
+            if (!isNaN(num) && num > maxCounter) {
+                maxCounter = num;
             }
         }
+    });
+    
+    let counter = maxCounter + 1;
+    let txId = `QCM-RE-${datePrefix}-${String(counter).padStart(4, '0')}`;
+    while (existingIds.has(txId)) {
+        counter++;
+        txId = `QCM-RE-${datePrefix}-${String(counter).padStart(4, '0')}`;
     }
-    const txId = "QCM-RE-" + datePrefix + "-" + String(counter).padStart(4, '0');
     
     const newRestockTx = {
         id: txId,

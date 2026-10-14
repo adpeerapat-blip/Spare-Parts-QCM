@@ -1,0 +1,3728 @@
+﻿[
+    {
+        "date":  "2026-07-17 16:11:37",
+        "department":  "ตรวจสอบควบคุมคุณภาพเครื่องจักร",
+        "id":  "QCM-20260717-0001",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260717-0001-1",
+                          "price":  0,
+                          "product_id":  3050202030037,
+                          "qty":  1,
+                          "subtotal":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260717-0001-2",
+                          "price":  0,
+                          "product_id":  3050202030042,
+                          "qty":  1,
+                          "subtotal":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260717-0001-3",
+                          "price":  0,
+                          "product_id":  3050202030045,
+                          "qty":  1,
+                          "subtotal":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260717-0001-4",
+                          "price":  0,
+                          "product_id":  3050202030043,
+                          "qty":  1,
+                          "subtotal":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260717-0001-5",
+                          "price":  0,
+                          "product_id":  3050202030050,
+                          "qty":  1,
+                          "subtotal":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260717-0001-6",
+                          "price":  0,
+                          "product_id":  3050202030066,
+                          "qty":  1,
+                          "subtotal":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260717-0001-7",
+                          "price":  0,
+                          "product_id":  3050202030068,
+                          "qty":  1,
+                          "subtotal":  0
+                      }
+                  ],
+        "machine_id":  "mini S",
+        "note":  "ตัวแทน",
+        "requester":  "บุญเลิศ คงเจริญ",
+        "serial_number":  "123456789",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-07-17 16:46:49",
+        "department":  "ตรวจสอบควบคุมคุณภาพเครื่องจักร",
+        "id":  "QCM-20260717-0002",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260717-0002-1",
+                          "price":  0,
+                          "product_id":  2050312100004,
+                          "qty":  2,
+                          "subtotal":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260717-0002-2",
+                          "price":  0,
+                          "product_id":  2050312160149,
+                          "qty":  4,
+                          "subtotal":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260717-0002-3",
+                          "price":  0,
+                          "product_id":  2050312180287,
+                          "qty":  1,
+                          "subtotal":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260717-0002-4",
+                          "price":  0,
+                          "product_id":  2050312180315,
+                          "qty":  1,
+                          "subtotal":  0
+                      }
+                  ],
+        "machine_id":  "DW1080",
+        "note":  "TSS",
+        "requester":  "บุญเลิศ คงเจริญ",
+        "serial_number":  "07100011255555",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-07-17 17:32:44",
+        "department":  "ตรวจสอบควบคุมคุณภาพเครื่องจักร",
+        "id":  "QCM-20260717-0003",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260717-0003-1",
+                          "price":  0,
+                          "product_id":  2050312030001,
+                          "qty":  1,
+                          "subtotal":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260717-0003-2",
+                          "price":  0,
+                          "product_id":  2050312180097,
+                          "qty":  1,
+                          "subtotal":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260717-0003-3",
+                          "price":  0,
+                          "product_id":  2050312180092,
+                          "qty":  1,
+                          "subtotal":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260717-0003-4",
+                          "price":  0,
+                          "product_id":  2050312180219,
+                          "qty":  1,
+                          "subtotal":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260717-0003-5",
+                          "price":  0,
+                          "product_id":  2050312180287,
+                          "qty":  1,
+                          "subtotal":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน DW 1080",
+        "note":  "ทดสอบ",
+        "requester":  "บุญเลิศ คงเจริญ",
+        "serial_number":  "004554",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-09-04 15:42:58",
+        "department":  "ตรวจสอบควบคุมคุณภาพเครื่องจักร",
+        "id":  "QCM-20260904-0001",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260904-0001-1",
+                          "lot_id":  "LOT-INIT-3050312411005",
+                          "price":  0,
+                          "product_id":  "3050312411005",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260904-0001-2",
+                          "lot_id":  "LOT-INIT-3050312411014",
+                          "price":  0,
+                          "product_id":  "3050312411014",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260904-0001-3",
+                          "lot_id":  "LOT-INIT-3050312411029",
+                          "price":  0,
+                          "product_id":  "3050312411029",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260904-0001-4",
+                          "lot_id":  "LOT-INIT-3050312411028",
+                          "price":  0,
+                          "product_id":  "3050312411028",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260904-0001-5",
+                          "lot_id":  "LOT-INIT-3050312411065",
+                          "price":  0,
+                          "product_id":  "3050312411065",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน  M50E",
+        "note":  "เบิกซ่อมภายใน",
+        "requester":  "บุญเลิศ คงเจริญ",
+        "serial_number":  "123456",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "approval_by":  "บุญเลิศ คงเจริญ",
+        "approval_by_email":  "storetech@peerapat.com",
+        "approval_date":  "2026-10-09 09:54:49",
+        "approval_note":  "",
+        "approval_status":  "Pending",
+        "date":  "2026-09-23 08:55:14",
+        "department":  "Qcm",
+        "id":  "QCM-20260923-0001",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260923-0001-1",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260923-0001-2",
+                          "lot_id":  "LOT-SUPP-3050312070046-1790128512441",
+                          "price":  0,
+                          "product_id":  "3050312070046",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260923-0001-3",
+                          "lot_id":  "LOT-SUPP-3050312030127-1790128512442",
+                          "price":  0,
+                          "product_id":  "3050312030127",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "83E",
+        "note":  "เครื่อง TSs",
+        "parts_total":  0,
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "17034",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-09-24 09:43:41",
+        "department":  "Qcm",
+        "id":  "QCM-20260924-0001",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260924-0001-1",
+                          "lot_id":  "LOT-INIT-2050312030002",
+                          "price":  0,
+                          "product_id":  "2050312030002",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260924-0001-2",
+                          "lot_id":  "LOT-INIT-2050312180035",
+                          "price":  0,
+                          "product_id":  "2050312180035",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260924-0001-3",
+                          "lot_id":  "LOT-INIT-2050312180160",
+                          "price":  0,
+                          "product_id":  "2050312180160",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260924-0001-4",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260924-0001-5",
+                          "lot_id":  "LOT-SUPP-3050312070046-1790128512441",
+                          "price":  0,
+                          "product_id":  "3050312070046",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260924-0001-6",
+                          "lot_id":  "LOT-SUPP-3050312340003-1790217819943",
+                          "price":  0,
+                          "product_id":  "3050312340003",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "83E",
+        "note":  "TSS",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "17855",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-09-29 10:26:03",
+        "department":  "Qcm",
+        "id":  "QCM-20260929-0001",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260929-0001-1",
+                          "lot_id":  "LOT-INIT-2050312030001",
+                          "price":  0,
+                          "product_id":  "2050312030001",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-2",
+                          "lot_id":  "LOT-INIT-2050312050001",
+                          "price":  0,
+                          "product_id":  "2050312050001",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-3",
+                          "lot_id":  "LOT-INIT-2050312090002",
+                          "price":  0,
+                          "product_id":  "2050312090002",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-4",
+                          "lot_id":  "LOT-INIT-2050312100004",
+                          "price":  0,
+                          "product_id":  "2050312100004",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-5",
+                          "lot_id":  "LOT-INIT-2050312100001",
+                          "price":  0,
+                          "product_id":  "2050312100001",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-6",
+                          "lot_id":  "LOT-INIT-2050312180035",
+                          "price":  0,
+                          "product_id":  "2050312180035",
+                          "qty":  3,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-7",
+                          "lot_id":  "LOT-INIT-2050312180213",
+                          "price":  0,
+                          "product_id":  "2050312180213",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-8",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-9",
+                          "lot_id":  "LOT-INIT-2050312180256",
+                          "price":  0,
+                          "product_id":  "2050312180256",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-10",
+                          "lot_id":  "LOT-INIT-2050312180264",
+                          "price":  0,
+                          "product_id":  "2050312180264",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-11",
+                          "lot_id":  "LOT-INIT-2050312180287",
+                          "price":  0,
+                          "product_id":  "2050312180287",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-12",
+                          "lot_id":  "LOT-INIT-2050312180303",
+                          "price":  0,
+                          "product_id":  "2050312180303",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-13",
+                          "lot_id":  "LOT-INIT-2050312180304",
+                          "price":  0,
+                          "product_id":  "2050312180304",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-14",
+                          "lot_id":  "LOT-INIT-2050312180309",
+                          "price":  0,
+                          "product_id":  "2050312180309",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-15",
+                          "lot_id":  "LOT-INIT-2050312180315",
+                          "price":  0,
+                          "product_id":  "2050312180315",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-16",
+                          "lot_id":  "LOT-INIT-3050312010387",
+                          "price":  0,
+                          "product_id":  "3050312010387",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-17",
+                          "lot_id":  "LOT-SUPP-3050312030053-1790652361555",
+                          "price":  0,
+                          "product_id":  "3050312030053",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-18",
+                          "lot_id":  "LOT-SUPP-3050312030069-1790652361557",
+                          "price":  0,
+                          "product_id":  "3050312030069",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-19",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-20",
+                          "lot_id":  "LOT-INIT-3050312100109",
+                          "price":  0,
+                          "product_id":  "3050312100109",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-21",
+                          "lot_id":  "LOT-INIT-3050312120005",
+                          "price":  0,
+                          "product_id":  "3050312120005",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-22",
+                          "lot_id":  "LOT-INIT-3050312120019",
+                          "price":  0,
+                          "product_id":  "3050312120019",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-23",
+                          "lot_id":  "LOT-INIT-3050312360001",
+                          "price":  0,
+                          "product_id":  "3050312360001",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0001-24",
+                          "lot_id":  "LOT-INIT-3050312360006",
+                          "price":  0,
+                          "product_id":  "3050312360006",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "DW 1080HT",
+        "note":  "PP",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "071M00100BB180183",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-09-29 10:56:32",
+        "department":  "Qcm",
+        "id":  "QCM-20260929-0002",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260929-0002-1",
+                          "lot_id":  "LOT-INIT-2050312030001",
+                          "price":  0,
+                          "product_id":  "2050312030001",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-2",
+                          "lot_id":  "LOT-INIT-2050312050001",
+                          "price":  0,
+                          "product_id":  "2050312050001",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-3",
+                          "lot_id":  "LOT-INIT-2050312090002",
+                          "price":  0,
+                          "product_id":  "2050312090002",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-4",
+                          "lot_id":  "LOT-INIT-2050312100001",
+                          "price":  0,
+                          "product_id":  "2050312100001",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-5",
+                          "lot_id":  "LOT-INIT-2050312180035",
+                          "price":  0,
+                          "product_id":  "2050312180035",
+                          "qty":  3,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-6",
+                          "lot_id":  "LOT-INIT-2050312180092",
+                          "price":  0,
+                          "product_id":  "2050312180092",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-7",
+                          "lot_id":  "LOT-INIT-2050312180097",
+                          "price":  0,
+                          "product_id":  "2050312180097",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-8",
+                          "lot_id":  "LOT-INIT-2050312180172",
+                          "price":  0,
+                          "product_id":  "2050312180172",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-9",
+                          "lot_id":  "LOT-INIT-2050312180213",
+                          "price":  0,
+                          "product_id":  "2050312180213",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-10",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-11",
+                          "lot_id":  "LOT-INIT-2050312180256",
+                          "price":  0,
+                          "product_id":  "2050312180256",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-12",
+                          "lot_id":  "LOT-INIT-2050312180264",
+                          "price":  0,
+                          "product_id":  "2050312180264",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-13",
+                          "lot_id":  "LOT-INIT-2050312180287",
+                          "price":  0,
+                          "product_id":  "2050312180287",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-14",
+                          "lot_id":  "LOT-INIT-2050312180309",
+                          "price":  0,
+                          "product_id":  "2050312180309",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-15",
+                          "lot_id":  "LOT-INIT-2050312180314",
+                          "price":  0,
+                          "product_id":  "2050312180314",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-16",
+                          "lot_id":  "LOT-INIT-2050312180313",
+                          "price":  0,
+                          "product_id":  "2050312180313",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-17",
+                          "lot_id":  "LOT-INIT-3050312090004",
+                          "price":  0,
+                          "product_id":  "3050312090004",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-18",
+                          "lot_id":  "LOT-SUPP-3050312030069-1790652361557",
+                          "price":  0,
+                          "product_id":  "3050312030069",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-19",
+                          "lot_id":  "LOT-SUPP-3050312030053-1790652361555",
+                          "price":  0,
+                          "product_id":  "3050312030053",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-20",
+                          "lot_id":  "LOT-SUPP-3050312030052-1790654190575",
+                          "price":  0,
+                          "product_id":  "3050312030052",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-21",
+                          "lot_id":  "LOT-INIT-3050312100033",
+                          "price":  0,
+                          "product_id":  "3050312100033",
+                          "qty":  4,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-22",
+                          "lot_id":  "LOT-INIT-3050312100035",
+                          "price":  0,
+                          "product_id":  "3050312100035",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-23",
+                          "lot_id":  "LOT-INIT-3050312100036",
+                          "price":  0,
+                          "product_id":  "3050312100036",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-24",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-25",
+                          "lot_id":  "LOT-INIT-3050312100049",
+                          "price":  0,
+                          "product_id":  "3050312100049",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-26",
+                          "lot_id":  "LOT-INIT-3050312100051",
+                          "price":  0,
+                          "product_id":  "3050312100051",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-27",
+                          "lot_id":  "LOT-INIT-3050312100105",
+                          "price":  0,
+                          "product_id":  "3050312100105",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-28",
+                          "lot_id":  "LOT-INIT-2050312180272",
+                          "price":  0,
+                          "product_id":  "2050312180272",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-29",
+                          "lot_id":  "LOT-INIT-3050312100218",
+                          "price":  0,
+                          "product_id":  "3050312100218",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-30",
+                          "lot_id":  "LOT-INIT-3050312100219",
+                          "price":  0,
+                          "product_id":  "3050312100219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-31",
+                          "lot_id":  "LOT-INIT-3050312120005",
+                          "price":  0,
+                          "product_id":  "3050312120005",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-32",
+                          "lot_id":  "LOT-INIT-3050312120019",
+                          "price":  0,
+                          "product_id":  "3050312120019",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-33",
+                          "lot_id":  "LOT-INIT-3050312360001",
+                          "price":  0,
+                          "product_id":  "3050312360001",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-34",
+                          "lot_id":  "LOT-INIT-3050312360006",
+                          "price":  0,
+                          "product_id":  "3050312360006",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-35",
+                          "lot_id":  "LOT-INIT-2050312180166",
+                          "price":  0,
+                          "product_id":  "2050312180166",
+                          "qty":  6,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-36",
+                          "lot_id":  "LOT-INIT-2050312180271",
+                          "price":  0,
+                          "product_id":  "2050312180271",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-37",
+                          "lot_id":  "LOT-INIT-3050312100022",
+                          "price":  0,
+                          "product_id":  "3050312100022",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-38",
+                          "lot_id":  "LOT-INIT-3050312100020",
+                          "price":  0,
+                          "product_id":  "3050312100020",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-39",
+                          "lot_id":  "LOT-INIT-3050312100019",
+                          "price":  0,
+                          "product_id":  "3050312100019",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-40",
+                          "lot_id":  "LOT-INIT-3050312100018",
+                          "price":  0,
+                          "product_id":  "3050312100018",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-41",
+                          "lot_id":  "LOT-INIT-3050312100068",
+                          "price":  0,
+                          "product_id":  "3050312100068",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-42",
+                          "lot_id":  "LOT-INIT-3050312100078",
+                          "price":  0,
+                          "product_id":  "3050312100078",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-43",
+                          "lot_id":  "LOT-INIT-3050312100102",
+                          "price":  0,
+                          "product_id":  "3050312100102",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0002-44",
+                          "lot_id":  "LOT-INIT-3050312100109",
+                          "price":  0,
+                          "product_id":  "3050312100109",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน DW 1080",
+        "note":  "PP",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "9310",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-09-29 15:36:05",
+        "department":  "Qcm",
+        "id":  "QCM-20260929-0003",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260929-0003-1",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0003-2",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0003-3",
+                          "lot_id":  "LOT-INIT-3050312100015",
+                          "price":  0,
+                          "product_id":  "3050312100015",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0003-4",
+                          "lot_id":  "LOT-INIT-3050312120005",
+                          "price":  0,
+                          "product_id":  "3050312120005",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0003-5",
+                          "lot_id":  "LOT-INIT-3050312360003",
+                          "price":  0,
+                          "product_id":  "3050312360003",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0003-6",
+                          "lot_id":  "LOT-INIT-3050312360006",
+                          "price":  0,
+                          "product_id":  "3050312360006",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0003-7",
+                          "lot_id":  "LOT-INIT-3050312120019",
+                          "price":  0,
+                          "product_id":  "3050312120019",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0003-8",
+                          "lot_id":  "LOT-INIT-3050312120003",
+                          "price":  0,
+                          "product_id":  "3050312120003",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0003-9",
+                          "lot_id":  "LOT-INIT-3050312010337",
+                          "price":  0,
+                          "product_id":  "3050312010337",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0003-10",
+                          "lot_id":  "LOT-INIT-2050312180331",
+                          "price":  0,
+                          "product_id":  "2050312180331",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0003-11",
+                          "lot_id":  "LOT-INIT-3050312100125",
+                          "price":  0,
+                          "product_id":  "3050312100125",
+                          "qty":  4,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0003-12",
+                          "lot_id":  "LOT-INIT-3050312100218",
+                          "price":  0,
+                          "product_id":  "3050312100218",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0003-13",
+                          "lot_id":  "LOT-INIT-3050312100219",
+                          "price":  0,
+                          "product_id":  "3050312100219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0003-14",
+                          "lot_id":  "LOT-INIT-2050312100004",
+                          "price":  0,
+                          "product_id":  "2050312100004",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0003-15",
+                          "lot_id":  "LOT-INIT-3050312100106",
+                          "price":  0,
+                          "product_id":  "3050312100106",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0003-16",
+                          "lot_id":  "LOT-INIT-3050312100107",
+                          "price":  0,
+                          "product_id":  "3050312100107",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน DW 50",
+        "note":  "Tss",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "07100050001190072",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-09-29 15:43:01",
+        "department":  "Qcm",
+        "id":  "QCM-20260929-0004",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260929-0004-1",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0004-2",
+                          "lot_id":  "LOT-INIT-2050312030001",
+                          "price":  0,
+                          "product_id":  "2050312030001",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0004-3",
+                          "lot_id":  "LOT-INIT-2050312180254",
+                          "price":  0,
+                          "product_id":  "2050312180254",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0004-4",
+                          "lot_id":  "LOT-INIT-2050312160149",
+                          "price":  0,
+                          "product_id":  "2050312160149",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0004-5",
+                          "lot_id":  "LOT-SUPP-3050312030069-1790652361557",
+                          "price":  0,
+                          "product_id":  "3050312030069",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0004-6",
+                          "lot_id":  "LOT-INIT-3050312100093",
+                          "price":  0,
+                          "product_id":  "3050312100093",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0004-7",
+                          "lot_id":  "LOT-INIT-3050312100125",
+                          "price":  0,
+                          "product_id":  "3050312100125",
+                          "qty":  4,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0004-8",
+                          "lot_id":  "LOT-INIT-3050312100219",
+                          "price":  0,
+                          "product_id":  "3050312100219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0004-9",
+                          "lot_id":  "LOT-INIT-3050312120009",
+                          "price":  0,
+                          "product_id":  "3050312120009",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0004-10",
+                          "lot_id":  "LOT-INIT-3050312360008",
+                          "price":  0,
+                          "product_id":  "3050312360008",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0004-11",
+                          "lot_id":  "LOT-INIT-3050312360006",
+                          "price":  0,
+                          "product_id":  "3050312360006",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0004-12",
+                          "lot_id":  "LOT-INIT-3050312100196",
+                          "price":  0,
+                          "product_id":  "3050312100196",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0004-13",
+                          "lot_id":  "LOT-INIT-3050312100197",
+                          "price":  0,
+                          "product_id":  "3050312100197",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน DW 50 DIGITAL",
+        "note":  "Tss",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "075D10110TAD220070",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-09-29 15:48:39",
+        "department":  "Qcm",
+        "id":  "QCM-20260929-0005",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260929-0005-1",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0005-2",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0005-3",
+                          "lot_id":  "LOT-INIT-3050312360006",
+                          "price":  0,
+                          "product_id":  "3050312360006",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0005-4",
+                          "lot_id":  "LOT-INIT-2050312180035",
+                          "price":  0,
+                          "product_id":  "2050312180035",
+                          "qty":  3,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0005-5",
+                          "lot_id":  "LOT-INIT-2050312180307",
+                          "price":  0,
+                          "product_id":  "2050312180307",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0005-6",
+                          "lot_id":  "LOT-INIT-2050312100001",
+                          "price":  0,
+                          "product_id":  "2050312100001",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0005-7",
+                          "lot_id":  "LOT-INIT-2050312160149",
+                          "price":  0,
+                          "product_id":  "2050312160149",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0005-8",
+                          "lot_id":  "LOT-INIT-3050312100197",
+                          "price":  0,
+                          "product_id":  "3050312100197",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0005-9",
+                          "lot_id":  "LOT-INIT-3050312100196",
+                          "price":  0,
+                          "product_id":  "3050312100196",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน DW 50",
+        "note":  "Tss",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "07100050001180327",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-09-29 15:49:19",
+        "department":  "Qcm",
+        "id":  "QCM-20260929-0006",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260929-0006-1",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0006-2",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0006-3",
+                          "lot_id":  "LOT-INIT-3050312360006",
+                          "price":  0,
+                          "product_id":  "3050312360006",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0006-4",
+                          "lot_id":  "LOT-INIT-2050312180035",
+                          "price":  0,
+                          "product_id":  "2050312180035",
+                          "qty":  3,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0006-5",
+                          "lot_id":  "LOT-INIT-2050312180307",
+                          "price":  0,
+                          "product_id":  "2050312180307",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0006-6",
+                          "lot_id":  "LOT-INIT-2050312100001",
+                          "price":  0,
+                          "product_id":  "2050312100001",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0006-7",
+                          "lot_id":  "LOT-INIT-2050312160149",
+                          "price":  0,
+                          "product_id":  "2050312160149",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0006-8",
+                          "lot_id":  "LOT-INIT-3050312100197",
+                          "price":  0,
+                          "product_id":  "3050312100197",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0006-9",
+                          "lot_id":  "LOT-INIT-3050312100196",
+                          "price":  0,
+                          "product_id":  "3050312100196",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน DW 50",
+        "note":  "Tss",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "07100050001180327",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-09-29 15:53:11",
+        "department":  "Qcm",
+        "id":  "QCM-20260929-0007",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260929-0007-1",
+                          "lot_id":  "LOT-INIT-3050312100197",
+                          "price":  0,
+                          "product_id":  "3050312100197",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0007-2",
+                          "lot_id":  "LOT-INIT-3050312100196",
+                          "price":  0,
+                          "product_id":  "3050312100196",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0007-3",
+                          "lot_id":  "LOT-INIT-2050312160149",
+                          "price":  0,
+                          "product_id":  "2050312160149",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0007-4",
+                          "lot_id":  "LOT-INIT-2050312180303",
+                          "price":  0,
+                          "product_id":  "2050312180303",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0007-5",
+                          "lot_id":  "LOT-SUPP-3050312030069-1790652361557",
+                          "price":  0,
+                          "product_id":  "3050312030069",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0007-6",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0007-7",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "DW 50",
+        "note":  "Tss",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "075M10100TAD230220",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-09-29 15:54:19",
+        "department":  "Qcm",
+        "id":  "QCM-20260929-0008",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260929-0008-1",
+                          "lot_id":  "LOT-INIT-3050312100197",
+                          "price":  0,
+                          "product_id":  "3050312100197",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0008-2",
+                          "lot_id":  "LOT-INIT-3050312100196",
+                          "price":  0,
+                          "product_id":  "3050312100196",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0008-3",
+                          "lot_id":  "LOT-INIT-2050312160149",
+                          "price":  0,
+                          "product_id":  "2050312160149",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0008-4",
+                          "lot_id":  "LOT-INIT-2050312180303",
+                          "price":  0,
+                          "product_id":  "2050312180303",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0008-5",
+                          "lot_id":  "LOT-SUPP-3050312030069-1790652361557",
+                          "price":  0,
+                          "product_id":  "3050312030069",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0008-6",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260929-0008-7",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "DW 50",
+        "note":  "Tss",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "075M10100TAD230220",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-09-30 10:38:56",
+        "department":  "QCM",
+        "id":  "QCM-20260930-0001",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260930-0001-1",
+                          "lot_id":  "LOT-SUPP-2050312160169-1790739534762",
+                          "price":  0,
+                          "product_id":  "2050312160169",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0001-2",
+                          "lot_id":  "LOT-SUPP-2050312180369-1790739534763",
+                          "price":  0,
+                          "product_id":  "2050312180369",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0001-3",
+                          "lot_id":  "LOT-SUPP-3050312010365-1790739534764",
+                          "price":  0,
+                          "product_id":  "3050312010365",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0001-4",
+                          "lot_id":  "LOT-SUPP-3050312010208-1790739534764",
+                          "price":  0,
+                          "product_id":  "3050312010208",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0001-5",
+                          "lot_id":  "LOT-SUPP-3050312010207-1790739534765",
+                          "price":  0,
+                          "product_id":  "3050312010207",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0001-6",
+                          "lot_id":  "LOT-SUPP-3050312010205-1790739534765",
+                          "price":  0,
+                          "product_id":  "3050312010205",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "Combi oven 61 C",
+        "note":  "เบิกยืมไปซ่อมเครื่องหน้างาน",
+        "requester":  "Ice",
+        "serial_number":  "7890C106E1101250028",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-09-30 11:21:42",
+        "department":  "Qcm",
+        "id":  "QCM-20260930-0002",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260930-0002-1",
+                          "lot_id":  "LOT-INIT-2050312030001",
+                          "price":  0,
+                          "product_id":  "2050312030001",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-2",
+                          "lot_id":  "LOT-INIT-2050312100004",
+                          "price":  0,
+                          "product_id":  "2050312100004",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-3",
+                          "lot_id":  "LOT-INIT-2050312180035",
+                          "price":  0,
+                          "product_id":  "2050312180035",
+                          "qty":  3,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-4",
+                          "lot_id":  "LOT-INIT-2050312180092",
+                          "price":  0,
+                          "product_id":  "2050312180092",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-5",
+                          "lot_id":  "LOT-INIT-2050312180097",
+                          "price":  0,
+                          "product_id":  "2050312180097",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-6",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-7",
+                          "lot_id":  "LOT-INIT-2050312180254",
+                          "price":  0,
+                          "product_id":  "2050312180254",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-8",
+                          "lot_id":  "LOT-INIT-2050312180244",
+                          "price":  0,
+                          "product_id":  "2050312180244",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-9",
+                          "lot_id":  "LOT-INIT-2050312180303",
+                          "price":  0,
+                          "product_id":  "2050312180303",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-10",
+                          "lot_id":  "LOT-INIT-2050312180304",
+                          "price":  0,
+                          "product_id":  "2050312180304",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-11",
+                          "lot_id":  "LOT-INIT-2050312180307",
+                          "price":  0,
+                          "product_id":  "2050312180307",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-12",
+                          "lot_id":  "LOT-INIT-2050312180331",
+                          "price":  0,
+                          "product_id":  "2050312180331",
+                          "qty":  4,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-13",
+                          "lot_id":  "LOT-SUPP-3050312030069-1790652361557",
+                          "price":  0,
+                          "product_id":  "3050312030069",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-14",
+                          "lot_id":  "LOT-SUPP-3050312030053-1790652361555",
+                          "price":  0,
+                          "product_id":  "3050312030053",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-15",
+                          "lot_id":  "LOT-INIT-3050312100015",
+                          "price":  0,
+                          "product_id":  "3050312100015",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-16",
+                          "lot_id":  "LOT-INIT-3050312090004",
+                          "price":  0,
+                          "product_id":  "3050312090004",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-17",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-18",
+                          "lot_id":  "LOT-INIT-3050312100037",
+                          "price":  0,
+                          "product_id":  "3050312100037",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-19",
+                          "lot_id":  "LOT-INIT-3050312100056",
+                          "price":  0,
+                          "product_id":  "3050312100056",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-20",
+                          "lot_id":  "LOT-INIT-3050312100073",
+                          "price":  0,
+                          "product_id":  "3050312100073",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-21",
+                          "lot_id":  "LOT-INIT-3050312100079",
+                          "price":  0,
+                          "product_id":  "3050312100079",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-22",
+                          "lot_id":  "LOT-INIT-3050312100125",
+                          "price":  0,
+                          "product_id":  "3050312100125",
+                          "qty":  4,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-23",
+                          "lot_id":  "LOT-INIT-3050312100197",
+                          "price":  0,
+                          "product_id":  "3050312100197",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-24",
+                          "lot_id":  "LOT-INIT-3050312100196",
+                          "price":  0,
+                          "product_id":  "3050312100196",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-25",
+                          "lot_id":  "LOT-INIT-3050312100218",
+                          "price":  0,
+                          "product_id":  "3050312100218",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-26",
+                          "lot_id":  "LOT-INIT-3050312100219",
+                          "price":  0,
+                          "product_id":  "3050312100219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-27",
+                          "lot_id":  "LOT-INIT-2050312160149",
+                          "price":  0,
+                          "product_id":  "2050312160149",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-28",
+                          "lot_id":  "LOT-INIT-3050312120019",
+                          "price":  0,
+                          "product_id":  "3050312120019",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0002-29",
+                          "lot_id":  "LOT-INIT-3050312360003",
+                          "price":  0,
+                          "product_id":  "3050312360003",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน DW 50",
+        "note":  "TSS",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "07100050001180212",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-09-30 11:29:12",
+        "department":  "Qcm",
+        "id":  "QCM-20260930-0003",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260930-0003-1",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0003-2",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0003-3",
+                          "lot_id":  "LOT-INIT-3050312100015",
+                          "price":  0,
+                          "product_id":  "3050312100015",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0003-4",
+                          "lot_id":  "LOT-INIT-3050312100219",
+                          "price":  0,
+                          "product_id":  "3050312100219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0003-5",
+                          "lot_id":  "LOT-INIT-3050312100196",
+                          "price":  0,
+                          "product_id":  "3050312100196",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0003-6",
+                          "lot_id":  "LOT-INIT-3050312100197",
+                          "price":  0,
+                          "product_id":  "3050312100197",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0003-7",
+                          "lot_id":  "LOT-INIT-2050312160149",
+                          "price":  0,
+                          "product_id":  "2050312160149",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0003-8",
+                          "lot_id":  "LOT-INIT-2050312030001",
+                          "price":  0,
+                          "product_id":  "2050312030001",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0003-9",
+                          "lot_id":  "LOT-INIT-2050312100004",
+                          "price":  0,
+                          "product_id":  "2050312100004",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0003-10",
+                          "lot_id":  "LOT-INIT-2050312180254",
+                          "price":  0,
+                          "product_id":  "2050312180254",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0003-11",
+                          "lot_id":  "LOT-INIT-2050312180303",
+                          "price":  0,
+                          "product_id":  "2050312180303",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0003-12",
+                          "lot_id":  "LOT-INIT-2050312180304",
+                          "price":  0,
+                          "product_id":  "2050312180304",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0003-13",
+                          "lot_id":  "LOT-INIT-2050312180307",
+                          "price":  0,
+                          "product_id":  "2050312180307",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0003-14",
+                          "lot_id":  "LOT-INIT-2050312180092",
+                          "price":  0,
+                          "product_id":  "2050312180092",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0003-15",
+                          "lot_id":  "LOT-INIT-2050312180097",
+                          "price":  0,
+                          "product_id":  "2050312180097",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0003-16",
+                          "lot_id":  "LOT-INIT-2050312180035",
+                          "price":  0,
+                          "product_id":  "2050312180035",
+                          "qty":  3,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน DW 50",
+        "note":  "TSS",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "07100050001180312",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-09-30 14:08:00",
+        "department":  "QCM",
+        "id":  "QCM-20260930-0004",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260930-0004-1",
+                          "lot_id":  "LOT-SUPP-3050301000050-1790752078322",
+                          "price":  0,
+                          "product_id":  "3050301000050",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0004-2",
+                          "lot_id":  "LOT-SUPP-3050312010307-1790752078323",
+                          "price":  0,
+                          "product_id":  "3050312010307",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0004-3",
+                          "lot_id":  "LOT-SUPP-3050312100133-1790752078324",
+                          "price":  0,
+                          "product_id":  "3050312100133",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0004-4",
+                          "lot_id":  "LOT-SUPP-3050312100137-1790752078325",
+                          "price":  0,
+                          "product_id":  "3050312100137",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0004-5",
+                          "lot_id":  "LOT-SUPP-3050312100139-1790752078325",
+                          "price":  0,
+                          "product_id":  "3050312100139",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0004-6",
+                          "lot_id":  "LOT-SUPP-3050312100141-1790752078326",
+                          "price":  0,
+                          "product_id":  "3050312100141",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0004-7",
+                          "lot_id":  "LOT-SUPP-3050312100152-1790752078327",
+                          "price":  0,
+                          "product_id":  "3050312100152",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0004-8",
+                          "lot_id":  "LOT-SUPP-3050312100159-1790752078327",
+                          "price":  0,
+                          "product_id":  "3050312100159",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0004-9",
+                          "lot_id":  "LOT-SUPP-3050312360038-1790752078328",
+                          "price":  0,
+                          "product_id":  "3050312360038",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0004-10",
+                          "lot_id":  "LOT-SUPP-3050301000047-1790752078329",
+                          "price":  0,
+                          "product_id":  "3050301000047",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0004-11",
+                          "lot_id":  "LOT-SUPP-3050312010242-1790752078330",
+                          "price":  0,
+                          "product_id":  "3050312010242",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "Combi oven 20 ชั้น",
+        "note":  "ยืมไปซ่อมเครื่องที่กทม 1/10/69",
+        "requester":  "Ice",
+        "serial_number":  "ซีรี่ : 7890C120E2101240030",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-09-30 14:08:55",
+        "department":  "QCM",
+        "id":  "QCM-20260930-0005",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20260930-0005-1",
+                          "lot_id":  "LOT-SUPP-3050301000050-1790752078322",
+                          "price":  0,
+                          "product_id":  "3050301000050",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0005-2",
+                          "lot_id":  "LOT-SUPP-3050312010307-1790752078323",
+                          "price":  0,
+                          "product_id":  "3050312010307",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0005-3",
+                          "lot_id":  "LOT-SUPP-3050312100133-1790752078324",
+                          "price":  0,
+                          "product_id":  "3050312100133",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0005-4",
+                          "lot_id":  "LOT-SUPP-3050312100137-1790752078325",
+                          "price":  0,
+                          "product_id":  "3050312100137",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0005-5",
+                          "lot_id":  "LOT-SUPP-3050312100139-1790752078325",
+                          "price":  0,
+                          "product_id":  "3050312100139",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0005-6",
+                          "lot_id":  "LOT-SUPP-3050312100141-1790752078326",
+                          "price":  0,
+                          "product_id":  "3050312100141",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0005-7",
+                          "lot_id":  "LOT-SUPP-3050312100152-1790752078327",
+                          "price":  0,
+                          "product_id":  "3050312100152",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0005-8",
+                          "lot_id":  "LOT-SUPP-3050312100159-1790752078327",
+                          "price":  0,
+                          "product_id":  "3050312100159",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0005-9",
+                          "lot_id":  "LOT-SUPP-3050312360038-1790752078328",
+                          "price":  0,
+                          "product_id":  "3050312360038",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0005-10",
+                          "lot_id":  "LOT-SUPP-3050301000047-1790752078329",
+                          "price":  0,
+                          "product_id":  "3050301000047",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20260930-0005-11",
+                          "lot_id":  "LOT-SUPP-3050312010242-1790752078330",
+                          "price":  0,
+                          "product_id":  "3050312010242",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "Combi oven 20 ชั้น",
+        "note":  "ยืมไปซ่อมเครื่องที่กทม 1/10/69",
+        "requester":  "Ice",
+        "serial_number":  "ซีรี่ : 7890C120E2101240030",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-10-02 10:29:15",
+        "department":  "IT",
+        "id":  "QCM-20261002-0001",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20261002-0001-1",
+                          "lot_id":  "LOT-SUPP-2050312020136-1790911752527",
+                          "price":  0,
+                          "product_id":  "2050312020136",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261002-0001-2",
+                          "lot_id":  "LOT-SUPP-2050312020139-1790911752530",
+                          "price":  0,
+                          "product_id":  "2050312020139",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "mini S",
+        "note":  "ตถุประสงค์ในการเบิก / หมายเหตุ *",
+        "requester":  "Admin Nakyeet",
+        "serial_number":  "ti2026005",
+        "status":  "Success",
+        "total_price":  7500
+    },
+    {
+        "date":  "2026-10-08 10:38:12",
+        "department":  "Qcm",
+        "id":  "QCM-20261008-0001",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20261008-0001-1",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-2",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-3",
+                          "lot_id":  "LOT-INIT-2050312050001",
+                          "price":  0,
+                          "product_id":  "2050312050001",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-4",
+                          "lot_id":  "LOT-INIT-2050312030001",
+                          "price":  0,
+                          "product_id":  "2050312030001",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-5",
+                          "lot_id":  "LOT-INIT-2050312100004",
+                          "price":  0,
+                          "product_id":  "2050312100004",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-6",
+                          "lot_id":  "LOT-INIT-2050312180035",
+                          "price":  0,
+                          "product_id":  "2050312180035",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-7",
+                          "lot_id":  "LOT-SUPP-2050312180035-1791430690554",
+                          "price":  0,
+                          "product_id":  "2050312180035",
+                          "qty":  3,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-8",
+                          "lot_id":  "LOT-INIT-2050312180172",
+                          "price":  0,
+                          "product_id":  "2050312180172",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-9",
+                          "lot_id":  "LOT-INIT-2050312180303",
+                          "price":  0,
+                          "product_id":  "2050312180303",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-10",
+                          "lot_id":  "LOT-INIT-2050312180304",
+                          "price":  0,
+                          "product_id":  "2050312180304",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-11",
+                          "lot_id":  "LOT-INIT-2050312180264",
+                          "price":  0,
+                          "product_id":  "2050312180264",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-12",
+                          "lot_id":  "LOT-INIT-2050312180315",
+                          "price":  0,
+                          "product_id":  "2050312180315",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-13",
+                          "lot_id":  "LOT-SUPP-3050312030069-1790652361557",
+                          "price":  0,
+                          "product_id":  "3050312030069",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-14",
+                          "lot_id":  "LOT-SUPP-3050312030053-1790652361555",
+                          "price":  0,
+                          "product_id":  "3050312030053",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-15",
+                          "lot_id":  "LOT-INIT-3050312100015",
+                          "price":  0,
+                          "product_id":  "3050312100015",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-16",
+                          "lot_id":  "LOT-INIT-3050312100109",
+                          "price":  0,
+                          "product_id":  "3050312100109",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน DW 1080",
+        "note":  "Tss",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "071M1000BB190238",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-10-08 10:52:49",
+        "department":  "Qcm",
+        "id":  "QCM-20261008-0002",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20261008-0002-1",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0002-2",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0002-3",
+                          "lot_id":  "LOT-INIT-2050312180303",
+                          "price":  0,
+                          "product_id":  "2050312180303",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0002-4",
+                          "lot_id":  "LOT-INIT-2050312180304",
+                          "price":  0,
+                          "product_id":  "2050312180304",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0002-5",
+                          "lot_id":  "LOT-INIT-2050312180264",
+                          "price":  0,
+                          "product_id":  "2050312180264",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0002-6",
+                          "lot_id":  "LOT-INIT-2050312100004",
+                          "price":  0,
+                          "product_id":  "2050312100004",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0002-7",
+                          "lot_id":  "LOT-SUPP-3050312030053-1790652361555",
+                          "price":  0,
+                          "product_id":  "3050312030053",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0002-8",
+                          "lot_id":  "LOT-INIT-3050312100027",
+                          "price":  0,
+                          "product_id":  "3050312100027",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0002-9",
+                          "lot_id":  "LOT-INIT-3050312010269",
+                          "price":  0,
+                          "product_id":  "3050312010269",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน DW 1080",
+        "note":  "TSS",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "071M00100TBb220064",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-10-08 11:03:48",
+        "department":  "Qcm",
+        "id":  "QCM-20261008-0003",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20261008-0003-1",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-2",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-3",
+                          "lot_id":  "LOT-INIT-2050312180304",
+                          "price":  0,
+                          "product_id":  "2050312180304",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-4",
+                          "lot_id":  "LOT-INIT-2050312180303",
+                          "price":  0,
+                          "product_id":  "2050312180303",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-5",
+                          "lot_id":  "LOT-INIT-2050312180264",
+                          "price":  0,
+                          "product_id":  "2050312180264",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-6",
+                          "lot_id":  "LOT-INIT-3050312100109",
+                          "price":  0,
+                          "product_id":  "3050312100109",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-7",
+                          "lot_id":  "LOT-INIT-2050312100004",
+                          "price":  0,
+                          "product_id":  "2050312100004",
+                          "qty":  4,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-8",
+                          "lot_id":  "LOT-SUPP-3050312030053-1790652361555",
+                          "price":  0,
+                          "product_id":  "3050312030053",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-9",
+                          "lot_id":  "LOT-INIT-3050312100105",
+                          "price":  0,
+                          "product_id":  "3050312100105",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-10",
+                          "lot_id":  "LOT-INIT-2050312180172",
+                          "price":  0,
+                          "product_id":  "2050312180172",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-11",
+                          "lot_id":  "LOT-SUPP-2050312180035-1791430690554",
+                          "price":  0,
+                          "product_id":  "2050312180035",
+                          "qty":  3,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-12",
+                          "lot_id":  "LOT-INIT-3050312010269",
+                          "price":  0,
+                          "product_id":  "3050312010269",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-13",
+                          "lot_id":  "LOT-INIT-3050312100035",
+                          "price":  0,
+                          "product_id":  "3050312100035",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-14",
+                          "lot_id":  "LOT-INIT-3050312360006",
+                          "price":  0,
+                          "product_id":  "3050312360006",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-15",
+                          "lot_id":  "LOT-INIT-3050312120019",
+                          "price":  0,
+                          "product_id":  "3050312120019",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน DW 1080",
+        "note":  "TSS",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "071M00100TBB190022",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-10-08 11:06:13",
+        "department":  "Qcm",
+        "id":  "QCM-20261008-0004",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20261008-0004-1",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-2",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-3",
+                          "lot_id":  "LOT-INIT-3050312100121",
+                          "price":  0,
+                          "product_id":  "3050312100121",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-4",
+                          "lot_id":  "LOT-INIT-3050312100162",
+                          "price":  0,
+                          "product_id":  "3050312100162",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน DW 1080 DIGITAL",
+        "note":  "TSS",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "071D00100TBB230082",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-10-08 11:13:19",
+        "department":  "สโตร์ (ปรับปรุงสต็อก)",
+        "id":  "QCM-RE-20261008-0001",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-RE-20261008-0001-1",
+                          "lot_id":  "LOT-20261008-799022",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  50,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "",
+        "note":  "เติมสต็อกอะไหล่",
+        "requester":  "บุญเลิศ คงเจริญ",
+        "serial_number":  "",
+        "status":  "Restock",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-10-08 14:21:22",
+        "department":  "Qcm",
+        "id":  "QCM-20261008-0001",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20261008-0001-1",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-2",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-3",
+                          "lot_id":  "LOT-INIT-2050312180303",
+                          "price":  0,
+                          "product_id":  "2050312180303",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-4",
+                          "lot_id":  "LOT-INIT-2050312180304",
+                          "price":  0,
+                          "product_id":  "2050312180304",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-5",
+                          "lot_id":  "LOT-INIT-2050312180264",
+                          "price":  0,
+                          "product_id":  "2050312180264",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-6",
+                          "lot_id":  "LOT-INIT-2050312030001",
+                          "price":  0,
+                          "product_id":  "2050312030001",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-7",
+                          "lot_id":  "LOT-INIT-2050312050001",
+                          "price":  0,
+                          "product_id":  "2050312050001",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-8",
+                          "lot_id":  "LOT-SUPP-2050312180035-1791430690554",
+                          "price":  0,
+                          "product_id":  "2050312180035",
+                          "qty":  3,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-9",
+                          "lot_id":  "LOT-INIT-2050312100004",
+                          "price":  0,
+                          "product_id":  "2050312100004",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-10",
+                          "lot_id":  "LOT-INIT-3050312100015",
+                          "price":  0,
+                          "product_id":  "3050312100015",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-11",
+                          "lot_id":  "LOT-INIT-2050312180254",
+                          "price":  0,
+                          "product_id":  "2050312180254",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-12",
+                          "lot_id":  "LOT-SUPP-3050312030069-1790652361557",
+                          "price":  0,
+                          "product_id":  "3050312030069",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0001-13",
+                          "lot_id":  "LOT-INIT-2050312090002",
+                          "price":  0,
+                          "product_id":  "2050312090002",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน DW 1080",
+        "note":  "TSS",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "071M00100BB190183",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-10-08 14:27:05",
+        "department":  "Qcm",
+        "id":  "QCM-20261008-0002",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20261008-0002-1",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0002-2",
+                          "lot_id":  "LOT-SUPP-3050312030023-1791444423654",
+                          "price":  0,
+                          "product_id":  "3050312030023",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0002-3",
+                          "lot_id":  "LOT-SUPP-2050312020415-1791444423655",
+                          "price":  0,
+                          "product_id":  "2050312020415",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0002-4",
+                          "lot_id":  "LOT-SUPP-2050312020333-1791444423657",
+                          "price":  0,
+                          "product_id":  "2050312020333",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0002-5",
+                          "lot_id":  "LOT-SUPP-2050312020095-1791444423657",
+                          "price":  0,
+                          "product_id":  "2050312020095",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0002-6",
+                          "lot_id":  "LOT-SUPP-2050312020402-1791444423658",
+                          "price":  0,
+                          "product_id":  "2050312020402",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0002-7",
+                          "lot_id":  "LOT-SUPP-2050312020377-1791444423659",
+                          "price":  0,
+                          "product_id":  "2050312020377",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน H600",
+        "note":  "TSS",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "2122020412",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-10-08 15:32:33",
+        "department":  "Qcm",
+        "id":  "QCM-20261008-0003",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20261008-0003-1",
+                          "lot_id":  "LOT-INIT-2050312180219",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-2",
+                          "lot_id":  "LOT-SUPP-3050312070046-1790128512441",
+                          "price":  0,
+                          "product_id":  "3050312070046",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-3",
+                          "lot_id":  "LOT-SUPP-2050312180035-1791430690554",
+                          "price":  0,
+                          "product_id":  "2050312180035",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-4",
+                          "lot_id":  "LOT-INIT-2050312180218",
+                          "price":  0,
+                          "product_id":  "2050312180218",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-5",
+                          "lot_id":  "LOT-INIT-2050312030002",
+                          "price":  0,
+                          "product_id":  "2050312030002",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-6",
+                          "lot_id":  "LOT-INIT-2050312180160",
+                          "price":  0,
+                          "product_id":  "2050312180160",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-7",
+                          "lot_id":  "LOT-SUPP-3050312340006-1791448351534",
+                          "price":  0,
+                          "product_id":  "3050312340006",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-8",
+                          "lot_id":  "LOT-SUPP-3050312030069-1790652361557",
+                          "price":  0,
+                          "product_id":  "3050312030069",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-9",
+                          "lot_id":  "LOT-SUPP-3050312030127-1790128512442",
+                          "price":  0,
+                          "product_id":  "3050312030127",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-10",
+                          "lot_id":  "LOT-SUPP-3050312030103-1791448351537",
+                          "price":  0,
+                          "product_id":  "3050312030103",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-11",
+                          "lot_id":  "LOT-SUPP-3050312070191-1791448351543",
+                          "price":  0,
+                          "product_id":  "3050312070191",
+                          "qty":  4,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-12",
+                          "lot_id":  "LOT-SUPP-3050312070082-1791448351546",
+                          "price":  0,
+                          "product_id":  "3050312070082",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-13",
+                          "lot_id":  "LOT-SUPP-3050312070081-1791448351548",
+                          "price":  0,
+                          "product_id":  "3050312070081",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0003-14",
+                          "lot_id":  "LOT-SUPP-3050312070217-1791448351551",
+                          "price":  0,
+                          "product_id":  "3050312070217",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน DW 83E DIGITAL",
+        "note":  "TSS",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "16118",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "date":  "2026-10-08 15:33:26",
+        "department":  "Qcm",
+        "id":  "QCM-20261008-0004",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20261008-0004-1",
+                          "lot_id":  "LOT-SUPP-2050312180219-1790128512440",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-2",
+                          "lot_id":  "LOT-SUPP-3050312070046-1790128512441",
+                          "price":  0,
+                          "product_id":  "3050312070046",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-3",
+                          "lot_id":  "LOT-SUPP-2050312180035-1791430690554",
+                          "price":  0,
+                          "product_id":  "2050312180035",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-4",
+                          "lot_id":  "LOT-INIT-2050312180218",
+                          "price":  0,
+                          "product_id":  "2050312180218",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-5",
+                          "lot_id":  "LOT-INIT-2050312030002",
+                          "price":  0,
+                          "product_id":  "2050312030002",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-6",
+                          "lot_id":  "LOT-INIT-2050312180160",
+                          "price":  0,
+                          "product_id":  "2050312180160",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-7",
+                          "lot_id":  "LOT-SUPP-3050312340006-1791448351534",
+                          "price":  0,
+                          "product_id":  "3050312340006",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-8",
+                          "lot_id":  "LOT-SUPP-3050312030069-1790652361557",
+                          "price":  0,
+                          "product_id":  "3050312030069",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-9",
+                          "lot_id":  "LOT-SUPP-3050312030127-1790128512442",
+                          "price":  0,
+                          "product_id":  "3050312030127",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-10",
+                          "lot_id":  "LOT-SUPP-3050312030103-1791448351537",
+                          "price":  0,
+                          "product_id":  "3050312030103",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-11",
+                          "lot_id":  "LOT-SUPP-3050312070191-1791448351543",
+                          "price":  0,
+                          "product_id":  "3050312070191",
+                          "qty":  4,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-12",
+                          "lot_id":  "LOT-SUPP-3050312070082-1791448351546",
+                          "price":  0,
+                          "product_id":  "3050312070082",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-13",
+                          "lot_id":  "LOT-SUPP-3050312070081-1791448351548",
+                          "price":  0,
+                          "product_id":  "3050312070081",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261008-0004-14",
+                          "lot_id":  "LOT-SUPP-3050312070217-1791448351551",
+                          "price":  0,
+                          "product_id":  "3050312070217",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "machine_id":  "เครื่องล้างจาน DW 83E DIGITAL",
+        "note":  "TSS",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "16118",
+        "status":  "Success",
+        "total_price":  0
+    },
+    {
+        "approval_by":  "บุญเลิศ คงเจริญ",
+        "approval_by_email":  "storetech@peerapat.com",
+        "approval_date":  "2026-10-09 09:41:35",
+        "approval_note":  "ทดสอบ",
+        "approval_status":  "Approved",
+        "approver":  "บุญเลิศ คงเจริญ",
+        "approver_email":  "storetech@peerapat.com",
+        "customer_type":  "ลูกค้าในเครือ",
+        "date":  "2026-10-09 08:55:07",
+        "department":  "ตรวจสอบควบคุมคุณภาพเครื่องจักร",
+        "id":  "QCM-20261009-0001",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20261009-0001-1",
+                          "lot_id":  "LOT-20261008-799022",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0001-2",
+                          "lot_id":  "LOT-INIT-2050312180315",
+                          "price":  0,
+                          "product_id":  "2050312180315",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0001-3",
+                          "lot_id":  "LOT-SUPP-3050312030052-1790654190575",
+                          "price":  0,
+                          "product_id":  "3050312030052",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0001-4",
+                          "lot_id":  "LOT-INIT-3050312100049",
+                          "price":  0,
+                          "product_id":  "3050312100049",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0001-5",
+                          "lot_id":  "LOT-INIT-3050312100060",
+                          "price":  0,
+                          "product_id":  "3050312100060",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "job_details":  "ล้างทำความสะอาด, เปลี่ยนอุปกรณ์ภายในเครื่อง, ขัดขึ้นลายขนแมว, ทดสอบการทำงานของเครื่อง",
+        "labor_cost":  3500,
+        "machine_id":  "เครื่องล้างจาน DW 1080",
+        "machine_model":  "hood type",
+        "note":  "ซ่อมภายใน TSS",
+        "parts_total":  0,
+        "price_tier":  "ราคาในเครือ",
+        "repair_level":  "A2",
+        "requester":  "บุญเลิศ คงเจริญ",
+        "serial_number":  "12123",
+        "status":  "Success",
+        "total_price":  3500
+    },
+    {
+        "approval_by":  "ธนกร ธิบดี",
+        "approval_by_email":  "kt.thipbodee@gmail.com",
+        "approval_date":  "2026-10-09 11:32:11",
+        "approval_note":  "",
+        "approval_status":  "Approved",
+        "approver":  "ธนกร ธิบดี",
+        "approver_email":  "kt.thipbodee@gmail.com",
+        "customer_type":  "ลูกค้าภายนอก",
+        "date":  "2026-10-09 11:31:39",
+        "department":  "Qcm",
+        "id":  "QCM-20261009-0002",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20261009-0002-1",
+                          "lot_id":  "LOT-INIT-2050312100004",
+                          "price":  0,
+                          "product_id":  "2050312100004",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0002-2",
+                          "lot_id":  "LOT-SUPP-2050312100004-1790652361551",
+                          "price":  0,
+                          "product_id":  "2050312100004",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0002-3",
+                          "lot_id":  "LOT-INIT-2050312160149",
+                          "price":  0,
+                          "product_id":  "2050312160149",
+                          "qty":  8,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0002-4",
+                          "lot_id":  "LOT-20261008-799022",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0002-5",
+                          "lot_id":  "LOT-INIT-2050312180303",
+                          "price":  0,
+                          "product_id":  "2050312180303",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0002-6",
+                          "lot_id":  "LOT-INIT-2050312180304",
+                          "price":  0,
+                          "product_id":  "2050312180304",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0002-7",
+                          "lot_id":  "LOT-SUPP-3050312030069-1790652361557",
+                          "price":  0,
+                          "product_id":  "3050312030069",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0002-8",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0002-9",
+                          "lot_id":  "LOT-INIT-3050312100079",
+                          "price":  0,
+                          "product_id":  "3050312100079",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0002-10",
+                          "lot_id":  "LOT-INIT-3050312100196",
+                          "price":  0,
+                          "product_id":  "3050312100196",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0002-11",
+                          "lot_id":  "LOT-INIT-3050312100197",
+                          "price":  0,
+                          "product_id":  "3050312100197",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "job_details":  "ล้างทำความสะอาด, ขัดขึ้นลายขนแมว, ทดสอบการทำงานของเครื่อง",
+        "labor_cost":  3000,
+        "machine_id":  "เครื่องล้างจาน DW 50",
+        "machine_model":  "Under-counter",
+        "note":  "TSS",
+        "parts_total":  0,
+        "price_tier":  "ราคากลาง",
+        "repair_level":  "A2",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "075M10100TAD240061",
+        "status":  "Success",
+        "total_price":  3000
+    },
+    {
+        "approval_by":  "ธนกร ธิบดี",
+        "approval_by_email":  "kt.thipbodee@gmail.com",
+        "approval_date":  "2026-10-09 11:36:09",
+        "approval_note":  "",
+        "approval_status":  "Approved",
+        "approver":  "ธนกร ธิบดี",
+        "approver_email":  "kt.thipbodee@gmail.com",
+        "customer_type":  "ลูกค้าภายนอก",
+        "date":  "2026-10-09 11:35:10",
+        "department":  "Qcm",
+        "id":  "QCM-20261009-0003",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20261009-0003-1",
+                          "lot_id":  "LOT-SUPP-2050312100004-1790652361551",
+                          "price":  0,
+                          "product_id":  "2050312100004",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0003-2",
+                          "lot_id":  "LOT-SUPP-2050312100004-1791520299025",
+                          "price":  0,
+                          "product_id":  "2050312100004",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0003-3",
+                          "lot_id":  "LOT-20261008-799022",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0003-4",
+                          "lot_id":  "LOT-INIT-2050312180264",
+                          "price":  0,
+                          "product_id":  "2050312180264",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0003-5",
+                          "lot_id":  "LOT-INIT-2050312180303",
+                          "price":  0,
+                          "product_id":  "2050312180303",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0003-6",
+                          "lot_id":  "LOT-INIT-2050312180304",
+                          "price":  0,
+                          "product_id":  "2050312180304",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0003-7",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "job_details":  "ล้างทำความสะอาด, เปลี่ยนอุปกรณ์ภายในเครื่อง, ขัดขึ้นลายขนแมว, ทดสอบการทำงานของเครื่อง",
+        "labor_cost":  3000,
+        "machine_id":  "เครื่องล้างจาน DW 1080",
+        "machine_model":  "Under-counter",
+        "note":  "TSS",
+        "parts_total":  0,
+        "price_tier":  "ราคากลาง",
+        "repair_level":  "A2",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "071M00100TBB230279",
+        "status":  "Success",
+        "total_price":  3000
+    },
+    {
+        "approval_by":  "ธนกร ธิบดี",
+        "approval_by_email":  "kt.thipbodee@gmail.com",
+        "approval_date":  "2026-10-09 11:41:33",
+        "approval_note":  "",
+        "approval_status":  "Approved",
+        "approver":  "ธนกร ธิบดี",
+        "approver_email":  "kt.thipbodee@gmail.com",
+        "customer_type":  "ลูกค้าภายนอก",
+        "date":  "2026-10-09 11:40:25",
+        "department":  "Qcm",
+        "id":  "QCM-20261009-0004",
+        "items":  [
+                      {
+                          "detail_id":  "QCM-20261009-0004-1",
+                          "lot_id":  "LOT-20261008-799022",
+                          "price":  0,
+                          "product_id":  "2050312180219",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0004-2",
+                          "lot_id":  "LOT-INIT-3050312100039",
+                          "price":  0,
+                          "product_id":  "3050312100039",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0004-3",
+                          "lot_id":  "LOT-INIT-2050312050001",
+                          "price":  0,
+                          "product_id":  "2050312050001",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0004-4",
+                          "lot_id":  "LOT-SUPP-2050312180035-1791430690554",
+                          "price":  0,
+                          "product_id":  "2050312180035",
+                          "qty":  3,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0004-5",
+                          "lot_id":  "LOT-SUPP-2050312100004-1791520299025",
+                          "price":  0,
+                          "product_id":  "2050312100004",
+                          "qty":  2,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0004-6",
+                          "lot_id":  "LOT-INIT-2050312030001",
+                          "price":  0,
+                          "product_id":  "2050312030001",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0004-7",
+                          "lot_id":  "LOT-INIT-2050312180264",
+                          "price":  0,
+                          "product_id":  "2050312180264",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0004-8",
+                          "lot_id":  "LOT-INIT-2050312180303",
+                          "price":  0,
+                          "product_id":  "2050312180303",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0004-9",
+                          "lot_id":  "LOT-INIT-2050312180304",
+                          "price":  0,
+                          "product_id":  "2050312180304",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0004-10",
+                          "lot_id":  "LOT-INIT-2050312090002",
+                          "price":  0,
+                          "product_id":  "2050312090002",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0004-11",
+                          "lot_id":  "LOT-INIT-2050312180075",
+                          "price":  0,
+                          "product_id":  "2050312180075",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0004-12",
+                          "lot_id":  "LOT-SUPP-3050312030069-1790652361557",
+                          "price":  0,
+                          "product_id":  "3050312030069",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      },
+                      {
+                          "detail_id":  "QCM-20261009-0004-13",
+                          "lot_id":  "LOT-SUPP-3050312030053-1790652361555",
+                          "price":  0,
+                          "product_id":  "3050312030053",
+                          "qty":  1,
+                          "subtotal":  0,
+                          "unit_cost":  0
+                      }
+                  ],
+        "job_details":  "ล้างทำความสะอาด, เปลี่ยนอุปกรณ์ภายในเครื่อง, ขัดขึ้นลายขนแมว, ทดสอบการทำงานของเครื่อง",
+        "labor_cost":  4500,
+        "machine_id":  "เครื่องล้างจาน DW 1080",
+        "machine_model":  "hood type",
+        "note":  "TSS",
+        "parts_total":  0,
+        "price_tier":  "ราคากลาง",
+        "repair_level":  "B2",
+        "requester":  "ธนกร ธิบดี",
+        "serial_number":  "071M00100BB180159",
+        "status":  "Success",
+        "total_price":  4500
+    }
+]
