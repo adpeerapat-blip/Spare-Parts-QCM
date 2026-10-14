@@ -1969,6 +1969,24 @@
                                 </button>
                             </div>
                         </div>
+
+                        <!-- Card 9: อัปเดตข้อมูลจาก Google Sheet -->
+                        <div id="card-settings-sync-sheets" onclick="syncFromGoogleSheetToSystem()" class="bg-white rounded-2xl border border-gray-150 p-6 hover:shadow-xl hover:border-emerald-200 transition-all duration-300 cursor-pointer flex flex-col justify-between group hidden">
+                            <div class="flex gap-4 items-start">
+                                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
+                                    <i class="fa-solid fa-cloud-arrow-down text-xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-800 group-hover:text-emerald-600 transition-all duration-300">อัปเดตจาก Google Sheet</h3>
+                                    <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">ดึงข้อมูลล่าสุดจาก Google Sheet มาอัปเดตเข้าระบบเว็บทันที สะดวก ไม่ต้องเปิด Google Sheet หรือขอสิทธิ์</p>
+                                </div>
+                            </div>
+                            <div class="w-full mt-4">
+                                <button onclick="syncFromGoogleSheetToSystem()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 px-4 rounded-xl transition-all duration-200 shadow-sm flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-arrows-rotate"></i> อัปเดตข้อมูลจาก Google Sheet
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </section>
 

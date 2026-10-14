@@ -703,6 +703,126 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
                 const isAdmin = isLoggedIn && currentUser && currentUser.role === 'ADMIN';
                 cardBackup.classList.toggle('hidden', !isAdmin);
             }
+
+            const cardSyncSheets = document.getElementById('card-settings-sync-sheets');
+            if (cardSyncSheets) {
+                const canManage = isLoggedIn && currentUser && (currentUser.role === 'ADMIN' || currentUser.role === 'Manager');
+                cardSyncSheets.classList.toggle('hidden', !canManage);
+            }
+        }
+
+        async function syncFromGoogleSheetToSystem() {
+            if (!isLoggedIn || !currentUser || (currentUser.role !== 'ADMIN' && currentUser.role !== 'Manager')) {
+                showToast('คุณไม่มีสิทธิ์เข้าถึงส่วนนี้ (เฉพาะผู้ดูแลระบบ)', 'error');
+                return;
+            }
+
+            const htmlContent = `
+                <div class="text-left text-xs space-y-2 max-h-64 overflow-y-auto p-3 border border-slate-100 rounded-2xl bg-slate-50/50">
+                    <p class="text-slate-600 mb-3 font-semibold text-sm">เลือกหมวดหมู่ที่ต้องการดึงจาก Google Sheet มาอัปเดต:</p>
+                    <label class="flex items-center space-x-2.5 p-2 rounded-xl hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" id="sync-products" checked class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+                        <span class="text-slate-700 font-medium">📦 สินค้าและอะไหล่ (Products)</span>
+                    </label>
+                    <label class="flex items-center space-x-2.5 p-2 rounded-xl hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" id="sync-machines" checked class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+                        <span class="text-slate-700 font-medium">⚙️ เครื่องจักร (Machines)</span>
+                    </label>
+                    <label class="flex items-center space-x-2.5 p-2 rounded-xl hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" id="sync-mappings" checked class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+                        <span class="text-slate-700 font-medium">🔗 การจับคู่เครื่องจักร-อะไหล่ (Mappings)</span>
+                    </label>
+                    <label class="flex items-center space-x-2.5 p-2 rounded-xl hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" id="sync-lots" checked class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+                        <span class="text-slate-700 font-medium">📊 ล็อตสินค้า (Lots)</span>
+                    </label>
+                    <label class="flex items-center space-x-2.5 p-2 rounded-xl hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" id="sync-manuals" checked class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+                        <span class="text-slate-700 font-medium">📚 คู่มือการใช้งาน (Manuals)</span>
+                    </label>
+                    <label class="flex items-center space-x-2.5 p-2 rounded-xl hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" id="sync-settings" checked class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+                        <span class="text-slate-700 font-medium">🔧 การตั้งค่าระบบ (Settings)</span>
+                    </label>
+                    <label class="flex items-center space-x-2.5 p-2 rounded-xl hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" id="sync-users" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+                        <span class="text-slate-700 font-medium">👥 ข้อมูลผู้ใช้งาน (Users)</span>
+                    </label>
+                </div>
+                <p class="text-[11px] text-emerald-700 mt-3 text-left bg-emerald-50 p-2.5 rounded-xl border border-emerald-100">
+                    <i class="fa-solid fa-circle-check mr-1 text-emerald-600"></i> ดึงข้อมูลจาก Google Sheet มาอัปเดตลงเว็บโดยตรง ไม่ต้องเปิดชีตและไม่ต้องกดยืนยันสิทธิ์
+                </p>
+            `;
+
+            const result = await Swal.fire({
+                title: '🔄 อัปเดตข้อมูลจาก Google Sheet',
+                html: htmlContent,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#059669',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'ยืนยันการอัปเดต',
+                cancelButtonText: 'ยกเลิก',
+                customClass: {
+                    popup: 'rounded-3xl max-w-md',
+                    confirmButton: 'rounded-xl font-semibold !text-xs !py-2.5 !px-5',
+                    cancelButton: 'rounded-xl font-semibold !text-xs !py-2.5 !px-5',
+                },
+                preConfirm: () => {
+                    const targets = [];
+                    const keys = ['products', 'machines', 'mappings', 'lots', 'manuals', 'settings', 'users'];
+                    keys.forEach(k => {
+                        const el = document.getElementById('sync-' + k);
+                        if (el && el.checked) targets.push(k);
+                    });
+                    if (targets.length === 0) {
+                        Swal.showValidationMessage('กรุณาเลือกหมวดหมู่ที่ต้องการอัปเดตอย่างน้อย 1 รายการ');
+                        return false;
+                    }
+                    return targets;
+                }
+            });
+
+            if (result.isConfirmed && result.value) {
+                showLoading('กำลังดึงข้อมูลล่าสุดจาก Google Sheet มาอัปเดตลงระบบ กรุณารอสักครู่...');
+                try {
+                    const res = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'uploadSheetsToFirebase',
+                            payload: { targets: result.value }
+                        })
+                    });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    const resData = await res.json();
+                    if (resData.status === 'success') {
+                        invalidateLocalCache();
+                        await fetchData(true);
+                        updateAllViews();
+                        showToast('อัปเดตข้อมูลจาก Google Sheet สำเร็จเรียบร้อย', 'success');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'อัปเดตข้อมูลสำเร็จ!',
+                            text: 'ข้อมูลล่าสุดจาก Google Sheet ได้ถูกนำมาอัปเดตเข้าระบบเรียบร้อยแล้ว',
+                            timer: 2500,
+                            showConfirmButton: false,
+                            customClass: { popup: 'rounded-3xl' }
+                        });
+                    } else {
+                        throw new Error(resData.message || 'เกิดข้อผิดพลาดในการอัปเดต');
+                    }
+                } catch (error) {
+                    showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'อัปเดตไม่สำเร็จ',
+                        text: error.message,
+                        customClass: { popup: 'rounded-3xl' }
+                    });
+                } finally {
+                    hideLoading();
+                }
+            }
         }
 
         async function runManualBackup(type) {
@@ -1528,25 +1648,6 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
         }
 
         function updateAllViews() {
-            // จัดเรียงรายการยกเลิกใช้ไปไว้ด้านล่างสุด
-            if (db && Array.isArray(db.products)) {
-                db.products.sort((a, b) => {
-                    const aCancelled = a.note && (a.note.trim() === 'ยกเลิกใช้' || a.note.includes('ยกเลิกใช้'));
-                    const bCancelled = b.note && (b.note.trim() === 'ยกเลิกใช้' || b.note.includes('ยกเลิกใช้'));
-                    if (aCancelled && !bCancelled) return 1;
-                    if (!aCancelled && bCancelled) return -1;
-                    return 0;
-                });
-            }
-            if (db && Array.isArray(db.machines)) {
-                db.machines.sort((a, b) => {
-                    const aCancelled = a.note && (a.note.trim() === 'ยกเลิกใช้' || a.note.includes('ยกเลิกใช้'));
-                    const bCancelled = b.note && (b.note.trim() === 'ยกเลิกใช้' || b.note.includes('ยกเลิกใช้'));
-                    if (aCancelled && !bCancelled) return 1;
-                    if (!aCancelled && bCancelled) return -1;
-                    return 0;
-                });
-            }
 
             // กรองเอาเฉพาะ mapping ที่มีเครื่องจักรและสินค้าอยู่จริงในระบบ ป้องกันข้อมูลไม่ตรงกันหลังการลบ
             if (db && Array.isArray(db.mappings)) {
@@ -1826,7 +1927,17 @@ async function executeDirectAddProduct(payload) {
         fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({ action: 'addProduct', payload: payload })
-        }).catch(e => console.warn('[Background Sync] Apps Script addProduct warning:', e));
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res && res.data && res.data.image_url) {
+                firebase.database().ref('appData/products/' + nextIdx + '/image_url').set(res.data.image_url);
+                if (db && Array.isArray(db.products) && db.products[nextIdx]) {
+                    db.products[nextIdx].image_url = res.data.image_url;
+                }
+            }
+        })
+        .catch(e => console.warn('[Background Sync] Apps Script addProduct warning:', e));
     }
     return newProd;
 }
@@ -1945,14 +2056,11 @@ async function executeDirectDeleteMachine(payload) {
 
 async function executeDirectEditProduct(payload) {
     const pId = String(payload.id).trim();
-    let products = (db && Array.isArray(db.products) && db.products.length > 0) ? db.products : [];
-    let index = products.findIndex(p => String(p.id).trim() === pId);
-    if (index === -1) {
-        const snapshot = await firebase.database().ref('appData/products').get();
-        products = ensureArray(snapshot.val());
-        index = products.findIndex(p => String(p.id).trim() === pId);
-    }
-    if (index === -1) throw new Error("ไม่พบรหัสสินค้าที่ต้องการแก้ไข");
+    // ดึง snapshot ล่าสุดจาก Firebase เสมอเพื่อหา index จริงใน Firebase ป้องกัน index คลาดเคลื่อน 100%
+    const snapshot = await firebase.database().ref('appData/products').get();
+    let products = ensureArray(snapshot.val());
+    let index = products.findIndex(p => p && String(p.id).trim() === pId);
+    if (index === -1) throw new Error("ไม่พบรหัสสินค้าที่ต้องการแก้ไขบนเซิร์ฟเวอร์");
     const oldProduct = products[index];
     const cost = parseFloat(payload.cost) || 0;
     
@@ -1974,11 +2082,13 @@ async function executeDirectEditProduct(payload) {
         stock_qty: stockQty, group: payload.group || "", supplier: payload.supplier || "", storage: payload.storage || ""
     };
     
-    // อัปเดตเฉพาะรายการนี้ใน Firebase (ประหยัดเน็ตเหลือ ~300 bytes)
+    // อัปเดตเฉพาะรายการนี้ใน Firebase
     await firebase.database().ref('appData/products/' + index).set(updated);
     await firebase.database().ref('appData/lastUpdated').set(Date.now());
-    products[index] = updated;
-    db.products = products;
+    if (db && Array.isArray(db.products)) {
+        const localIdx = db.products.findIndex(p => p && String(p.id).trim() === pId);
+        if (localIdx !== -1) db.products[localIdx] = updated;
+    }
     invalidateLocalCache();
 
     // ซิงค์ส่งไปยัง Apps Script ในเบื้องหลัง (Background sync) เพื่ออัปเดตลง Google Sheets & Google Drive
@@ -1986,20 +2096,26 @@ async function executeDirectEditProduct(payload) {
         fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({ action: 'editProduct', payload: payload })
-        }).catch(e => console.warn('[Background Sync] Apps Script sync warning:', e));
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res && res.data && res.data.image_url) {
+                firebase.database().ref('appData/products/' + index + '/image_url').set(res.data.image_url);
+                if (db && Array.isArray(db.products) && db.products[index]) {
+                    db.products[index].image_url = res.data.image_url;
+                }
+            }
+        })
+        .catch(e => console.warn('[Background Sync] Apps Script sync warning:', e));
     }
 }
 
 async function executeDirectEditMachine(payload) {
     const mId = String(payload.id).trim();
-    let machines = (db && Array.isArray(db.machines) && db.machines.length > 0) ? db.machines : [];
-    let index = machines.findIndex(m => String(m.id).trim() === mId);
-    if (index === -1) {
-        const snapshot = await firebase.database().ref('appData/machines').get();
-        machines = ensureArray(snapshot.val());
-        index = machines.findIndex(m => String(m.id).trim() === mId);
-    }
-    if (index === -1) throw new Error("ไม่พบเครื่องจักรที่ต้องการแก้ไข");
+    const snapshot = await firebase.database().ref('appData/machines').get();
+    let machines = ensureArray(snapshot.val());
+    let index = machines.findIndex(m => m && String(m.id).trim() === mId);
+    if (index === -1) throw new Error("ไม่พบเครื่องจักรที่ต้องการแก้ไขบนเซิร์ฟเวอร์");
     const oldMachine = machines[index];
     const newImageUrl = (payload.image_url !== undefined && payload.image_url !== null && payload.image_url !== "")
         ? payload.image_url
@@ -2015,8 +2131,10 @@ async function executeDirectEditMachine(payload) {
     // อัปเดตเฉพาะรายการนี้ใน Firebase
     await firebase.database().ref('appData/machines/' + index).set(updated);
     await firebase.database().ref('appData/lastUpdated').set(Date.now());
-    machines[index] = updated;
-    db.machines = machines;
+    if (db && Array.isArray(db.machines)) {
+        const localIdx = db.machines.findIndex(m => m && String(m.id).trim() === mId);
+        if (localIdx !== -1) db.machines[localIdx] = updated;
+    }
     invalidateLocalCache();
 
     // ซิงค์ส่งไปยัง Apps Script ในเบื้องหลัง (Background sync) เพื่ออัปเดตลง Google Sheets & Google Drive
@@ -2024,7 +2142,17 @@ async function executeDirectEditMachine(payload) {
         fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({ action: 'editMachine', payload: payload })
-        }).catch(e => console.warn('[Background Sync] Apps Script sync warning:', e));
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res && res.data && res.data.image_url) {
+                firebase.database().ref('appData/machines/' + index + '/image_url').set(res.data.image_url);
+                if (db && Array.isArray(db.machines) && db.machines[index]) {
+                    db.machines[index].image_url = res.data.image_url;
+                }
+            }
+        })
+        .catch(e => console.warn('[Background Sync] Apps Script sync warning:', e));
     }
 }
 

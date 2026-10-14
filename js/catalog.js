@@ -298,6 +298,14 @@
                     return matchSearch && matchCategory && matchMachine;
                 });
 
+                filteredProducts.sort((a, b) => {
+                    const aCancelled = a.note && (a.note.trim() === 'ยกเลิกใช้' || a.note.includes('ยกเลิกใช้'));
+                    const bCancelled = b.note && (b.note.trim() === 'ยกเลิกใช้' || b.note.includes('ยกเลิกใช้'));
+                    if (aCancelled && !bCancelled) return 1;
+                    if (!aCancelled && bCancelled) return -1;
+                    return 0;
+                });
+
                 if (filteredProducts.length === 0) {
                     grid.innerHTML = `<div class="col-span-full py-16 flex flex-col items-center justify-center text-gray-400"><i class="fa-solid fa-box-open text-5xl mb-4 opacity-50"></i><p class="text-lg">ไม่พบข้อมูลสินค้าที่ตรงกับเงื่อนไข</p></div>`;
                     renderCatalogPagination(0);
@@ -1113,7 +1121,7 @@
             return compressAndGetBase64(file);
         }
 
-        function compressAndGetBase64(file, maxDimension = 900, quality = 0.8) {
+        function compressAndGetBase64(file, maxDimension = 600, quality = 0.65) {
             return new Promise((resolve, reject) => {
                 if (!file) return resolve(null);
                 if (!file.type || !file.type.startsWith('image/')) {
@@ -1429,13 +1437,20 @@
             const searchKeywords = searchKeywordString.split(/\s+/).filter(k => k.length > 0);
             tbody.innerHTML = '';
             
-            let filteredMachines = db.machines;
+            let filteredMachines = (db.machines || []).slice();
             if (searchKeywords.length > 0) {
                 filteredMachines = filteredMachines.filter(m => {
                     const textToSearch = `${m.id} ${m.name} ${m.group || ''} ${m.supplier || ''} ${m.storage || ''}`.toLowerCase();
                     return searchKeywords.every(kw => textToSearch.includes(kw));
                 });
             }
+            filteredMachines.sort((a, b) => {
+                const aCancelled = a.note && (a.note.trim() === 'ยกเลิกใช้' || a.note.includes('ยกเลิกใช้'));
+                const bCancelled = b.note && (b.note.trim() === 'ยกเลิกใช้' || b.note.includes('ยกเลิกใช้'));
+                if (aCancelled && !bCancelled) return 1;
+                if (!aCancelled && bCancelled) return -1;
+                return 0;
+            });
             
             if(countEl) countEl.textContent = filteredMachines.length + ' รายการ';
             
@@ -1729,13 +1744,20 @@
             const searchKeywords = searchKeywordString.split(/\s+/).filter(k => k.length > 0);
             tbody.innerHTML = '';
 
-            let filteredProducts = db.products;
+            let filteredProducts = (db.products || []).slice();
             if (searchKeywords.length > 0) {
                 filteredProducts = filteredProducts.filter(p => {
                     const textToSearch = `${p.id} ${p.name} ${p.group || ''} ${p.supplier || ''} ${p.storage || ''}`.toLowerCase();
                     return searchKeywords.every(kw => textToSearch.includes(kw));
                 });
             }
+            filteredProducts.sort((a, b) => {
+                const aCancelled = a.note && (a.note.trim() === 'ยกเลิกใช้' || a.note.includes('ยกเลิกใช้'));
+                const bCancelled = b.note && (b.note.trim() === 'ยกเลิกใช้' || b.note.includes('ยกเลิกใช้'));
+                if (aCancelled && !bCancelled) return 1;
+                if (!aCancelled && bCancelled) return -1;
+                return 0;
+            });
             if (filteredProducts.length === 0) { tbody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-gray-500">ไม่พบรายการอะไหล่ที่ค้นหา</td></tr>`; return; }
 
             filteredProducts.forEach((p, index) => {

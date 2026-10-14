@@ -148,6 +148,19 @@ function doPost(e) {
       deleteManual(payload.id);
       response.message = 'ลบคู่มือสำเร็จ';
     }
+    else if (action === 'uploadSheetsToFirebase') {
+      const targets = (payload && payload.targets) ? payload.targets : ['products', 'machines', 'mappings', 'settings', 'manuals', 'lots', 'users'];
+      response.data = uploadSheetsToFirebase(targets);
+      response.message = 'อัปเดตข้อมูลจาก Google Sheet สำเร็จ';
+    }
+    else if (action === 'backupFirebaseToSheets') {
+      response.data = backupFirebaseToSheets(payload);
+      response.message = 'สำรองข้อมูล Firebase -> Google Sheet สำเร็จ';
+    }
+    else if (action === 'backupFirebaseToDrive') {
+      response.data = backupFirebaseToDrive(payload);
+      response.message = 'สำรองข้อมูล Firebase -> JSON Drive สำเร็จ';
+    }
 
     return ContentService.createTextOutput(JSON.stringify(response))
       .setMimeType(ContentService.MimeType.JSON);
@@ -526,22 +539,33 @@ function patchFirebaseData(path, data) {
 
 // ฟังก์ชันอัปโหลดภาพและสร้างลิงก์ lh3
 function uploadImageAndGetLh3Url(base64Data, fileName) {
-  try {
-    if (!base64Data) return "";
-    const base64 = base64Data.split(',')[1] || base64Data;
-    const decoded = Utilities.base64Decode(base64);
-    const blob = Utilities.newBlob(decoded, "image/jpeg", fileName); 
-    
-    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-    const file = folder.createFile(blob);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    
-    return 'https://lh3.googleusercontent.com/d/' + file.getId();
-  } catch (e) {
-    Logger.log("uploadImageAndGetLh3Url error: " + e.toString());
-    // หากติดสิทธิ์ DriveApp หรือพื้นที่เต็ม ให้คืนค่าว่างเพื่อไม่ให้หยุดการทำงานของระบบ
-    return "";
+  if (!base64Data) return "";
+  let base64 = String(base64Data);
+  if (base64.indexOf(',') !== -1) {
+    base64 = base64.split(',')[1];
   }
+  base64 = base64.replace(/\s/g, ''); // ตัดช่องว่างและขึ้นบรรทัดใหม่ออก ป้องกัน base64Decode error
+  const decoded = Utilities.base64Decode(base64);
+  const blob = Utilities.newBlob(decoded, "image/jpeg", fileName); 
+  
+  let folder;
+  try {
+    folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+  } catch (fe) {
+    Logger.log("getFolderById error, fallback to root: " + fe.toString());
+    folder = DriveApp.getRootFolder();
+  }
+  
+  const file = folder.createFile(blob);
+  
+  // ลองแชร์เป็นสาธารณะ (ครอบ try-catch เพื่อไม่ให้พังหากติดนโยบายความปลอดภัยขององค์กรหรือ Shared Drive)
+  try {
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (se) {
+    Logger.log("setSharing warning: " + se.toString());
+  }
+  
+  return 'https://lh3.googleusercontent.com/d/' + file.getId();
 }
 
 // ฟังก์ชันคำนวณราคา 3 ระดับตามเงื่อนไข (ใช้กับอะไหล่)
@@ -575,8 +599,12 @@ function addProduct(data) {
   
   let imageUrl = "";
   if (data.imageBase64) {
-    const fileName = "IMG_" + data.id + "_" + new Date().getTime() + ".jpg";
-    imageUrl = uploadImageAndGetLh3Url(data.imageBase64, fileName);
+    try {
+      const fileName = "IMG_" + data.id + "_" + new Date().getTime() + ".jpg";
+      imageUrl = uploadImageAndGetLh3Url(data.imageBase64, fileName);
+    } catch (e) {
+      Logger.log("Image upload error in addProduct: " + e.toString());
+    }
   }
 
   const autoPrices = calculatePrices(data.cost);
@@ -612,8 +640,12 @@ function editProduct(data) {
   if (rowIndex > -1) {
     let imageUrl = values[rowIndex-1][9];
     if (data.imageBase64) {
-      const fileName = "IMG_" + data.id + "_" + new Date().getTime() + ".jpg";
-      imageUrl = uploadImageAndGetLh3Url(data.imageBase64, fileName);
+      try {
+        const fileName = "IMG_" + data.id + "_" + new Date().getTime() + ".jpg";
+        imageUrl = uploadImageAndGetLh3Url(data.imageBase64, fileName);
+      } catch (e) {
+        Logger.log("Image upload error in editProduct: " + e.toString());
+      }
     }
 
     const autoPrices = calculatePrices(data.cost);
@@ -690,8 +722,12 @@ function addMachine(data) {
   
   let imageUrl = '';
   if (data.imageBase64) {
-    const fileName = 'MC_' + data.id + '_' + new Date().getTime() + '.jpg';
-    imageUrl = uploadImageAndGetLh3Url(data.imageBase64, fileName);
+    try {
+      const fileName = 'MC_' + data.id + '_' + new Date().getTime() + '.jpg';
+      imageUrl = uploadImageAndGetLh3Url(data.imageBase64, fileName);
+    } catch (e) {
+      Logger.log("Image upload error in addMachine: " + e.toString());
+    }
   }
   
   sheet.appendRow([
@@ -721,8 +757,12 @@ function editMachine(data) {
     if (values[i][0] == data.id) {
       let imageUrl = values[i][2] || '';
       if (data.imageBase64) {
-        const fileName = 'MC_' + data.id + '_' + new Date().getTime() + '.jpg';
-        imageUrl = uploadImageAndGetLh3Url(data.imageBase64, fileName);
+        try {
+          const fileName = 'MC_' + data.id + '_' + new Date().getTime() + '.jpg';
+          imageUrl = uploadImageAndGetLh3Url(data.imageBase64, fileName);
+        } catch (e) {
+          Logger.log("Image upload error in editMachine: " + e.toString());
+        }
       }
       sheet.getRange(i + 1, 2, 1, 10).setValues([[
         data.name, imageUrl, data.cost, data.price_a, data.price_b, data.price_c, data.note,
@@ -2071,12 +2111,97 @@ function onOpen() {
     .addItem('💻 6. อัปโหลดไฟล์ app_data.json จากคอมพิวเตอร์ -> Firebase', 'menuUploadLocalFileToFirebase')
     .addSeparator()
     .addItem('🔄 7. ซิงค์ข้อมูลกับชีตตั้งค่า MIS', 'syncProductsWithMIS')
+    .addSeparator()
+    .addItem('🖼️ 8. แปลงรูป Base64 เป็นลิงก์ Google Drive (lh3)', 'convertBase64ImagesToDrive')
     .addToUi();
 
   // เปิดแผงควบคุมอัตโนมัติเมื่อเปิดชีต
   try {
     showSidebarControlPanel();
   } catch (e) {}
+}
+
+// ฟังก์ชันแปลงรูปภาพ Base64 ในชีต Products และ Firebase ให้กลายเป็นลิงก์ https://lh3.googleusercontent.com/d/...
+function convertBase64ImagesToDrive() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.openById(SPREADSHEET_ID);
+  const prodSheet = ss.getSheetByName("Products");
+  if (!prodSheet) {
+    ui.alert("ไม่พบชีต Products");
+    return;
+  }
+  
+  // 1. ตรวจสอบสิทธิ์ Google Drive ให้แน่ชัด
+  let folder;
+  try {
+    folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+    if (!folder) {
+      ui.alert('❌ ผิดพลาด', 'ไม่พบโฟลเดอร์ Google Drive ID: ' + DRIVE_FOLDER_ID, ui.ButtonSet.OK);
+      return;
+    }
+  } catch (err) {
+    ui.alert('❌ ต้องอนุญาตสิทธิ์ Google Drive', 'ยังไม่ได้รับสิทธิ์เข้าถึง Google Drive:\n' + err.toString() + '\n\nกรุณากดเปิดสิทธิ์เข้าถึง Drive เมื่อมีหน้าต่างขึ้นมาถาม', ui.ButtonSet.OK);
+    return;
+  }
+
+  const values = prodSheet.getDataRange().getValues();
+  let convertedCount = 0;
+  let errorList = [];
+  
+  // ดึงข้อมูล products จาก Firebase ด้วย เพื่ออัปเดตทั้งใน Google Sheets และ Firebase ให้ตรงกัน
+  let fbProducts = [];
+  try {
+    fbProducts = getFirebaseData("appData/products") || [];
+  } catch (_) {}
+
+  for (let i = 1; i < values.length; i++) {
+    const pid = String(values[i][0] || "").trim();
+    let cellImg = String(values[i][9] || "");
+    
+    // ตรวจหา index ใน Firebase
+    let fbIdx = -1;
+    if (fbProducts && Array.isArray(fbProducts)) {
+      fbIdx = fbProducts.findIndex(function(p) { return p && String(p.id).trim() === pid; });
+      if (fbIdx > -1 && fbProducts[fbIdx].image_url && String(fbProducts[fbIdx].image_url).indexOf("data:image/") === 0) {
+        cellImg = fbProducts[fbIdx].image_url;
+      }
+    }
+    
+    if (cellImg.indexOf("data:image/") === 0) {
+      try {
+        const fileName = "IMG_" + pid + "_" + new Date().getTime() + ".jpg";
+        const lh3Url = uploadImageAndGetLh3Url(cellImg, fileName);
+        if (lh3Url && lh3Url.indexOf("http") === 0) {
+          // 1. อัปเดตลง Google Sheet ทันที (คอลัมน์ 10 = J)
+          prodSheet.getRange(i + 1, 10).setValue(lh3Url);
+          
+          // 2. อัปเดตลง Firebase ทันที
+          if (fbIdx > -1) {
+            try {
+              setFirebaseData("appData/products/" + fbIdx + "/image_url", lh3Url);
+            } catch (fe) {}
+          }
+          convertedCount++;
+        } else {
+          errorList.push("รหัส " + pid + ": สร้างลิงก์ไม่สำเร็จ");
+        }
+      } catch (e) {
+        errorList.push("รหัส " + pid + ": " + e.toString());
+      }
+    }
+  }
+
+  // ซิงค์ appData/lastUpdated
+  if (convertedCount > 0) {
+    try { setFirebaseData("appData/lastUpdated", new Date().getTime()); } catch (_) {}
+    ui.alert('✅ แปลงรูปภาพสำเร็จ', 'แปลงรูปภาพ Base64 เป็นลิงก์ https://lh3.googleusercontent.com/d/... สำเร็จทั้งหมด ' + convertedCount + ' รายการ\n\nข้อมูลใน Google Sheet และ Firebase ได้รับการอัปเดตเป็นลิงก์ lh3 เรียบร้อยแล้ว', ui.ButtonSet.OK);
+  } else {
+    if (errorList.length > 0) {
+      ui.alert('⚠️ เกิดข้อผิดพลาด', 'พบปัญหาในการแปลงรูป:\n' + errorList.join('\n'), ui.ButtonSet.OK);
+    } else {
+      ui.alert('ℹ️ แจ้งเตือน', 'ไม่พบรูปภาพ Base64 ที่ต้องแปลง (รูปภาพทั้งหมดเป็นลิงก์ lh3 เรียบร้อยอยู่แล้ว)', ui.ButtonSet.OK);
+    }
+  }
 }
 
 function menuUploadLocalFileToFirebase() {
@@ -2358,28 +2483,27 @@ function getFirebaseWriteRequest(path, data) {
   };
 }
 
-function runUploadSheetsToFirebase(targets) {
-  const ui = SpreadsheetApp.getUi();
+function uploadSheetsToFirebase(targets) {
   const isSelected = (name) => targets.indexOf(name) !== -1;
   
-  try {
-    initDatabase();
-    const ss = SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.openById(SPREADSHEET_ID);
-    
-    let products = null;
-    let machines = null;
-    let settings = null;
-    let manuals = null;
-    let transactions = null;
-    let mappings = null;
-    let lots = null;
-    let users = null;
-    
-    const firebaseRequests = [];
-    
-    // 1. อ่าน Products (พร้อมระบบป้องกันรหัสซ้ำ อัตโนมัติ)
-    if (isSelected('products')) {
-      const prodSheet = ss.getSheetByName("Products");
+  initDatabase();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  
+  let products = null;
+  let machines = null;
+  let settings = null;
+  let manuals = null;
+  let transactions = null;
+  let mappings = null;
+  let lots = null;
+  let users = null;
+  
+  const firebaseRequests = [];
+  
+  // 1. อ่าน Products (พร้อมระบบป้องกันรหัสซ้ำ อัตโนมัติ)
+  if (isSelected('products')) {
+    const prodSheet = ss.getSheetByName("Products");
+    if (prodSheet) {
       const prodData = prodSheet.getDataRange().getValues();
       products = [];
       const seenProductIds = {};
@@ -2389,10 +2513,15 @@ function runUploadSheetsToFirebase(targets) {
           const pid = String(r[0] || "").trim();
           if (!pid) continue;
           
+          let imgVal = r[9] || "";
+          if (String(imgVal).indexOf("[Image") === 0) {
+            imgVal = "";
+          }
+
           const newProd = {
             id: r[0], name: r[1], unit: r[2], cost: parseFloat(r[3]) || 0,
             price_a: parseFloat(r[4]) || 0, price_b: parseFloat(r[5]) || 0, price_c: parseFloat(r[6]) || 0,
-            category: r[7], note: r[8], image_url: r[9],
+            category: r[7], note: r[8], image_url: imgVal,
             stock_qty: (r[10] !== undefined && r[10] !== "") ? parseFloat(r[10]) : 0,
             group: r[11] || "", supplier: r[12] || "", storage: r[13] || ""
           };
@@ -2411,10 +2540,12 @@ function runUploadSheetsToFirebase(targets) {
       }
       firebaseRequests.push(getFirebaseWriteRequest("appData/products", products));
     }
-    
-    // 2. อ่าน Machines
-    if (isSelected('machines')) {
-      const machSheet = ss.getSheetByName("Machines");
+  }
+  
+  // 2. อ่าน Machines
+  if (isSelected('machines')) {
+    const machSheet = ss.getSheetByName("Machines");
+    if (machSheet) {
       const machData = machSheet.getDataRange().getValues();
       machines = [];
       if (machData.length > 1) {
@@ -2429,153 +2560,162 @@ function runUploadSheetsToFirebase(targets) {
       }
       firebaseRequests.push(getFirebaseWriteRequest("appData/machines", machines));
     }
-    
-    // 3. อ่าน Settings
-    if (isSelected('settings')) {
-      const settingsSheet = ss.getSheetByName("Settings");
-      settings = { isShowPriceBForGuest: false, isShowPriceCForGuest: false };
-      if (settingsSheet) {
-        const settingsData = settingsSheet.getDataRange().getValues();
-        if (settingsData.length > 1) {
-          for (let i = 1; i < settingsData.length; i++) {
-            let key = settingsData[i][0];
-            let val = settingsData[i][1];
-            if (key === "isShowPriceBForGuest") settings.isShowPriceBForGuest = (String(val).toLowerCase() === "true");
-            if (key === "isShowPriceCForGuest") settings.isShowPriceCForGuest = (String(val).toLowerCase() === "true");
-          }
+  }
+  
+  // 3. อ่าน Settings
+  if (isSelected('settings')) {
+    const settingsSheet = ss.getSheetByName("Settings");
+    settings = { isShowPriceBForGuest: false, isShowPriceCForGuest: false };
+    if (settingsSheet) {
+      const settingsData = settingsSheet.getDataRange().getValues();
+      if (settingsData.length > 1) {
+        for (let i = 1; i < settingsData.length; i++) {
+          let key = settingsData[i][0];
+          let val = settingsData[i][1];
+          if (key === "isShowPriceBForGuest") settings.isShowPriceBForGuest = (String(val).toLowerCase() === "true");
+          if (key === "isShowPriceCForGuest") settings.isShowPriceCForGuest = (String(val).toLowerCase() === "true");
         }
       }
-      firebaseRequests.push(getFirebaseWriteRequest("appData/settings", settings));
     }
-    
-    // 4. อ่าน Manuals
-    if (isSelected('manuals')) {
-      const manSheet = ss.getSheetByName("Manuals");
-      manuals = [];
-      if (manSheet) {
-        const manData = manSheet.getDataRange().getValues();
-        if (manData.length > 1) {
-          for (let i = 1; i < manData.length; i++) {
-            manuals.push({
-              id: manData[i][0], title: manData[i][1], description: manData[i][2] || '',
-              file_url: manData[i][3] || '', file_type: manData[i][4] || '', uploaded_at: manData[i][5] || ''
-            });
-          }
+    firebaseRequests.push(getFirebaseWriteRequest("appData/settings", settings));
+  }
+  
+  // 4. อ่าน Manuals
+  if (isSelected('manuals')) {
+    const manSheet = ss.getSheetByName("Manuals");
+    manuals = [];
+    if (manSheet) {
+      const manData = manSheet.getDataRange().getValues();
+      if (manData.length > 1) {
+        for (let i = 1; i < manData.length; i++) {
+          manuals.push({
+            id: manData[i][0], title: manData[i][1], description: manData[i][2] || '',
+            file_url: manData[i][3] || '', file_type: manData[i][4] || '', uploaded_at: manData[i][5] || ''
+          });
         }
       }
-      firebaseRequests.push(getFirebaseWriteRequest("appData/manuals", manuals));
     }
-    
-    // 5. อ่าน Transactions จาก Sheet
-    if (isSelected('transactions')) {
-      const txSheet = ss.getSheetByName("Transactions");
-      if (txSheet) {
-        const txData = txSheet.getDataRange().getValues();
-        transactions = [];
-        if (txData.length > 1) {
-          for (let i = 1; i < txData.length; i++) {
-            let items = [];
-            try {
-              items = JSON.parse(txData[i][22] || txData[i][9] || "[]");
-            } catch(e) {}
-            transactions.push({
-              id: txData[i][0], requester: txData[i][1], department: txData[i][2],
-              approver: txData[i][3] || "", approver_email: txData[i][4] || "",
-              customer_type: txData[i][5] || "", price_tier: txData[i][6] || "",
-              machine_model: txData[i][7] || "", repair_level: txData[i][8] || "",
-              labor_cost: parseFloat(txData[i][9]) || 0, parts_total: parseFloat(txData[i][10]) || 0,
-              machine_id: txData[i][11] || "", serial_number: txData[i][12] || "",
-              total_price: parseFloat(txData[i][13]) || 0, note: txData[i][14] || "",
-              job_details: txData[i][15] || "", created_at: String(txData[i][16] || ""),
-              status: txData[i][17] || "Success", approval_status: txData[i][18] || "Pending",
-              approval_date: txData[i][19] || "", approval_by: txData[i][20] || "",
-              approval_note: txData[i][21] || "", items: items
-            });
-          }
+    firebaseRequests.push(getFirebaseWriteRequest("appData/manuals", manuals));
+  }
+  
+  // 5. อ่าน Transactions จาก Sheet
+  if (isSelected('transactions')) {
+    const txSheet = ss.getSheetByName("Transactions");
+    if (txSheet) {
+      const txData = txSheet.getDataRange().getValues();
+      transactions = [];
+      if (txData.length > 1) {
+        for (let i = 1; i < txData.length; i++) {
+          let items = [];
+          try {
+            items = JSON.parse(txData[i][22] || txData[i][9] || "[]");
+          } catch(e) {}
+          transactions.push({
+            id: txData[i][0], requester: txData[i][1], department: txData[i][2],
+            approver: txData[i][3] || "", approver_email: txData[i][4] || "",
+            customer_type: txData[i][5] || "", price_tier: txData[i][6] || "",
+            machine_model: txData[i][7] || "", repair_level: txData[i][8] || "",
+            labor_cost: parseFloat(txData[i][9]) || 0, parts_total: parseFloat(txData[i][10]) || 0,
+            machine_id: txData[i][11] || "", serial_number: txData[i][12] || "",
+            total_price: parseFloat(txData[i][13]) || 0, note: txData[i][14] || "",
+            job_details: txData[i][15] || "", created_at: String(txData[i][16] || ""),
+            status: txData[i][17] || "Success", approval_status: txData[i][18] || "Pending",
+            approval_date: txData[i][19] || "", approval_by: txData[i][20] || "",
+            approval_note: txData[i][21] || "", items: items
+          });
         }
       }
       firebaseRequests.push(getFirebaseWriteRequest("transactions", transactions));
     }
+  }
 
-    // 6. อ่าน Mappings จาก Sheet
-    if (isSelected('mappings')) {
-      const mapSheet = ss.getSheetByName("Mappings");
-      if (mapSheet) {
-        const mapData = mapSheet.getDataRange().getValues();
-        mappings = [];
-        if (mapData.length > 1) {
-          for (let i = 1; i < mapData.length; i++) {
-            mappings.push({
-              product_id: String(mapData[i][0]).trim(),
-              machine_id: String(mapData[i][1]).trim()
-            });
-          }
+  // 6. อ่าน Mappings จาก Sheet
+  if (isSelected('mappings')) {
+    const mapSheet = ss.getSheetByName("Mappings");
+    if (mapSheet) {
+      const mapData = mapSheet.getDataRange().getValues();
+      mappings = [];
+      if (mapData.length > 1) {
+        for (let i = 1; i < mapData.length; i++) {
+          mappings.push({
+            product_id: String(mapData[i][0]).trim(),
+            machine_id: String(mapData[i][1]).trim()
+          });
         }
       }
       firebaseRequests.push(getFirebaseWriteRequest("mappings", mappings));
     }
+  }
 
-    // 7. อ่าน Lots จาก Sheet
-    if (isSelected('lots')) {
-      const lotsSheet = ss.getSheetByName("Lots");
-      if (lotsSheet) {
-        const lotsData = lotsSheet.getDataRange().getValues();
-        lots = [];
-        if (lotsData.length > 1) {
-          for (let i = 1; i < lotsData.length; i++) {
-            lots.push({
-              lot_id: String(lotsData[i][0]).trim(),
-              product_id: String(lotsData[i][1]).trim(),
-              cost: parseFloat(lotsData[i][2]) || 0,
-              price_a: parseFloat(lotsData[i][3]) || 0,
-              price_b: parseFloat(lotsData[i][4]) || 0,
-              price_c: parseFloat(lotsData[i][5]) || 0,
-              initial_qty: parseFloat(lotsData[i][6]) || 0,
-              remaining_qty: parseFloat(lotsData[i][7]) || 0,
-              created_at: String(lotsData[i][8]),
-              note: String(lotsData[i][9])
-            });
-          }
+  // 7. อ่าน Lots จาก Sheet
+  if (isSelected('lots')) {
+    const lotsSheet = ss.getSheetByName("Lots");
+    if (lotsSheet) {
+      const lotsData = lotsSheet.getDataRange().getValues();
+      lots = [];
+      if (lotsData.length > 1) {
+        for (let i = 1; i < lotsData.length; i++) {
+          lots.push({
+            lot_id: String(lotsData[i][0]).trim(),
+            product_id: String(lotsData[i][1]).trim(),
+            cost: parseFloat(lotsData[i][2]) || 0,
+            price_a: parseFloat(lotsData[i][3]) || 0,
+            price_b: parseFloat(lotsData[i][4]) || 0,
+            price_c: parseFloat(lotsData[i][5]) || 0,
+            initial_qty: parseFloat(lotsData[i][6]) || 0,
+            remaining_qty: parseFloat(lotsData[i][7]) || 0,
+            created_at: String(lotsData[i][8]),
+            note: String(lotsData[i][9])
+          });
         }
       }
       firebaseRequests.push(getFirebaseWriteRequest("lots", lots));
     }
+  }
 
-    // 8. อ่าน Users จาก Sheet
-    if (isSelected('users')) {
-      const usersSheet = ss.getSheetByName("Users");
-      if (usersSheet) {
-        const usersData = usersSheet.getDataRange().getValues();
-        users = [];
-        if (usersData.length > 1) {
-          for (let i = 1; i < usersData.length; i++) {
-            users.push({
-              fullName: String(usersData[i][0]).trim(),
-              department: String(usersData[i][1]).trim(),
-              phone: String(usersData[i][2]).trim(),
-              email: String(usersData[i][3]).trim().toLowerCase(),
-              passwordHash: String(usersData[i][4]).trim(),
-              role: String(usersData[i][5]).trim() || "user",
-              priceLevel: String(usersData[i][6]).trim() || "A",
-              userType: String(usersData[i][7]).trim() || "insource",
-              canApprove: usersData[i][8] !== undefined ? (String(usersData[i][8]).toLowerCase() === "true" || usersData[i][8] === true) : false
-            });
-          }
+  // 8. อ่าน Users จาก Sheet
+  if (isSelected('users')) {
+    const usersSheet = ss.getSheetByName("Users");
+    if (usersSheet) {
+      const usersData = usersSheet.getDataRange().getValues();
+      users = [];
+      if (usersData.length > 1) {
+        for (let i = 1; i < usersData.length; i++) {
+          users.push({
+            fullName: String(usersData[i][0]).trim(),
+            department: String(usersData[i][1]).trim(),
+            phone: String(usersData[i][2]).trim(),
+            email: String(usersData[i][3]).trim().toLowerCase(),
+            passwordHash: String(usersData[i][4]).trim(),
+            role: String(usersData[i][5]).trim() || "user",
+            priceLevel: String(usersData[i][6]).trim() || "A",
+            userType: String(usersData[i][7]).trim() || "insource",
+            canApprove: usersData[i][8] !== undefined ? (String(usersData[i][8]).toLowerCase() === "true" || usersData[i][8] === true) : false
+          });
         }
       }
       firebaseRequests.push(getFirebaseWriteRequest("users", users));
     }
+  }
 
-    // ยิงคำขอเขียนลง Firebase พร้อมกันทั้งหมดในรอบเดียว
-    if (firebaseRequests.length > 0) {
-      const responses = UrlFetchApp.fetchAll(firebaseRequests);
-      for (let i = 0; i < responses.length; i++) {
-        if (responses[i].getResponseCode() !== 200) {
-          throw new Error("Failed to write to Firebase: " + responses[i].getContentText());
-        }
+  // ยิงคำขอเขียนลง Firebase พร้อมกันทั้งหมดในรอบเดียว
+  if (firebaseRequests.length > 0) {
+    firebaseRequests.push(getFirebaseWriteRequest("appData/lastUpdated", new Date().getTime()));
+    const responses = UrlFetchApp.fetchAll(firebaseRequests);
+    for (let i = 0; i < responses.length; i++) {
+      if (responses[i].getResponseCode() !== 200) {
+        throw new Error("Failed to write to Firebase: " + responses[i].getContentText());
       }
     }
-    
+  }
+  
+  return { status: 'success', targets: targets };
+}
+
+function runUploadSheetsToFirebase(targets) {
+  const ui = SpreadsheetApp.getUi();
+  try {
+    uploadSheetsToFirebase(targets);
     ui.alert('✅ สำเร็จ', 'อัปโหลดข้อมูลจาก Google Sheet ขึ้น Firebase เรียบร้อยแล้ว', ui.ButtonSet.OK);
   } catch (e) {
     ui.alert('❌ ผิดพลาด', 'เกิดข้อผิดพลาดในการอัปโหลด: ' + e.toString(), ui.ButtonSet.OK);
@@ -2765,6 +2905,36 @@ function backupFirebaseToSheets(payload) {
   const isSelected = (name) => targets.indexOf(name) !== -1;
   const ss = SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.openById(SPREADSHEET_ID);
   
+  // Helper ฟังก์ชันป้องกันข้อมูลเกิน 50,000 ตัวอักษรต่อเซลล์ (ขีดจำกัดสูงสุดของ Google Sheets)
+  const safeCell = function(val, maxLen) {
+    if (val === undefined || val === null) return "";
+    const str = String(val);
+    const limit = maxLen || 45000;
+    return str.length > limit ? str.substring(0, limit) : val;
+  };
+
+  // Helper ฟังก์ชันแปลงรูป Base64 เป็นลิงก์ Google Drive (lh3) และป้องกันเซลล์ล้น
+  const processImage = function(imgVal, prefix, id, fbPath) {
+    if (!imgVal) return "";
+    let str = String(imgVal);
+    if (str.indexOf("data:image/") === 0) {
+      try {
+        const fileName = prefix + "_" + id + "_" + new Date().getTime() + ".jpg";
+        const uploadedUrl = uploadImageAndGetLh3Url(str, fileName);
+        if (uploadedUrl) {
+          if (fbPath) {
+            try { setFirebaseData(fbPath, uploadedUrl); } catch (_) {}
+          }
+          return uploadedUrl;
+        }
+      } catch (_) {}
+      // ถ้าอัปโหลดขึ้น Drive ไม่สำเร็จ ให้ตรวจสอบขนาด ถ้าไม่เกิน 45,000 ตัวอักษรยังเขียนลงเซลล์ได้
+      if (str.length <= 45000) return str;
+      return "[Image Base64 Exceeds Limit]";
+    }
+    return safeCell(str, 45000);
+  };
+
   // 1. Products Sheet
   if (isSelected('products')) {
     const products = getFirebaseData("appData/products") || [];
@@ -2772,10 +2942,11 @@ function backupFirebaseToSheets(payload) {
     if (prodSheet) {
       prodSheet.clearContents();
       const rows = [["Product_ID", "Product_Name", "Unit", "Cost", "Price_A", "Price_B", "Price_C", "Category", "Note", "Image_URL", "Stock_Qty", "Product_Group", "Supplier", "Storage_Area"]];
-      products.forEach(p => {
+      products.forEach(function(p, idx) {
+        const imgVal = processImage(p.image_url, "IMG", p.id, "appData/products/" + idx + "/image_url");
         rows.push([
-          p.id, p.name, p.unit, p.cost, p.price_a, p.price_b, p.price_c,
-          p.category, p.note, p.image_url, p.stock_qty, p.group || "", p.supplier || "", p.storage || ""
+          p.id, safeCell(p.name, 1000), p.unit, p.cost, p.price_a, p.price_b, p.price_c,
+          p.category, safeCell(p.note, 45000), imgVal, p.stock_qty, p.group || "", p.supplier || "", p.storage || ""
         ]);
       });
       prodSheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
@@ -2789,9 +2960,10 @@ function backupFirebaseToSheets(payload) {
     if (machSheet) {
       machSheet.clearContents();
       const rows = [["Machine_ID", "Machine_Name", "Image_URL", "Cost", "Price_A", "Price_B", "Price_C", "Note", "Machine_Group", "Supplier", "Storage_Area"]];
-      machines.forEach(m => {
+      machines.forEach(function(m, idx) {
+        const imgVal = processImage(m.image_url, "IMG_MACH", m.id, "appData/machines/" + idx + "/image_url");
         rows.push([
-          m.id, m.name, m.image_url || "", m.cost || 0, m.price_a || 0, m.price_b || 0, m.price_c || 0, m.note || "",
+          m.id, safeCell(m.name, 1000), imgVal, m.cost || 0, m.price_a || 0, m.price_b || 0, m.price_c || 0, safeCell(m.note, 45000),
           m.group || "", m.supplier || "", m.storage || ""
         ]);
       });
@@ -2821,9 +2993,9 @@ function backupFirebaseToSheets(payload) {
     if (manSheet) {
       manSheet.clearContents();
       const rows = [["Manual_ID", "Title", "Description", "File_URL", "File_Type", "Uploaded_At"]];
-      manuals.forEach(m => {
+      manuals.forEach(function(m) {
         rows.push([
-          m.id, m.title, m.description || "", m.file_url || "", m.file_type || "", m.uploaded_at || ""
+          m.id, safeCell(m.title, 1000), safeCell(m.description || "", 45000), safeCell(m.file_url || "", 45000), m.file_type || "", m.uploaded_at || ""
         ]);
       });
       manSheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
@@ -2837,14 +3009,15 @@ function backupFirebaseToSheets(payload) {
     if (txSheet) {
       txSheet.clearContents();
       const rows = [["Transaction_ID", "Requester", "Department", "Approver", "Approver_Email", "Customer_Type", "Price_Tier", "Machine_Model", "Repair_Level", "Labor_Cost", "Parts_Total", "Machine_ID", "Serial_Number", "Total_Price", "Note", "Job_Details", "Created_At", "Status", "Approval_Status", "Approval_Date", "Approval_By", "Approval_Note", "Items_JSON"]];
-      transactions.forEach(t => {
+      transactions.forEach(function(t) {
+        const itemsJson = safeCell(JSON.stringify(t.items || []), 45000);
         rows.push([
           t.id, t.requester, t.department, t.approver || "", t.approver_email || "",
           t.customer_type || "", t.price_tier || "", t.machine_model || "", t.repair_level || "",
           t.labor_cost || 0, t.parts_total || 0, t.machine_id || "", t.serial_number || "",
-          t.total_price || 0, t.note || "", t.job_details || "", t.created_at || t.date || "",
+          t.total_price || 0, safeCell(t.note || "", 45000), safeCell(t.job_details || "", 45000), t.created_at || t.date || "",
           t.status || "Success", t.approval_status || "Pending", t.approval_date || "",
-          t.approval_by || "", t.approval_note || "", JSON.stringify(t.items || [])
+          t.approval_by || "", safeCell(t.approval_note || "", 45000), itemsJson
         ]);
       });
       txSheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
@@ -2858,7 +3031,7 @@ function backupFirebaseToSheets(payload) {
     if (mapSheet) {
       mapSheet.clearContents();
       const rows = [["Product_ID", "Machine_ID"]];
-      mappings.forEach(m => {
+      mappings.forEach(function(m) {
         rows.push([m.product_id, m.machine_id]);
       });
       mapSheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
@@ -2872,10 +3045,10 @@ function backupFirebaseToSheets(payload) {
     if (lotsSheet) {
       lotsSheet.clearContents();
       const rows = [["Lot_ID", "Product_ID", "Cost", "Price_A", "Price_B", "Price_C", "Initial_Qty", "Remaining_Qty", "Created_At", "Note"]];
-      lots.forEach(l => {
+      lots.forEach(function(l) {
         rows.push([
           l.lot_id, l.product_id, l.cost || 0, l.price_a || 0, l.price_b || 0, l.price_c || 0,
-          l.initial_qty || 0, l.remaining_qty || 0, l.created_at || "", l.note || ""
+          l.initial_qty || 0, l.remaining_qty || 0, l.created_at || "", safeCell(l.note || "", 45000)
         ]);
       });
       lotsSheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
@@ -2889,7 +3062,7 @@ function backupFirebaseToSheets(payload) {
     if (usersSheet) {
       usersSheet.clearContents();
       const rows = [["Full_Name", "Department", "Phone", "Email", "Password_Hash", "Role", "Price_Level", "User_Type", "Can_Approve"]];
-      users.forEach(u => {
+      users.forEach(function(u) {
         rows.push([
           u.fullName, u.department, u.phone || "", u.email, u.passwordHash, u.role || "user", u.priceLevel || "A", u.userType || "insource", u.canApprove ? "true" : "false"
         ]);
