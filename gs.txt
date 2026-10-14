@@ -4,7 +4,15 @@ const DRIVE_FOLDER_ID = '1d_Dt0hc52WFN_lqh2lO7iqSHWAqkTy83';
 const JSON_FOLDER_ID = '1d_Dt0hc52WFN_lqh2lO7iqSHWAqkTy83';
 const FIREBASE_URL = 'https://pricelist-qcm-default-rtdb.asia-southeast1.firebasedatabase.app/';
 const FIREBASE_SECRET = ''; // ใส่ Database Secret หากมีการล็อกสิทธิ์เขียนไว้ (ถ้าตั้ง Rules เป็น .write: true ไม่ต้องใส่)
-// กำหนด Sheet ID และ Drive Folder ID
+
+// ฟังก์ชันสำหรับกด "เรียกใช้" (Run) ใน Apps Script เพื่อขออนุญาตสิทธิ์ Google Drive และ Sheets
+function authorizeDrive() {
+  const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+  Logger.log("สิทธิ์ Google Drive พร้อมใช้งาน: เข้าถึงโฟลเดอร์ " + folder.getName());
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  Logger.log("สิทธิ์ Google Sheets พร้อมใช้งาน: เข้าถึงชีต " + ss.getName());
+}
+
 // ฟังก์ชันเมื่อมีการเรียกหน้าเว็บโดยตรง
 function doGet(e) {
   if (e.parameter.action === 'getAppData') {
@@ -31,7 +39,7 @@ function doPost(e) {
       response.message = 'เพิ่มอะไหล่สำเร็จ';
     }
     else if (action === 'editProduct') {
-      editProduct(payload);
+      response.data = editProduct(payload);
       response.message = 'แก้ไขอะไหล่สำเร็จ';
     }
     else if (action === 'deleteProduct') {
@@ -39,11 +47,11 @@ function doPost(e) {
       response.message = 'ลบอะไหล่สำเร็จ';
     }
     else if (action === 'addMachine') {
-      addMachine(payload);
+      response.data = addMachine(payload);
       response.message = 'เพิ่มเครื่องจักรสำเร็จ';
     }
     else if (action === 'editMachine') {
-      editMachine(payload);
+      response.data = editMachine(payload);
       response.message = 'แก้ไขเครื่องจักรสำเร็จ';
     }
     else if (action === 'deleteMachine') {
@@ -530,7 +538,9 @@ function uploadImageAndGetLh3Url(base64Data, fileName) {
     
     return 'https://lh3.googleusercontent.com/d/' + file.getId();
   } catch (e) {
-    throw new Error("อัปโหลดรูปภาพล้มเหลว: " + e.message);
+    Logger.log("uploadImageAndGetLh3Url error: " + e.toString());
+    // หากติดสิทธิ์ DriveApp หรือพื้นที่เต็ม ให้คืนค่าว่างเพื่อไม่ให้หยุดการทำงานของระบบ
+    return "";
   }
 }
 
@@ -548,6 +558,20 @@ function calculatePrices(cost) {
 function addProduct(data) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName("Products");
+  
+  const targetId = String(data.id || "").trim();
+  if (!targetId) {
+    throw new Error("กรุณาระบุรหัสสินค้า");
+  }
+  
+  // ตรวจสอบรหัสสินค้าซ้ำก่อนบันทึก
+  const dataRange = sheet.getDataRange();
+  const values = dataRange.getValues();
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]).trim().toLowerCase() === targetId.toLowerCase()) {
+      throw new Error("รหัสสินค้า " + targetId + " มีอยู่ในระบบแล้ว ไม่สามารถเพิ่มซ้ำได้");
+    }
+  }
   
   let imageUrl = "";
   if (data.imageBase64) {
@@ -606,6 +630,33 @@ function editProduct(data) {
       stockQty,
       data.group || "", data.supplier || "", data.storage || ""
     ]]);
+
+    // ซิงค์ส่งต่อ Firebase ทันทีหากเชื่อมต่ออยู่
+    try {
+      const fbProducts = getFirebaseData("appData/products") || [];
+      const pIdx = fbProducts.findIndex(function(p) { return p && String(p.id).trim() === String(data.id).trim(); });
+      if (pIdx > -1) {
+        fbProducts[pIdx].name = data.name;
+        fbProducts[pIdx].unit = data.unit;
+        fbProducts[pIdx].cost = parseFloat(data.cost) || 0;
+        fbProducts[pIdx].price_a = pA;
+        fbProducts[pIdx].price_b = pB;
+        fbProducts[pIdx].price_c = pC;
+        fbProducts[pIdx].category = data.category;
+        fbProducts[pIdx].note = data.note;
+        if (imageUrl) fbProducts[pIdx].image_url = imageUrl;
+        fbProducts[pIdx].stock_qty = stockQty;
+        fbProducts[pIdx].group = data.group || "";
+        fbProducts[pIdx].supplier = data.supplier || "";
+        fbProducts[pIdx].storage = data.storage || "";
+        setFirebaseData("appData/products/" + pIdx, fbProducts[pIdx]);
+        setFirebaseData("appData/lastUpdated", new Date().getTime());
+      }
+    } catch(fbErr) {
+      Logger.log("Firebase sync in editProduct warning: " + fbErr.toString());
+    }
+
+    return { image_url: imageUrl };
   } else {
     throw new Error("ไม่พบรหัสสินค้าที่ต้องการแก้ไข");
   }
@@ -1838,7 +1889,6 @@ function restockProduct(payload) {
     
     // บันทึกประวัติการเติมสต็อกลงใน transactions.json
     let transactions = getTransactionsFromJson();
-    let counter = 1;
     
     const existingIds = {};
     let maxCounter = 0;
@@ -2327,21 +2377,36 @@ function runUploadSheetsToFirebase(targets) {
     
     const firebaseRequests = [];
     
-    // 1. อ่าน Products
+    // 1. อ่าน Products (พร้อมระบบป้องกันรหัสซ้ำ อัตโนมัติ)
     if (isSelected('products')) {
       const prodSheet = ss.getSheetByName("Products");
       const prodData = prodSheet.getDataRange().getValues();
       products = [];
+      const seenProductIds = {};
       if (prodData.length > 1) {
         for (let i = 1; i < prodData.length; i++) {
           let r = prodData[i];
-          products.push({
+          const pid = String(r[0] || "").trim();
+          if (!pid) continue;
+          
+          const newProd = {
             id: r[0], name: r[1], unit: r[2], cost: parseFloat(r[3]) || 0,
             price_a: parseFloat(r[4]) || 0, price_b: parseFloat(r[5]) || 0, price_c: parseFloat(r[6]) || 0,
             category: r[7], note: r[8], image_url: r[9],
             stock_qty: (r[10] !== undefined && r[10] !== "") ? parseFloat(r[10]) : 0,
             group: r[11] || "", supplier: r[12] || "", storage: r[13] || ""
-          });
+          };
+          
+          if (seenProductIds[pid] !== undefined) {
+            // หากมีรหัสซ้ำ ให้เลือกเก็บรายการที่มีรูปภาพ หรือข้อมูลที่สมบูรณ์กว่าไว้
+            const existingIdx = seenProductIds[pid];
+            if (!products[existingIdx].image_url && newProd.image_url) {
+              products[existingIdx] = newProd;
+            }
+          } else {
+            seenProductIds[pid] = products.length;
+            products.push(newProd);
+          }
         }
       }
       firebaseRequests.push(getFirebaseWriteRequest("appData/products", products));

@@ -282,6 +282,9 @@ let transactions = [];
             if (viewId === 'view-approval') {
                 initApprovalView();
             }
+            if (viewId === 'view-mapping') {
+                if (typeof initMappingView === 'function') initMappingView();
+            }
             if (viewId === 'view-manual') {
                 initManualView();
             }
@@ -1572,7 +1575,13 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
             renderMachineTable();
             renderEditProductTable();
             renderRestockTable();
-            initMappingView(); 
+            if (typeof filterMapMachines === 'function') {
+                if (currentSelectedMachineForMapping) {
+                    filterMapProducts();
+                } else {
+                    filterMapMachines();
+                }
+            } 
             renderMappingTable();
             renderPublicManualsTable();
             renderManageManualsTable();
@@ -1659,8 +1668,12 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
 // ==========================================
 
 const BYPASS_ACTIONS = [
+    'addProduct',
     'editProduct',
+    'deleteProduct',
+    'addMachine',
     'editMachine',
+    'deleteMachine',
     'editManual',
     'getTransactions',
     'checkoutOrder',
@@ -1684,7 +1697,24 @@ const BYPASS_ACTIONS = [
 async function handleActionDirectlyOnFirebase(action, payload) {
     try {
         switch (action) {
+            case 'addProduct':
+                const newProdData = await executeDirectAddProduct(payload);
+                return { status: 'success', data: newProdData, message: 'เพิ่มอะไหล่สำเร็จ' };
             case 'editProduct':
+                await executeDirectEditProduct(payload);
+                return { status: 'success', message: 'บันทึกแก้ไขสินค้าสำเร็จ' };
+            case 'deleteProduct':
+                await executeDirectDeleteProduct(payload);
+                return { status: 'success', message: 'ลบอะไหล่สำเร็จ' };
+            case 'addMachine':
+                const newMachData = await executeDirectAddMachine(payload);
+                return { status: 'success', data: newMachData, message: 'เพิ่มเครื่องจักรสำเร็จ' };
+            case 'editMachine':
+                await executeDirectEditMachine(payload);
+                return { status: 'success', message: 'บันทึกแก้ไขเครื่องจักรสำเร็จ' };
+            case 'deleteMachine':
+                await executeDirectDeleteMachine(payload);
+                return { status: 'success', message: 'ลบเครื่องจักรสำเร็จ' };
                 await executeDirectEditProduct(payload);
                 return { status: 'success', message: 'บันทึกแก้ไขสินค้าสำเร็จ' };
             case 'editMachine':
@@ -1756,6 +1786,163 @@ async function executeDirectGetTransactions() {
     return transactionsCache;
 }
 
+
+async function executeDirectAddProduct(payload) {
+    const pId = String(payload.id || "").trim();
+    if (!pId) throw new Error("กรุณาระบุรหัสสินค้า");
+    
+    let products = (db && Array.isArray(db.products) && db.products.length > 0) ? db.products : [];
+    if (products.length === 0) {
+        const snap = await firebase.database().ref('appData/products').get();
+        products = ensureArray(snap.val());
+    }
+    
+    if (products.some(p => p && String(p.id).trim().toLowerCase() === pId.toLowerCase())) {
+        throw new Error("รหัสสินค้า " + pId + " มีอยู่ในระบบแล้ว");
+    }
+    
+    const cost = parseFloat(payload.cost) || 0;
+    const pA = parseFloat(payload.price_a) > 0 ? parseFloat(payload.price_a) : Math.ceil(cost * 2.1);
+    const pB = parseFloat(payload.price_b) > 0 ? parseFloat(payload.price_b) : Math.ceil(cost * 1.7);
+    const pC = parseFloat(payload.price_c) > 0 ? parseFloat(payload.price_c) : Math.ceil(cost * 1.3);
+    const stockQty = parseFloat(payload.stock_qty) || 0;
+    const imgUrl = payload.image_url || payload.imageBase64 || "";
+
+    const newProd = {
+        id: payload.id, name: payload.name || "", unit: payload.unit || "", cost: cost,
+        price_a: pA, price_b: pB, price_c: pC,
+        category: payload.category || "", note: payload.note || "", image_url: imgUrl,
+        stock_qty: stockQty, group: payload.group || "", supplier: payload.supplier || "", storage: payload.storage || ""
+    };
+
+    const nextIdx = products.length;
+    await firebase.database().ref('appData/products/' + nextIdx).set(newProd);
+    await firebase.database().ref('appData/lastUpdated').set(Date.now());
+    products.push(newProd);
+    db.products = products;
+    invalidateLocalCache();
+
+    if (typeof API_URL !== 'undefined' && API_URL) {
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'addProduct', payload: payload })
+        }).catch(e => console.warn('[Background Sync] Apps Script addProduct warning:', e));
+    }
+    return newProd;
+}
+
+async function executeDirectDeleteProduct(payload) {
+    const pId = String(payload.id || payload.product_id || "").trim();
+    if (!pId) throw new Error("กรุณาระบุรหัสสินค้าที่ต้องการลบ");
+    
+    let products = (db && Array.isArray(db.products) && db.products.length > 0) ? db.products : [];
+    if (products.length === 0) {
+        const snap = await firebase.database().ref('appData/products').get();
+        products = ensureArray(snap.val());
+    }
+    
+    const idx = products.findIndex(p => p && String(p.id).trim() === pId);
+    if (idx === -1) throw new Error("ไม่พบรหัสสินค้าที่ต้องการลบ");
+    
+    products.splice(idx, 1);
+    await firebase.database().ref('appData/products').set(products);
+    await firebase.database().ref('appData/lastUpdated').set(Date.now());
+    db.products = products;
+    invalidateLocalCache();
+
+    // ลบการจับคู่เครื่องจักรที่เกี่ยวข้อง
+    let mappings = (db && Array.isArray(db.mappings)) ? db.mappings : [];
+    const origMapLen = mappings.length;
+    mappings = mappings.filter(m => m && String(m.product_id).trim() !== pId);
+    if (mappings.length !== origMapLen) {
+        await firebase.database().ref('mappings').set(mappings);
+        db.mappings = mappings;
+    }
+
+    if (typeof API_URL !== 'undefined' && API_URL) {
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'deleteProduct', payload: { id: pId } })
+        }).catch(e => console.warn('[Background Sync] Apps Script deleteProduct warning:', e));
+    }
+}
+
+async function executeDirectAddMachine(payload) {
+    const mId = String(payload.id || "").trim();
+    if (!mId) throw new Error("กรุณาระบุรหัสเครื่องจักร");
+    
+    let machines = (db && Array.isArray(db.machines) && db.machines.length > 0) ? db.machines : [];
+    if (machines.length === 0) {
+        const snap = await firebase.database().ref('appData/machines').get();
+        machines = ensureArray(snap.val());
+    }
+    
+    if (machines.some(m => m && String(m.id).trim().toLowerCase() === mId.toLowerCase())) {
+        throw new Error("รหัสเครื่องจักร " + mId + " มีอยู่ในระบบแล้ว");
+    }
+    
+    const imgUrl = payload.image_url || payload.imageBase64 || "";
+    const newMach = {
+        id: payload.id, name: payload.name || "", image_url: imgUrl,
+        cost: parseFloat(payload.cost) || 0,
+        price_a: parseFloat(payload.price_a) || 0,
+        price_b: parseFloat(payload.price_b) || 0,
+        price_c: parseFloat(payload.price_c) || 0,
+        note: payload.note || "", group: payload.group || "", supplier: payload.supplier || "", storage: payload.storage || ""
+    };
+
+    const nextIdx = machines.length;
+    await firebase.database().ref('appData/machines/' + nextIdx).set(newMach);
+    await firebase.database().ref('appData/lastUpdated').set(Date.now());
+    machines.push(newMach);
+    db.machines = machines;
+    invalidateLocalCache();
+
+    if (typeof API_URL !== 'undefined' && API_URL) {
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'addMachine', payload: payload })
+        }).catch(e => console.warn('[Background Sync] Apps Script addMachine warning:', e));
+    }
+    return newMach;
+}
+
+async function executeDirectDeleteMachine(payload) {
+    const mId = String(payload.id || payload.machine_id || "").trim();
+    if (!mId) throw new Error("กรุณาระบุรหัสเครื่องจักรที่ต้องการลบ");
+    
+    let machines = (db && Array.isArray(db.machines) && db.machines.length > 0) ? db.machines : [];
+    if (machines.length === 0) {
+        const snap = await firebase.database().ref('appData/machines').get();
+        machines = ensureArray(snap.val());
+    }
+    
+    const idx = machines.findIndex(m => m && String(m.id).trim() === mId);
+    if (idx === -1) throw new Error("ไม่พบเครื่องจักรที่ต้องการลบ");
+    
+    machines.splice(idx, 1);
+    await firebase.database().ref('appData/machines').set(machines);
+    await firebase.database().ref('appData/lastUpdated').set(Date.now());
+    db.machines = machines;
+    invalidateLocalCache();
+
+    // ลบการจับคู่อะไหล่ที่เกี่ยวข้อง
+    let mappings = (db && Array.isArray(db.mappings)) ? db.mappings : [];
+    const origMapLen = mappings.length;
+    mappings = mappings.filter(m => m && String(m.machine_id).trim() !== mId);
+    if (mappings.length !== origMapLen) {
+        await firebase.database().ref('mappings').set(mappings);
+        db.mappings = mappings;
+    }
+
+    if (typeof API_URL !== 'undefined' && API_URL) {
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'deleteMachine', payload: { id: mId } })
+        }).catch(e => console.warn('[Background Sync] Apps Script deleteMachine warning:', e));
+    }
+}
+
 async function executeDirectEditProduct(payload) {
     const pId = String(payload.id).trim();
     let products = (db && Array.isArray(db.products) && db.products.length > 0) ? db.products : [];
@@ -1774,18 +1961,33 @@ async function executeDirectEditProduct(payload) {
     const pC = parseFloat(payload.price_c) > 0 ? parseFloat(payload.price_c) : Math.ceil(cost * 1.3);
     const stockQty = (payload.stock_qty !== undefined && payload.stock_qty !== "") ? parseFloat(payload.stock_qty) : (parseFloat(oldProduct.stock_qty) || 0);
     
+    const newImageUrl = (payload.image_url !== undefined && payload.image_url !== null && payload.image_url !== "")
+        ? payload.image_url
+        : ((payload.imageBase64 !== undefined && payload.imageBase64 !== null && payload.imageBase64 !== "")
+            ? payload.imageBase64
+            : (oldProduct.image_url || ""));
+
     const updated = {
         id: payload.id, name: payload.name, unit: payload.unit, cost: cost,
         price_a: pA, price_b: pB, price_c: pC,
-        category: payload.category, note: payload.note, image_url: oldProduct.image_url || "",
+        category: payload.category, note: payload.note, image_url: newImageUrl,
         stock_qty: stockQty, group: payload.group || "", supplier: payload.supplier || "", storage: payload.storage || ""
     };
     
     // อัปเดตเฉพาะรายการนี้ใน Firebase (ประหยัดเน็ตเหลือ ~300 bytes)
     await firebase.database().ref('appData/products/' + index).set(updated);
+    await firebase.database().ref('appData/lastUpdated').set(Date.now());
     products[index] = updated;
     db.products = products;
     invalidateLocalCache();
+
+    // ซิงค์ส่งไปยัง Apps Script ในเบื้องหลัง (Background sync) เพื่ออัปเดตลง Google Sheets & Google Drive
+    if (typeof API_URL !== 'undefined' && API_URL && payload.imageBase64) {
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'editProduct', payload: payload })
+        }).catch(e => console.warn('[Background Sync] Apps Script sync warning:', e));
+    }
 }
 
 async function executeDirectEditMachine(payload) {
@@ -1799,16 +2001,31 @@ async function executeDirectEditMachine(payload) {
     }
     if (index === -1) throw new Error("ไม่พบเครื่องจักรที่ต้องการแก้ไข");
     const oldMachine = machines[index];
+    const newImageUrl = (payload.image_url !== undefined && payload.image_url !== null && payload.image_url !== "")
+        ? payload.image_url
+        : ((payload.imageBase64 !== undefined && payload.imageBase64 !== null && payload.imageBase64 !== "")
+            ? payload.imageBase64
+            : (oldMachine.image_url || ""));
+
     const updated = {
-        id: payload.id, name: payload.name, image_url: oldMachine.image_url || "", cost: parseFloat(payload.cost) || 0,
+        id: payload.id, name: payload.name, image_url: newImageUrl, cost: parseFloat(payload.cost) || 0,
         price_a: parseFloat(payload.price_a) || 0, price_b: parseFloat(payload.price_b) || 0, price_c: parseFloat(payload.price_c) || 0,
         note: payload.note || "", group: payload.group || "", supplier: payload.supplier || "", storage: payload.storage || ""
     };
     // อัปเดตเฉพาะรายการนี้ใน Firebase
     await firebase.database().ref('appData/machines/' + index).set(updated);
+    await firebase.database().ref('appData/lastUpdated').set(Date.now());
     machines[index] = updated;
     db.machines = machines;
     invalidateLocalCache();
+
+    // ซิงค์ส่งไปยัง Apps Script ในเบื้องหลัง (Background sync) เพื่ออัปเดตลง Google Sheets & Google Drive
+    if (typeof API_URL !== 'undefined' && API_URL && payload.imageBase64) {
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'editMachine', payload: payload })
+        }).catch(e => console.warn('[Background Sync] Apps Script sync warning:', e));
+    }
 }
 
 async function executeDirectEditManual(payload) {
@@ -2612,13 +2829,18 @@ async function executeDirectDeleteTransaction(payload) {
 
 async function executeDirectAddMapping(payload) {
     const machId = String(payload.machine_id).trim();
-    const prodId = String(payload.product_id).trim();
+    const productIds = Array.isArray(payload.product_ids) ? payload.product_ids : (payload.product_id ? [payload.product_id] : []);
     let mappings = (db && Array.isArray(db.mappings)) ? db.mappings : [];
-    if (!mappings.some(m => String(m.machine_id).trim() === machId && String(m.product_id).trim() === prodId)) {
-        const nextIndex = mappings.length;
-        const newMap = { machine_id: machId, product_id: prodId };
-        await firebase.database().ref('mappings/' + nextIndex).set(newMap);
-        mappings.push(newMap);
+    let added = false;
+    productIds.forEach(pid => {
+        const pStr = String(pid).trim();
+        if (pStr && !mappings.some(m => String(m.machine_id).trim() === machId && String(m.product_id).trim() === pStr)) {
+            mappings.push({ machine_id: machId, product_id: pStr });
+            added = true;
+        }
+    });
+    if (added) {
+        await firebase.database().ref('mappings').set(mappings);
         db.mappings = mappings;
         invalidateLocalCache();
     }
@@ -2657,12 +2879,7 @@ window.fetch = async function (url, options) {
             const payload = body.payload;
             
             if (BYPASS_ACTIONS.includes(action)) {
-                // If there's an image/file upload, let it go to Apps Script
-                if (action === 'editProduct' && payload && payload.imageBase64) {
-                    console.log("[Firebase Bypass] editProduct has image, letting Apps Script handle it.");
-                } else if (action === 'editMachine' && payload && payload.imageBase64) {
-                    console.log("[Firebase Bypass] editMachine has image, letting Apps Script handle it.");
-                } else if (action === 'editManual' && payload && payload.file_url && payload.file_url.indexOf("data:") === 0) {
+                if (action === 'editManual' && payload && payload.file_url && payload.file_url.indexOf("data:") === 0) {
                     console.log("[Firebase Bypass] editManual has file payload, letting Apps Script handle it.");
                 } else {
                     console.log("[Firebase Bypass] Intercepting action: " + action);

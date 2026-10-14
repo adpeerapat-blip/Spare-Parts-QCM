@@ -1110,18 +1110,74 @@
         });
 
         function getBase64(file) {
+            return compressAndGetBase64(file);
+        }
+
+        function compressAndGetBase64(file, maxDimension = 900, quality = 0.8) {
             return new Promise((resolve, reject) => {
+                if (!file) return resolve(null);
+                if (!file.type || !file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = error => reject(error);
+                    return;
+                }
+
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > maxDimension || height > maxDimension) {
+                            if (width > height) {
+                                height = Math.round((height * maxDimension) / width);
+                                width = maxDimension;
+                            } else {
+                                width = Math.round((width * maxDimension) / height);
+                                height = maxDimension;
+                            }
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = () => resolve(e.target.result);
+                    img.src = e.target.result;
+                };
                 reader.onerror = error => reject(error);
             });
         }
 
+        function previewEditProductImage(input) {
+            const previewImg = document.getElementById('ep_preview_img');
+            const previewIcon = document.getElementById('ep_preview_icon');
+            if (!previewImg || !previewIcon) return;
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImg.src = e.target.result;
+                    previewImg.classList.remove('hidden');
+                    previewIcon.classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
         async function submitAddProduct(e) {
             e.preventDefault();
-            const id = document.getElementById('ap_id').value;
-            if(db.products.some(p => p.id == id)) { showToast('รหัสสินค้านี้มีอยู่ในระบบแล้ว! โปรดใช้รหัสอื่น', 'error'); return; }
+            const id = (document.getElementById('ap_id').value || "").trim();
+            if (!id) { showToast('กรุณาระบุรหัสสินค้า', 'warning'); return; }
+            if (db.products.some(p => p && String(p.id).trim().toLowerCase() === id.toLowerCase())) {
+                showToast('รหัสสินค้านี้มีอยู่ในระบบแล้ว! โปรดใช้รหัสอื่น', 'error');
+                return;
+            }
             
             let base64 = null;
             if (document.getElementById('ap_image').files.length > 0) base64 = await getBase64(document.getElementById('ap_image').files[0]);
@@ -1173,8 +1229,24 @@
             document.getElementById('ep_price_a').value = p.price_a || '';
             document.getElementById('ep_price_b').value = p.price_b || '';
             document.getElementById('ep_price_c').value = p.price_c || '';
-            document.getElementById('ep_note').value = p.note || ''; document.getElementById('ep_image').value = ''; 
+            document.getElementById('ep_note').value = p.note || '';
+            document.getElementById('ep_image').value = ''; 
             document.getElementById('ep_stock_qty').value = p.stock_qty || 0;
+            
+            // แสดงตัวอย่างรูปภาพเดิมหากมี
+            const epPreviewImg = document.getElementById('ep_preview_img');
+            const epPreviewIcon = document.getElementById('ep_preview_icon');
+            if (epPreviewImg && epPreviewIcon) {
+                if (p.image_url) {
+                    epPreviewImg.src = p.image_url;
+                    epPreviewImg.classList.remove('hidden');
+                    epPreviewIcon.classList.add('hidden');
+                } else {
+                    epPreviewImg.src = '';
+                    epPreviewImg.classList.add('hidden');
+                    epPreviewIcon.classList.remove('hidden');
+                }
+            }
             
             const isCancelled = p.note && (p.note.trim() === 'ยกเลิกใช้' || p.note.includes('ยกเลิกใช้'));
             document.getElementById('ep_is_cancelled').checked = isCancelled;
@@ -1401,77 +1473,137 @@
         function initMappingView() {
             selectedMappingProducts.clear();
             currentSelectedMachineForMapping = '';
-            document.getElementById('map_machine_search').value = '';
-            document.getElementById('map_product_search').value = '';
+            const searchInput = document.getElementById('map_machine_search');
+            if (searchInput) searchInput.value = '';
+            const prodSearchInput = document.getElementById('map_product_search');
+            if (prodSearchInput) prodSearchInput.value = '';
             const sugg = document.getElementById('machine_suggestions');
             if (sugg) sugg.classList.add('hidden');
+            const prodSection = document.getElementById('map_products_section');
+            if (prodSection) prodSection.classList.add('hidden');
+            const selMach = document.getElementById('map_machine');
+            if (selMach) selMach.value = '';
             currentMapProductPage = 1;
+            updateMappingSubmitButton();
             filterMapMachines(); 
         }
 
-        function showMachineSuggestions() { document.getElementById('machine_suggestions').classList.remove('hidden'); filterMapMachines(); }
-        function hideMachineSuggestions() { setTimeout(() => { const sugg = document.getElementById('machine_suggestions'); if(sugg) sugg.classList.add('hidden'); }, 200); }
+        let hideMachineSuggestionsTimer = null;
+        function showMachineSuggestions() { 
+            if (hideMachineSuggestionsTimer) { clearTimeout(hideMachineSuggestionsTimer); hideMachineSuggestionsTimer = null; }
+            const sugg = document.getElementById('machine_suggestions');
+            if (sugg) sugg.classList.remove('hidden'); 
+            filterMapMachines(); 
+        }
+        function hideMachineSuggestions() { 
+            if (hideMachineSuggestionsTimer) clearTimeout(hideMachineSuggestionsTimer);
+            hideMachineSuggestionsTimer = setTimeout(() => { 
+                const sugg = document.getElementById('machine_suggestions'); 
+                if (sugg) sugg.classList.add('hidden'); 
+            }, 250); 
+        }
 
         function filterMapMachines() {
-            const keywordString = document.getElementById('map_machine_search').value.toLowerCase();
+            const searchEl = document.getElementById('map_machine_search');
+            const keywordString = searchEl ? searchEl.value.toLowerCase() : '';
             const keywords = keywordString.split(/\s+/).filter(k => k.length > 0);
             const selMach = document.getElementById('map_machine');
             const suggContainer = document.getElementById('machine_suggestions');
-            const currentVal = selMach.value;
+            if (!selMach) return;
             
-            selMach.innerHTML = '<option value="">-- เครื่องจักรที่เลือกจะแสดงที่นี่ --</option>';
-            if (suggContainer) suggContainer.innerHTML = '';
+            const currentVal = currentSelectedMachineForMapping || selMach.value;
             
-            let foundCurrent = false;
-            let matchCount = 0;
-            let renderCount = 0;
-            const maxSugg = 50;
+            // Populate select box with all machines so user can pick directly
+            let selectOptionsHtml = '<option value="">-- หรือเลือกเครื่องจักรจากรายการนี้ --</option>';
+            if (db && Array.isArray(db.machines)) {
+                db.machines.forEach(m => {
+                    if (!m || !m.id) return;
+                    const isSel = String(m.id) === String(currentVal) ? 'selected' : '';
+                    const label = m.name && m.name !== m.id ? `${m.id} : ${m.name}` : m.id;
+                    selectOptionsHtml += `<option value="${escapeHTML(m.id)}" ${isSel}>${escapeHTML(label)}</option>`;
+                });
+            }
+            selMach.innerHTML = selectOptionsHtml;
+            if (currentVal) selMach.value = currentVal;
             
-            db.machines.forEach(m => {
-                const textToSearch = `${m.id} ${m.name}`.toLowerCase();
-                const isMatch = keywords.every(kw => textToSearch.includes(kw));
-                
-                if (keywords.length === 0 || isMatch) {
-                    selMach.insertAdjacentHTML('beforeend', `<option value="${escapeHTML(m.id)}">${escapeHTML(m.id)} : ${escapeHTML(m.name)}</option>`);
-                    if (m.id == currentVal) foundCurrent = true;
-                    
-                    if (suggContainer && renderCount < maxSugg) {
-                        let suggHtml = `
-                        <div class="p-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-0 transition" 
-                             onclick="selectMachineFromSuggestion('${escapeForJS(m.id)}', '${escapeForJS(m.name)}')">
-                            <span class="font-bold text-purple-700">${escapeHTML(m.id)}</span> : <span class="text-gray-700">${escapeHTML(m.name)}</span>
-                        </div>`;
-                        suggContainer.insertAdjacentHTML('beforeend', suggHtml);
-                        renderCount++;
-                    }
-                    matchCount++;
-                }
-            });
-            if (foundCurrent) selMach.value = currentVal;
+            // Populate autocomplete suggestions
             if (suggContainer) {
-                if (matchCount === 0) suggContainer.innerHTML = '<div class="p-3 text-gray-400 text-sm text-center">ไม่พบเครื่องจักรที่ค้นหา</div>';
-                else if (matchCount > maxSugg) suggContainer.insertAdjacentHTML('beforeend', `<div class="p-2 text-center bg-amber-50 text-xs text-amber-600 border-t border-amber-100">พบอีก ${matchCount - maxSugg} เครื่อง — พิมพ์ชื่อเพื่อค้นหา</div>`);
+                suggContainer.innerHTML = '';
+                let matchCount = 0;
+                let renderCount = 0;
+                const maxSugg = 50;
+                
+                if (db && Array.isArray(db.machines)) {
+                    db.machines.forEach(m => {
+                        if (!m || !m.id) return;
+                        const textToSearch = `${m.id} ${m.name || ''}`.toLowerCase();
+                        const isMatch = keywords.every(kw => textToSearch.includes(kw));
+                        
+                        if (keywords.length === 0 || isMatch) {
+                            if (renderCount < maxSugg) {
+                                let suggHtml = `
+                                <div class="p-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-0 transition" 
+                                     onclick="selectMachineFromSuggestion('${escapeForJS(m.id)}', '${escapeForJS(m.name || m.id)}')">
+                                    <span class="font-bold text-purple-700">${escapeHTML(m.id)}</span>${m.name && m.name !== m.id ? ' : <span class="text-gray-700">' + escapeHTML(m.name) + '</span>' : ''}
+                                </div>`;
+                                suggContainer.insertAdjacentHTML('beforeend', suggHtml);
+                                renderCount++;
+                            }
+                            matchCount++;
+                        }
+                    });
+                }
+                
+                if (matchCount === 0) {
+                    suggContainer.innerHTML = '<div class="p-3 text-gray-400 text-sm text-center">ไม่พบเครื่องจักรที่ค้นหา</div>';
+                } else if (matchCount > maxSugg) {
+                    suggContainer.insertAdjacentHTML('beforeend', `<div class="p-2 text-center bg-amber-50 text-xs text-amber-600 border-t border-amber-100">พบอีก ${matchCount - maxSugg} เครื่อง — พิมพ์ชื่อเพื่อค้นหา</div>`);
+                }
             }
         }
 
         function selectMachineFromSuggestion(id, name) {
-            document.getElementById('map_machine_search').value = id + ' ' + name;
+            if (hideMachineSuggestionsTimer) { clearTimeout(hideMachineSuggestionsTimer); hideMachineSuggestionsTimer = null; }
+            const displayLabel = name && name !== id ? `${id} : ${name}` : id;
+            const searchInput = document.getElementById('map_machine_search');
+            if (searchInput) searchInput.value = displayLabel;
+            
             const selMach = document.getElementById('map_machine');
-            selMach.innerHTML = `<option value="${escapeHTML(id)}">${escapeHTML(id)} : ${escapeHTML(name)}</option>`;
-            selMach.value = id;
+            if (selMach) selMach.value = id;
+            
             const suggContainer = document.getElementById('machine_suggestions');
-            if(suggContainer) suggContainer.classList.add('hidden');
+            if (suggContainer) suggContainer.classList.add('hidden');
+            
             onMachineSelected();
         }
 
         function onMachineSelected() {
-            const machineId = document.getElementById('map_machine').value;
+            const selMach = document.getElementById('map_machine');
+            const machineId = selMach ? selMach.value : '';
+            const searchInput = document.getElementById('map_machine_search');
+            
+            if (machineId && searchInput && db && Array.isArray(db.machines)) {
+                const m = db.machines.find(x => String(x.id) === String(machineId));
+                if (m) {
+                    searchInput.value = m.name && m.name !== m.id ? `${m.id} : ${m.name}` : m.id;
+                }
+            } else if (!machineId && searchInput) {
+                searchInput.value = '';
+            }
+            
             const prodSection = document.getElementById('map_products_section');
-            if (machineId !== currentSelectedMachineForMapping) { selectedMappingProducts.clear(); currentSelectedMachineForMapping = machineId; }
+            if (machineId !== currentSelectedMachineForMapping) { 
+                selectedMappingProducts.clear(); 
+                currentSelectedMachineForMapping = machineId; 
+            }
             currentMapProductPage = 1;
             updateMappingSubmitButton();
-            if (machineId) { prodSection.classList.remove('hidden'); filterMapProducts(); } 
-            else { prodSection.classList.add('hidden'); }
+            if (machineId) { 
+                if (prodSection) prodSection.classList.remove('hidden'); 
+                filterMapProducts(); 
+            } else { 
+                if (prodSection) prodSection.classList.add('hidden'); 
+            }
         }
 
         function filterMapProducts() {
@@ -1572,7 +1704,20 @@
             try {
                 let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'addMapping', payload: { product_ids: pids, machine_id: mid } }) });
                 let result = await res.json();
-                if(result.status === 'success') { showToast('บันทึกการจับคู่อะไหล่เรียบร้อย'); fetchData(); } 
+                if(result.status === 'success') { 
+                    showToast('บันทึกการจับคู่อะไหล่เรียบร้อย');
+                    if (db && Array.isArray(db.mappings)) {
+                        pids.forEach(pid => {
+                            if (!db.mappings.some(m => String(m.machine_id) === String(mid) && String(m.product_id) === String(pid))) {
+                                db.mappings.push({ machine_id: mid, product_id: pid });
+                            }
+                        });
+                    }
+                    selectedMappingProducts.clear();
+                    updateMappingSubmitButton();
+                    filterMapProducts();
+                    renderMappingTable();
+                } 
                 else showToast(result.message, 'error');
             } catch (err) { showToast('เกิดข้อผิดพลาดเครือข่าย', 'error'); }
             hideLoading();
