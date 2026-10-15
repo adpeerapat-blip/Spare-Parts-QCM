@@ -204,7 +204,7 @@
                     <div onclick="${isOutOfStock ? 'showToast(\'สินค้าชิ้นนี้หมดสต็อก\', \'error\')' : `showPOSQuantityPopup('${escapeForJS(p.id)}')`}" 
                          class="${cardClass} p-3 rounded-xl border flex flex-col justify-between transition-all duration-300 relative">
                         <div class="h-24 bg-slate-50 rounded-lg overflow-hidden flex items-center justify-center mb-2 relative">
-                            <img src="${escapeHTML(imgSource)}" class="max-h-full max-w-full object-contain p-1 ${isOutOfStock ? 'filter grayscale-[30%] opacity-55' : ''}" onerror="this.src='https://placehold.co/200x150/f8fafc/94a3b8?text=Err'">
+                            <img src="${escapeHTML(imgSource)}" loading="lazy" decoding="async" class="max-h-full max-w-full object-contain p-1 ${isOutOfStock ? 'filter grayscale-[30%] opacity-55' : ''}" onerror="this.src='https://placehold.co/200x150/f8fafc/94a3b8?text=Err'">
                             <span class="absolute top-1 left-1 bg-slate-900/80 backdrop-blur text-white text-[9px] font-mono font-bold px-1.5 py-0.5 rounded z-10">${escapeHTML(p.id)}</span>
                             ${imageOverlayHtml}
                         </div>
@@ -281,7 +281,7 @@
                 html: `
                     <div class="text-left space-y-2.5">
                         <div class="bg-slate-50 p-3 rounded-xl border border-gray-150 flex gap-3 items-center">
-                            <img src="${escapeHTML(p.image_url || 'https://placehold.co/200x150/f8fafc/94a3b8?text=No+Image')}" class="w-14 h-14 object-contain rounded-lg border bg-white flex-shrink-0" onerror="this.src='https://placehold.co/200x150/f8fafc/94a3b8?text=Err'">
+                            <img src="${escapeHTML(p.image_url || 'https://placehold.co/200x150/f8fafc/94a3b8?text=No+Image')}" loading="lazy" decoding="async" class="w-14 h-14 object-contain rounded-lg border bg-white flex-shrink-0" onerror="this.src='https://placehold.co/200x150/f8fafc/94a3b8?text=Err'">
                             <div class="min-w-0 flex-1">
                                 <span class="text-[9px] font-mono bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded">${escapeHTML(p.id)}</span>
                                 <h4 class="text-xs font-bold text-slate-800 truncate mt-1">${escapeHTML(p.name)}</h4>

@@ -565,16 +565,49 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
         });
 
         function showLoading(text = 'กำลังโหลดข้อมูล...') {
-            Swal.fire({
-                title: text,
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false,
-                didOpen: () => { Swal.showLoading(); }
-            });
+            if (Swal.isVisible()) {
+                const titleEl = Swal.getTitle();
+                if (titleEl) titleEl.textContent = text;
+                const htmlEl = Swal.getHtmlContainer();
+                if (htmlEl) {
+                    htmlEl.innerHTML = `
+                        <div class="flex flex-col items-center justify-center py-3">
+                            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-600 mb-3"></i>
+                            <span class="text-slate-600 text-sm font-medium">กรุณารอสักครู่ ระบบกำลังประมวลผล...</span>
+                        </div>
+                    `;
+                }
+                const iconEl = Swal.getIcon();
+                if (iconEl) iconEl.style.display = 'none';
+                const actions = Swal.getActions();
+                if (actions) actions.style.display = 'none';
+            } else {
+                Swal.fire({
+                    title: text,
+                    html: `
+                        <div class="flex flex-col items-center justify-center py-3">
+                            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-600 mb-3"></i>
+                            <span class="text-slate-600 text-sm font-medium">กรุณารอสักครู่ ระบบกำลังประมวลผล...</span>
+                        </div>
+                    `,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    customClass: {
+                        popup: 'rounded-2xl shadow-2xl'
+                    }
+                });
+            }
         }
 
-        function hideLoading() { Swal.close(); }
+        function hideLoading() {
+            if (Swal.isVisible()) {
+                const popup = Swal.getPopup();
+                if (popup && !popup.classList.contains('swal2-toast')) {
+                    Swal.close();
+                }
+            }
+        }
 
         function showToast(message, type = 'success') {
             const iconMap = { success: 'success', error: 'error', info: 'info' };
@@ -584,24 +617,73 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             });
         }
 
-        function confirmAction(message, callback) {
-            Swal.fire({
-                title: 'ยืนยันการดำเนินการ',
+        function confirmAction(message, callback, customOptions = {}) {
+            return Swal.fire({
+                title: customOptions.title || 'ยืนยันการดำเนินการ',
                 html: escapeHTML(message).replace(/\n/g, '<br>'),
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#dc2626',
                 cancelButtonColor: '#6b7280',
-                confirmButtonText: '<i class="fa-solid fa-check mr-1"></i> ยืนยัน',
-                cancelButtonText: 'ยกเลิก',
+                confirmButtonText: customOptions.confirmButtonText || '<i class="fa-solid fa-check mr-1"></i> ยืนยัน',
+                cancelButtonText: customOptions.cancelButtonText || 'ยกเลิก',
                 reverseButtons: true,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
                 customClass: {
                     popup: 'rounded-2xl shadow-2xl',
                     confirmButton: 'rounded-xl font-semibold px-5',
                     cancelButton: 'rounded-xl font-semibold px-5',
+                },
+                preConfirm: () => {
+                    if (customOptions.showLoading === false) {
+                        return true;
+                    }
+
+                    // สลับหน้าต่างเป็นสถานะ Loading ทันทีในเสี้ยววินาที (< 10ms) ป้องกันอาการค้าง
+                    const titleEl = Swal.getTitle();
+                    if (titleEl) titleEl.textContent = customOptions.loadingText || 'กำลังดำเนินการ...';
+
+                    const htmlEl = Swal.getHtmlContainer();
+                    if (htmlEl) {
+                        htmlEl.innerHTML = `
+                            <div class="flex flex-col items-center justify-center py-3">
+                                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-600 mb-3"></i>
+                                <span class="text-slate-600 text-sm font-medium">กรุณารอสักครู่ ระบบกำลังประมวลผล...</span>
+                            </div>
+                        `;
+                    }
+
+                    const iconEl = Swal.getIcon();
+                    if (iconEl) iconEl.style.display = 'none';
+
+                    const actions = Swal.getActions();
+                    if (actions) actions.style.display = 'none';
+
+                    // สั่งให้ callback เริ่มทำงานใน microtask เพื่อให้เบราว์เซอร์ Render หน้าต่างหมุนทันทีก่อนเริ่มประมวลผล
+                    setTimeout(async () => {
+                        if (typeof callback === 'function') {
+                            try {
+                                const res = callback();
+                                if (res && typeof res.then === 'function') {
+                                    await res;
+                                }
+                            } catch (err) {
+                                console.error("confirmAction callback error:", err);
+                                showToast("เกิดข้อผิดพลาด: " + (err.message || 'ระบบขัดข้อง'), 'error');
+                            } finally {
+                                hideLoading();
+                            }
+                        }
+                    }, 10);
+
+                    // ป้องกัน SweetAlert2 ปิด popup อัตโนมัติ โดยจะปิดเมื่อ callback ทำงานเสร็จ
+                    return false;
                 }
             }).then((result) => {
-                if (result.isConfirmed) callback();
+                if (result.isConfirmed && customOptions.showLoading === false && typeof callback === 'function') {
+                    callback();
+                }
             });
         }
 
@@ -3651,9 +3733,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                 try {
                     let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteMachine', payload: { id: id } }) });
                     let result = await res.json();
+                    hideLoading();
                     if (result.status === 'success') { showToast('ลบเครื่องจักรสำเร็จ'); fetchData(); }
-                    else { showToast('เกิดข้อผิดพลาด: ' + result.message, 'error'); hideLoading(); }
-                } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); hideLoading(); }
+                    else { showToast('เกิดข้อผิดพลาด: ' + result.message, 'error'); }
+                } catch (e) { hideLoading(); showToast('เกิดข้อผิดพลาด', 'error'); }
             });
         }
 
@@ -3663,10 +3746,11 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                 try {
                     let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteProduct', payload: { id: id } }) });
                     let result = await res.json();
+                    hideLoading();
                     if (result.status === 'success') { showToast('ลบสินค้าสำเร็จ'); fetchData(); }
-                    else { showToast('เกิดข้อผิดพลาด: ' + result.message, 'error'); hideLoading(); }
-                } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); hideLoading(); }
-            });
+                    else { showToast('เกิดข้อผิดพลาด: ' + result.message, 'error'); }
+                } catch (e) { hideLoading(); showToast('เกิดข้อผิดพลาด', 'error'); }
+            }, { loadingText: 'กำลังลบสินค้าออกจากระบบ...' });
         }
 
         function requestDeleteMapping(pid, mid) {
@@ -3675,9 +3759,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
                 try {
                     let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteMapping', payload: { product_id: pid, machine_id: mid } }) });
                     let result = await res.json();
+                    hideLoading();
                     if (result.status === 'success') { showToast('ยกเลิกการจับคู่สำเร็จ'); fetchData(); }
-                    else { showToast('เกิดข้อผิดพลาด: ' + result.message, 'error'); hideLoading(); }
-                } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); hideLoading(); }
+                    else { showToast('เกิดข้อผิดพลาด: ' + result.message, 'error'); }
+                } catch (e) { hideLoading(); showToast('เกิดข้อผิดพลาด', 'error'); }
             });
         }
 

@@ -391,7 +391,7 @@
                     let card = `
                         <div onclick="openProductDetailModal('${escapeForJS(p.id)}')" class="${isCancelled ? 'bg-red-50/20 border-red-200 hover:border-red-300' : 'bg-white border-gray-100 hover:border-blue-200'} rounded-2xl shadow-sm border overflow-hidden hover:shadow-lg transition-all duration-300 group flex flex-col h-full transform hover:-translate-y-1 cursor-pointer">
                             <div class="h-48 sm:h-52 bg-slate-50 overflow-hidden relative flex-shrink-0 flex items-center justify-center">
-                                <img src="${escapeHTML(imgSource)}" alt="${escapeHTML(p.name)}" class="max-w-full max-h-full object-contain p-2 group-hover:scale-105 transition duration-500 ${isCancelled ? 'opacity-50 grayscale-[30%]' : ''}" onerror="this.src='https://placehold.co/400x300/fee2e2/ef4444?text=Image+Error'">
+                                <img src="${escapeHTML(imgSource)}" alt="${escapeHTML(p.name)}" loading="lazy" decoding="async" class="max-w-full max-h-full object-contain p-2 group-hover:scale-105 transition duration-500 ${isCancelled ? 'opacity-50 grayscale-[30%]' : ''}" onerror="this.src='https://placehold.co/400x300/fee2e2/ef4444?text=Image+Error'">
                                 <div class="absolute top-3 left-3 bg-white/90 backdrop-blur px-2.5 py-1 rounded-md text-xs font-bold text-gray-800 shadow-sm border border-gray-100">${escapeHTML(p.id)}</div>
                                 <button class="img-zoom-btn" onclick="event.stopPropagation(); openImageLightbox('${escapeForJS(imgSource)}', '${escapeForJS(p.name)}')">
                                     <i class="fa-solid fa-magnifying-glass-plus"></i> ขยายภาพ
@@ -508,7 +508,7 @@
                     let card = `
                         <div onclick="${clickAction}" class="${isCancelledM ? 'bg-red-50/20 border-red-200 hover:border-red-300' : 'bg-white border-gray-200 hover:border-purple-300'} rounded-2xl shadow-sm border overflow-hidden hover:shadow-lg transition-all duration-300 group flex flex-col h-full transform hover:-translate-y-1 cursor-pointer">
                             <div class="h-56 bg-slate-800 overflow-hidden relative flex-shrink-0 flex items-center justify-center p-3">
-                                <img src="${escapeHTML(imgSource)}" alt="${escapeHTML(m.name)}" class="max-w-full max-h-full object-contain group-hover:scale-105 transition duration-500 rounded ${isCancelledM ? 'opacity-40 grayscale-[30%]' : ''}" onerror="this.src='https://placehold.co/400x300/1e293b/94a3b8?text=Image+Error'">
+                                <img src="${escapeHTML(imgSource)}" alt="${escapeHTML(m.name)}" loading="lazy" decoding="async" class="max-w-full max-h-full object-contain group-hover:scale-105 transition duration-500 rounded ${isCancelledM ? 'opacity-40 grayscale-[30%]' : ''}" onerror="this.src='https://placehold.co/400x300/1e293b/94a3b8?text=Image+Error'">
                                 <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
                                 <div class="absolute bottom-3 left-4 right-4">
                                     <span class="bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-1 inline-block">Machine</span>
@@ -1464,7 +1464,7 @@
                 let tr = `
                     <tr class="hover:bg-slate-50/80 transition-colors duration-150 border-b border-gray-100 last:border-0">
                         <td class="p-3 text-center">
-                            <img src="${escapeHTML(imgSrc)}" alt="${escapeHTML(m.name)}" class="w-14 h-14 object-cover rounded-xl shadow-sm border border-gray-200 bg-white mx-auto" onerror="this.src='https://placehold.co/80x80/f1f5f9/94a3b8?text=Err'">
+                            <img src="${escapeHTML(imgSrc)}" alt="${escapeHTML(m.name)}" loading="lazy" decoding="async" class="w-14 h-14 object-cover rounded-xl shadow-sm border border-gray-200 bg-white mx-auto" onerror="this.src='https://placehold.co/80x80/f1f5f9/94a3b8?text=Err'">
                         </td>
                         <td class="p-4 font-semibold text-gray-800 whitespace-nowrap">${escapeHTML(m.id)}</td>
                         <td class="p-4 text-gray-600">${escapeHTML(m.name)}</td>
@@ -1665,7 +1665,7 @@
                             ${isAlreadyMapped ? 'disabled checked' : (isSelected ? 'checked' : '')} 
                             onchange="toggleMapProduct('${escapeForJS(p.id)}', this.checked)"
                             class="w-5 h-5 text-purple-600 rounded border-gray-300 focus:ring-purple-500 disabled:bg-gray-200 disabled:border-gray-300 transition cursor-pointer disabled:cursor-not-allowed">
-                        <img src="${escapeHTML(p.image_url || 'https://placehold.co/100x100?text=NoImg')}" class="w-10 h-10 object-cover rounded-lg shadow-sm bg-white" onerror="this.src='https://placehold.co/100x100?text=Err'">
+                        <img src="${escapeHTML(p.image_url || 'https://placehold.co/100x100?text=NoImg')}" loading="lazy" decoding="async" class="w-10 h-10 object-cover rounded-lg shadow-sm bg-white" onerror="this.src='https://placehold.co/100x100?text=Err'">
                         <div class="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 overflow-hidden">
                             <span class="font-bold text-gray-800 sm:w-32 truncate" title="${escapeHTML(p.id)}">${escapeHTML(p.id)}</span>
                             <span class="text-gray-600 flex-1 truncate text-sm" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</span>
@@ -1772,7 +1772,7 @@
                 let tr = `
                     <tr class="hover:bg-blue-50/30 border-b border-gray-200 transition ${isCancelled ? 'bg-red-50/10' : ''}">
                         <td class="p-4 text-center text-gray-500">${index + 1}</td>
-                        <td class="p-3"><img src="${escapeHTML(p.image_url || 'https://placehold.co/100x100?text=NoImg')}" class="w-12 h-12 object-cover rounded-lg shadow-sm border border-gray-200 bg-white ${isCancelled ? 'opacity-50 grayscale' : ''}" onerror="this.src='https://placehold.co/100x100?text=Err'"></td>
+                        <td class="p-3"><img src="${escapeHTML(p.image_url || 'https://placehold.co/100x100?text=NoImg')}" loading="lazy" decoding="async" class="w-12 h-12 object-cover rounded-lg shadow-sm border border-gray-200 bg-white ${isCancelled ? 'opacity-50 grayscale' : ''}" onerror="this.src='https://placehold.co/100x100?text=Err'"></td>
                         <td class="p-4 font-semibold ${isCancelled ? 'text-gray-400 line-through decoration-red-500' : 'text-gray-800'}">${escapeHTML(p.id)}</td>
                         <td class="p-4 ${isCancelled ? 'text-gray-400 line-through decoration-red-500' : 'text-gray-700'} max-w-xs truncate" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</td>
                         <td class="p-4 text-gray-600">${escapeHTML(p.unit || '-')}</td>
@@ -1836,16 +1836,31 @@
             });
         }
 
-        // แก้บัค 5: เพิ่มการเช็ค response status ใน delete functions ทั้งหมด
+        // ฟังก์ชันลบข้อมูลระบบพร้อมปิด loading และอัปเดตหน้าจอทันที
         function requestDeleteMachine(id) {
             confirmAction(`ยืนยันการลบเครื่องจักรรหัส "${id}" ใช่หรือไม่?\nการกระทำนี้จะลบประวัติการจับคู่อะไหล่ที่ผูกกับเครื่องจักรนี้ทั้งหมดด้วย`, async () => {
-                showLoading('กำลังลบข้อมูลระบบ...');
+                showLoading('กำลังลบเครื่องจักรออกจากระบบ...');
                 try {
-                    let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteMachine', payload: { id: id } }) });
+                    let res = await fetch(API_URL, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'deleteMachine', payload: { id: id } }) 
+                    });
                     let result = await res.json();
-                    if (result.status === 'success') { showToast('ลบเครื่องจักรสำเร็จ'); fetchData(); }
-                    else { showToast('เกิดข้อผิดพลาด: ' + result.message, 'error'); hideLoading(); }
-                } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); hideLoading(); }
+                    hideLoading();
+                    if (result.status === 'success') { 
+                        showToast('ลบเครื่องจักรสำเร็จ'); 
+                        if (typeof updateAllViews === 'function') updateAllViews();
+                    } else { 
+                        showToast('เกิดข้อผิดพลาด: ' + (result.message || 'ไม่สามารถลบเครื่องจักรได้'), 'error'); 
+                    }
+                } catch (e) { 
+                    hideLoading();
+                    console.error("Delete machine error:", e);
+                    showToast('เกิดข้อผิดพลาด: ' + (e.message || 'เครือข่ายขัดข้อง'), 'error'); 
+                }
+            }, {
+                loadingText: 'กำลังลบเครื่องจักรออกจากระบบ...'
             });
         }
 
@@ -1853,11 +1868,26 @@
             confirmAction(`ยืนยันการลบอะไหล่รหัส "${id}" ใช่หรือไม่?\nคำเตือน: การลบนี้จะไม่สามารถกู้คืนข้อมูลได้`, async () => {
                 showLoading('กำลังลบสินค้าออกจากระบบ...');
                 try {
-                    let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteProduct', payload: { id: id } }) });
+                    let res = await fetch(API_URL, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'deleteProduct', payload: { id: id } }) 
+                    });
                     let result = await res.json();
-                    if (result.status === 'success') { showToast('ลบสินค้าสำเร็จ'); fetchData(); }
-                    else { showToast('เกิดข้อผิดพลาด: ' + result.message, 'error'); hideLoading(); }
-                } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); hideLoading(); }
+                    hideLoading();
+                    if (result.status === 'success') { 
+                        showToast('ลบสินค้าสำเร็จ'); 
+                        if (typeof updateAllViews === 'function') updateAllViews();
+                    } else { 
+                        showToast('เกิดข้อผิดพลาด: ' + (result.message || 'ไม่สามารถลบสินค้าได้'), 'error'); 
+                    }
+                } catch (e) { 
+                    hideLoading();
+                    console.error("Delete product error:", e);
+                    showToast('เกิดข้อผิดพลาด: ' + (e.message || 'เครือข่ายขัดข้อง'), 'error'); 
+                }
+            }, {
+                loadingText: 'กำลังลบสินค้าออกจากระบบ...'
             });
         }
 
@@ -1865,11 +1895,26 @@
             confirmAction(`ยืนยันการยกเลิกการจับคู่ระหว่าง\nอะไหล่: ${pid}\nเครื่องจักร: ${mid}\nใช่หรือไม่?`, async () => {
                 showLoading('กำลังยกเลิกการจับคู่...');
                 try {
-                    let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteMapping', payload: { product_id: pid, machine_id: mid } }) });
+                    let res = await fetch(API_URL, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'deleteMapping', payload: { product_id: pid, machine_id: mid } }) 
+                    });
                     let result = await res.json();
-                    if (result.status === 'success') { showToast('ยกเลิกการจับคู่สำเร็จ'); fetchData(); }
-                    else { showToast('เกิดข้อผิดพลาด: ' + result.message, 'error'); hideLoading(); }
-                } catch (e) { showToast('เกิดข้อผิดพลาด', 'error'); hideLoading(); }
+                    hideLoading();
+                    if (result.status === 'success') { 
+                        showToast('ยกเลิกการจับคู่สำเร็จ'); 
+                        if (typeof updateAllViews === 'function') updateAllViews();
+                    } else { 
+                        showToast('เกิดข้อผิดพลาด: ' + (result.message || 'ไม่สามารถยกเลิกการจับคู่ได้'), 'error'); 
+                    }
+                } catch (e) { 
+                    hideLoading();
+                    console.error("Delete mapping error:", e);
+                    showToast('เกิดข้อผิดพลาด: ' + (e.message || 'เครือข่ายขัดข้อง'), 'error'); 
+                }
+            }, {
+                loadingText: 'กำลังยกเลิกการจับคู่...'
             });
         }
 
@@ -1877,32 +1922,30 @@
             confirmAction(`ยืนยันการยกเลิกการจับคู่ระหว่าง\nอะไหล่: ${pid}\nเครื่องจักร: ${mid}\nใช่หรือไม่?`, async () => {
                 showLoading('กำลังยกเลิกการจับคู่...');
                 try {
-                    let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteMapping', payload: { product_id: pid, machine_id: mid } }) });
+                    let res = await fetch(API_URL, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'deleteMapping', payload: { product_id: pid, machine_id: mid } }) 
+                    });
                     let result = await res.json();
+                    hideLoading();
                     if (result.status === 'success') { 
-                        showToast('ยกเลิกการจับคู่สำเร็จ');
-                        
-                        // ดึงข้อมูลใหม่เบื้องหลัง เพื่ออัปเดต db.mappings
-                        const getRes = await fetch(API_URL + '?action=getAppData', { method: 'GET' });
-                        if (getRes.ok) {
-                            const data = await getRes.json();
-                            if (data && Array.isArray(data.products)) {
-                                db = data;
-                                try { localStorage.setItem(LS_CACHE_KEY, JSON.stringify({ data, ts: Date.now() })); } catch(e) {}
-                            }
+                        showToast('ยกเลิกการจับคู่สำเร็จ'); 
+                        if (db && Array.isArray(db.mappings)) {
+                            db.mappings = db.mappings.filter(m => !(String(m.product_id).trim() === String(pid).trim() && String(m.machine_id).trim() === String(mid).trim()));
                         }
-                        
-                        // รีเรนเดอร์ลิสต์ทันทีโดยไม่เปลี่ยนเครื่องจักรที่เลือก
-                        filterMapProducts();
-                        // อัปเดตตารางหน้าดู/แก้ไขด้วย
-                        renderMappingTable();
+                        if (typeof updateAllViews === 'function') updateAllViews();
+                        if (typeof filterMapProducts === 'function') filterMapProducts();
                     } else { 
-                        showToast('เกิดข้อผิดพลาด: ' + result.message, 'error'); 
+                        showToast('เกิดข้อผิดพลาด: ' + (result.message || 'ไม่สามารถยกเลิกการจับคู่ได้'), 'error'); 
                     }
                 } catch (e) { 
-                    showToast('เกิดข้อผิดพลาด', 'error'); 
+                    hideLoading();
+                    console.error("Delete mapping error:", e);
+                    showToast('เกิดข้อผิดพลาด: ' + (e.message || 'เครือข่ายขัดข้อง'), 'error'); 
                 }
-                hideLoading();
+            }, {
+                loadingText: 'กำลังยกเลิกการจับคู่...'
             });
         }
 
@@ -2427,19 +2470,9 @@
             const manual = getManualsData().find(m => String(m.id) === String(id));
             if (!manual) return;
 
-            Swal.fire({
-                title: 'ยืนยันการลบคู่มือ?',
-                text: `คุณต้องการลบคู่มือ "${manual.title}" ใช่หรือไม่?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'ใช่, ลบทันที',
-                cancelButtonText: 'ยกเลิก',
-                customClass: { popup: 'rounded-2xl' }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    showLoading('กำลังลบคู่มือ...');
+            confirmAction(`คุณต้องการลบคู่มือ "${manual.title}" ใช่หรือไม่?`, async () => {
+                showLoading('กำลังลบคู่มือ...');
+                try {
                     db.manuals = getManualsData().filter(m => String(m.id) !== String(id));
                     
                     // Save cache
@@ -2466,8 +2499,11 @@
                     showToast('ลบคู่มือเรียบร้อยแล้ว', 'success');
                     renderManageManualsTable();
                     renderPublicManualsTable();
+                } catch (e) {
+                    hideLoading();
+                    showToast('เกิดข้อผิดพลาดในการลบคู่มือ: ' + (e.message || ''), 'error');
                 }
-            });
+            }, { title: 'ยืนยันการลบคู่มือ?', loadingText: 'กำลังลบคู่มือ...' });
         }
 
         function downloadManual(id) {

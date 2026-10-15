@@ -44,6 +44,12 @@ function getFormattedDateTimeString() {
 }
 
 let currentLastUpdated = 0;
+let isSyncingFromGoogleSheets = false;
+let isManualBackingUp = false;
+let isReloadingFullData = false;
+let pendingReloadTimestamp = null;
+let syncRealtimeDebounceTimer = null;
+let lastRealtimeNotificationTs = 0;
 let updateViewsDebounceTimer = null;
 
 function scheduleUpdateViews() {
@@ -108,7 +114,7 @@ let transactions = [];
                     isLoggedIn = false;
                 }
             }
-            fetchData(true); 
+            fetchData(false); 
             updateAuthUI(); 
         });
 
@@ -553,7 +559,7 @@ let transactions = [];
                     catalogBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md', 'shadow-blue-900/20');
                 }
                 showToast('ออกจากระบบเรียบร้อยแล้ว', 'info');
-            });
+            }, { showLoading: false });
         }
 
         function updateAuthUI() {
@@ -632,16 +638,49 @@ let transactions = [];
         });
 
         function showLoading(text = 'กำลังโหลดข้อมูล...') {
-            Swal.fire({
-                title: text,
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false,
-                didOpen: () => { Swal.showLoading(); }
-            });
+            if (Swal.isVisible()) {
+                const titleEl = Swal.getTitle();
+                if (titleEl) titleEl.textContent = text;
+                const htmlEl = Swal.getHtmlContainer();
+                if (htmlEl) {
+                    htmlEl.innerHTML = `
+                        <div class="flex flex-col items-center justify-center py-3">
+                            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-600 mb-3"></i>
+                            <span class="text-slate-600 text-sm font-medium">กรุณารอสักครู่ ระบบกำลังประมวลผล...</span>
+                        </div>
+                    `;
+                }
+                const iconEl = Swal.getIcon();
+                if (iconEl) iconEl.style.display = 'none';
+                const actions = Swal.getActions();
+                if (actions) actions.style.display = 'none';
+            } else {
+                Swal.fire({
+                    title: text,
+                    html: `
+                        <div class="flex flex-col items-center justify-center py-3">
+                            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-600 mb-3"></i>
+                            <span class="text-slate-600 text-sm font-medium">กรุณารอสักครู่ ระบบกำลังประมวลผล...</span>
+                        </div>
+                    `,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    customClass: {
+                        popup: 'rounded-2xl shadow-2xl'
+                    }
+                });
+            }
         }
 
-        function hideLoading() { Swal.close(); }
+        function hideLoading() {
+            if (Swal.isVisible()) {
+                const popup = Swal.getPopup();
+                if (popup && !popup.classList.contains('swal2-toast')) {
+                    Swal.close();
+                }
+            }
+        }
 
         function showToast(message, type = 'success') {
             const iconMap = { success: 'success', error: 'error', info: 'info' };
@@ -651,24 +690,73 @@ let transactions = [];
             });
         }
 
-        function confirmAction(message, callback) {
-            Swal.fire({
-                title: 'ยืนยันการดำเนินการ',
+        function confirmAction(message, callback, customOptions = {}) {
+            return Swal.fire({
+                title: customOptions.title || 'ยืนยันการดำเนินการ',
                 html: escapeHTML(message).replace(/\n/g, '<br>'),
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#dc2626',
                 cancelButtonColor: '#6b7280',
-                confirmButtonText: '<i class="fa-solid fa-check mr-1"></i> ยืนยัน',
-                cancelButtonText: 'ยกเลิก',
+                confirmButtonText: customOptions.confirmButtonText || '<i class="fa-solid fa-check mr-1"></i> ยืนยัน',
+                cancelButtonText: customOptions.cancelButtonText || 'ยกเลิก',
                 reverseButtons: true,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
                 customClass: {
                     popup: 'rounded-2xl shadow-2xl',
                     confirmButton: 'rounded-xl font-semibold px-5',
                     cancelButton: 'rounded-xl font-semibold px-5',
+                },
+                preConfirm: () => {
+                    if (customOptions.showLoading === false) {
+                        return true;
+                    }
+
+                    // สลับหน้าต่างเป็นสถานะ Loading ทันทีในเสี้ยววินาที (< 10ms) ป้องกันอาการค้าง
+                    const titleEl = Swal.getTitle();
+                    if (titleEl) titleEl.textContent = customOptions.loadingText || 'กำลังดำเนินการ...';
+
+                    const htmlEl = Swal.getHtmlContainer();
+                    if (htmlEl) {
+                        htmlEl.innerHTML = `
+                            <div class="flex flex-col items-center justify-center py-3">
+                                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-600 mb-3"></i>
+                                <span class="text-slate-600 text-sm font-medium">กรุณารอสักครู่ ระบบกำลังประมวลผล...</span>
+                            </div>
+                        `;
+                    }
+
+                    const iconEl = Swal.getIcon();
+                    if (iconEl) iconEl.style.display = 'none';
+
+                    const actions = Swal.getActions();
+                    if (actions) actions.style.display = 'none';
+
+                    // สั่งให้ callback เริ่มทำงานใน microtask เพื่อให้เบราว์เซอร์ Render หน้าต่างหมุนทันทีก่อนเริ่มประมวลผล
+                    setTimeout(async () => {
+                        if (typeof callback === 'function') {
+                            try {
+                                const res = callback();
+                                if (res && typeof res.then === 'function') {
+                                    await res;
+                                }
+                            } catch (err) {
+                                console.error("confirmAction callback error:", err);
+                                showToast("เกิดข้อผิดพลาด: " + (err.message || 'ระบบขัดข้อง'), 'error');
+                            } finally {
+                                hideLoading();
+                            }
+                        }
+                    }, 10);
+
+                    // ป้องกัน SweetAlert2 ปิด popup อัตโนมัติ โดยจะปิดเมื่อ callback ทำงานเสร็จ
+                    return false;
                 }
             }).then((result) => {
-                if (result.isConfirmed) callback();
+                if (result.isConfirmed && customOptions.showLoading === false && typeof callback === 'function') {
+                    callback();
+                }
             });
         }
 
@@ -712,6 +800,10 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
         }
 
         async function syncFromGoogleSheetToSystem() {
+            if (isSyncingFromGoogleSheets) {
+                showToast('ระบบกำลังดำเนินการอัปเดตข้อมูลอยู่แล้ว กรุณารอสักครู่...', 'info');
+                return;
+            }
             if (!isLoggedIn || !currentUser || (currentUser.role !== 'ADMIN' && currentUser.role !== 'Manager')) {
                 showToast('คุณไม่มีสิทธิ์เข้าถึงส่วนนี้ (เฉพาะผู้ดูแลระบบ)', 'error');
                 return;
@@ -754,7 +846,7 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
                 </p>
             `;
 
-            const result = await Swal.fire({
+            Swal.fire({
                 title: '🔄 อัปเดตข้อมูลจาก Google Sheet',
                 html: htmlContent,
                 icon: 'question',
@@ -763,6 +855,8 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
                 cancelButtonColor: '#6b7280',
                 confirmButtonText: 'ยืนยันการอัปเดต',
                 cancelButtonText: 'ยกเลิก',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
                 customClass: {
                     popup: 'rounded-3xl max-w-md',
                     confirmButton: 'rounded-xl font-semibold !text-xs !py-2.5 !px-5',
@@ -779,53 +873,88 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
                         Swal.showValidationMessage('กรุณาเลือกหมวดหมู่ที่ต้องการอัปเดตอย่างน้อย 1 รายการ');
                         return false;
                     }
-                    return targets;
+
+                    if (isSyncingFromGoogleSheets) return false;
+                    isSyncingFromGoogleSheets = true;
+
+                    // ปรับเปลี่ยนหน้าต่างเป็นสถานะ Loading ทันทีในเสี้ยววินาที (< 10ms)
+                    const titleEl = Swal.getTitle();
+                    if (titleEl) titleEl.innerHTML = '<span class="text-emerald-700 font-bold">กำลังอัปเดตข้อมูลจาก Google Sheet</span>';
+
+                    const htmlEl = Swal.getHtmlContainer();
+                    if (htmlEl) {
+                        htmlEl.innerHTML = `
+                            <div class="flex flex-col items-center justify-center py-6">
+                                <div class="relative w-16 h-16 mb-4">
+                                    <div class="w-16 h-16 rounded-full border-4 border-emerald-100 border-t-emerald-600 animate-spin"></div>
+                                    <i class="fa-solid fa-file-excel text-emerald-600 text-xl absolute inset-0 flex items-center justify-center"></i>
+                                </div>
+                                <p class="text-slate-800 text-sm font-bold mb-1.5">กำลังดึงข้อมูลล่าสุดจาก Google Sheet...</p>
+                                <p class="text-slate-500 text-xs text-center max-w-xs leading-relaxed">ระบบกำลังอ่านข้อมูลและซิงค์ฐานข้อมูล กรุณารอสักครู่ (อาจใช้เวลาประมาณ 10-25 วินาที)</p>
+                            </div>
+                        `;
+                    }
+
+                    const iconEl = Swal.getIcon();
+                    if (iconEl) iconEl.style.display = 'none';
+
+                    const actions = Swal.getActions();
+                    if (actions) actions.style.display = 'none';
+
+                    // สั่งให้เริ่มดึงข้อมูลใน microtask เพื่อให้หน้าจอแสดง Spinner ทันที
+                    setTimeout(async () => {
+                        try {
+                            const res = await fetch(API_URL, {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                    action: 'uploadSheetsToFirebase',
+                                    payload: { targets: targets }
+                                })
+                            });
+                            if (!res.ok) throw new Error('HTTP ' + res.status);
+                            const resData = await res.json();
+                            if (resData.status === 'success') {
+                                invalidateLocalCache();
+                                await reloadFullDataFromFirebase();
+                                updateAllViews();
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'อัปเดตข้อมูลสำเร็จ!',
+                                    text: 'ข้อมูลล่าสุดจาก Google Sheet ได้ถูกนำมาอัปเดตเข้าระบบเรียบร้อยแล้ว',
+                                    timer: 2500,
+                                    showConfirmButton: false,
+                                    customClass: { popup: 'rounded-3xl' }
+                                });
+                            } else {
+                                throw new Error(resData.message || 'เกิดข้อผิดพลาดในการอัปเดต');
+                            }
+                        } catch (error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'อัปเดตไม่สำเร็จ',
+                                text: error.message,
+                                customClass: { popup: 'rounded-3xl' }
+                            });
+                        } finally {
+                            isSyncingFromGoogleSheets = false;
+                        }
+                    }, 20);
+
+                    // ส่ง false เพื่อไม่ให้ SweetAlert2 ปิดหน้าต่างจนกว่ากระบวนการซิงค์จะเสร็จ
+                    return false;
+                }
+            }).then((result) => {
+                if (result && result.isDismissed) {
+                    isSyncingFromGoogleSheets = false;
                 }
             });
-
-            if (result.isConfirmed && result.value) {
-                showLoading('กำลังดึงข้อมูลล่าสุดจาก Google Sheet มาอัปเดตลงระบบ กรุณารอสักครู่...');
-                try {
-                    const res = await fetch(API_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            action: 'uploadSheetsToFirebase',
-                            payload: { targets: result.value }
-                        })
-                    });
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    const resData = await res.json();
-                    if (resData.status === 'success') {
-                        invalidateLocalCache();
-                        await fetchData(true);
-                        updateAllViews();
-                        showToast('อัปเดตข้อมูลจาก Google Sheet สำเร็จเรียบร้อย', 'success');
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'อัปเดตข้อมูลสำเร็จ!',
-                            text: 'ข้อมูลล่าสุดจาก Google Sheet ได้ถูกนำมาอัปเดตเข้าระบบเรียบร้อยแล้ว',
-                            timer: 2500,
-                            showConfirmButton: false,
-                            customClass: { popup: 'rounded-3xl' }
-                        });
-                    } else {
-                        throw new Error(resData.message || 'เกิดข้อผิดพลาดในการอัปเดต');
-                    }
-                } catch (error) {
-                    showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'อัปเดตไม่สำเร็จ',
-                        text: error.message,
-                        customClass: { popup: 'rounded-3xl' }
-                    });
-                } finally {
-                    hideLoading();
-                }
-            }
         }
 
         async function runManualBackup(type) {
+            if (isManualBackingUp) {
+                showToast('กำลังดำเนินการสำรองข้อมูลอยู่แล้ว กรุณารอสักครู่...', 'info');
+                return;
+            }
             if (!isLoggedIn || !currentUser || currentUser.role !== 'ADMIN') {
                 showToast('คุณไม่มีสิทธิ์เข้าถึงส่วนนี้', 'error');
                 return;
@@ -872,7 +1001,7 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
                 </div>
             `;
                 
-            const result = await Swal.fire({
+            Swal.fire({
                 title: titleMsg,
                 html: htmlContent,
                 icon: 'info',
@@ -881,6 +1010,8 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
                 cancelButtonColor: '#6b7280',
                 confirmButtonText: 'ยืนยันการสำรองข้อมูล',
                 cancelButtonText: 'ยกเลิก',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
                 customClass: {
                     popup: 'rounded-3xl max-w-sm',
                     confirmButton: 'rounded-xl font-semibold !text-[11px]',
@@ -900,38 +1031,79 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
                         Swal.showValidationMessage('กรุณาเลือกข้อมูลอย่างน้อย 1 รายการ');
                         return false;
                     }
-                    return targets;
+
+                    if (isManualBackingUp) return false;
+                    isManualBackingUp = true;
+
+                    // ปรับเปลี่ยนหน้าต่างเป็นสถานะ Loading ทันที
+                    const titleEl = Swal.getTitle();
+                    if (titleEl) titleEl.textContent = 'กำลังสำรองข้อมูล...';
+
+                    const htmlEl = Swal.getHtmlContainer();
+                    if (htmlEl) {
+                        htmlEl.innerHTML = `
+                            <div class="flex flex-col items-center justify-center py-6">
+                                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-600 mb-3"></i>
+                                <p class="text-slate-800 text-sm font-bold mb-1.5">กำลังนำข้อมูลส่งไปสำรอง...</p>
+                                <p class="text-slate-500 text-xs text-center max-w-xs leading-relaxed">กรุณารอสักครู่ ระบบกำลังประมวลผลข้อมูล</p>
+                            </div>
+                        `;
+                    }
+
+                    const iconEl = Swal.getIcon();
+                    if (iconEl) iconEl.style.display = 'none';
+
+                    const actions = Swal.getActions();
+                    if (actions) actions.style.display = 'none';
+
+                    setTimeout(async () => {
+                        try {
+                            const res = await fetch(API_URL, {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                    action: action,
+                                    payload: { 
+                                        requesterEmail: currentUser.email,
+                                        targets: targets
+                                    }
+                                })
+                            });
+                            
+                            if (!res.ok) throw new Error('HTTP ' + res.status);
+                            const resData = await res.json();
+                            
+                            if (resData.status === 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'สำรองข้อมูลสำเร็จ!',
+                                    text: resData.message || 'บันทึกข้อมูลสำรองเรียบร้อยแล้ว',
+                                    timer: 2500,
+                                    showConfirmButton: false,
+                                    customClass: { popup: 'rounded-3xl' }
+                                });
+                            } else {
+                                throw new Error(resData.message || 'เกิดข้อผิดพลาดในการสำรองข้อมูล');
+                            }
+                        } catch (error) {
+                            showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'สำรองข้อมูลไม่สำเร็จ',
+                                text: error.message,
+                                customClass: { popup: 'rounded-3xl' }
+                            });
+                        } finally {
+                            isManualBackingUp = false;
+                        }
+                    }, 20);
+
+                    return false;
+                }
+            }).then((result) => {
+                if (result && result.isDismissed) {
+                    isManualBackingUp = false;
                 }
             });
-            
-            if (result.isConfirmed && result.value) {
-                showLoading('กำลังสำรองข้อมูล กรุณารอสักครู่...');
-                try {
-                    const res = await fetch(API_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            action: action,
-                            payload: { 
-                                requesterEmail: currentUser.email,
-                                targets: result.value
-                            }
-                        })
-                    });
-                    
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    const resData = await res.json();
-                    
-                    if (resData.status === 'success') {
-                        showToast(resData.message || 'สำรองข้อมูลสำเร็จ', 'success');
-                    } else {
-                        throw new Error(resData.message || 'เกิดข้อผิดพลาดในการสำรองข้อมูล');
-                    }
-                } catch (error) {
-                    showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
-                } finally {
-                    hideLoading();
-                }
-            }
         }
 
         function openSelfSettingsModal() {
@@ -1426,7 +1598,7 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
                     console.error(err);
                     showToast("เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว", "error");
                 }
-            });
+            }, { loadingText: 'กำลังลบผู้ใช้งาน...' });
         }
 
         function closeConfirmModal() { Swal.close(); }
@@ -1496,8 +1668,10 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
                             console.log("[Firebase Smart Sync] Cache is fresh (0 bytes downloaded for catalog).");
                         }
 
-                        // เปิดการดักฟังเฉพาะจุด (Granular Listeners) - ประหยัด Bandwidth 99%+
-                        setupGranularFirebaseListeners();
+                        // เปิดการดักฟังเฉพาะจุด (Granular Listeners) แบบ Deferred เพื่อให้หน้าเว็บโหลดเสร็จสมบูรณ์และแท็บหยุดหมุนทันที
+                        setTimeout(() => {
+                            setupGranularFirebaseListeners();
+                        }, 500);
                     } catch (err) {
                         console.error("Firebase Smart Listener Setup Error:", err);
                         await _fetchFromBackupServer();
@@ -1523,6 +1697,12 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
         }
 
         async function reloadFullDataFromFirebase(knownTimestamp = null) {
+            if (isReloadingFullData) {
+                if (knownTimestamp) pendingReloadTimestamp = knownTimestamp;
+                console.log("[reloadFullDataFromFirebase] Already reloading, queued next reload.");
+                return;
+            }
+            isReloadingFullData = true;
             try {
                 const [appDataSnap, mappingsSnap, lotsSnap, usersSnap] = await Promise.all([
                     firebase.database().ref('appData').get(),
@@ -1573,6 +1753,13 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
             } catch(e) {
                 console.error("reloadFullDataFromFirebase error:", e);
                 await _fetchFromBackupServer();
+            } finally {
+                isReloadingFullData = false;
+                if (pendingReloadTimestamp !== null) {
+                    const nextTs = pendingReloadTimestamp;
+                    pendingReloadTimestamp = null;
+                    reloadFullDataFromFirebase(nextTs);
+                }
             }
         }
 
@@ -1620,11 +1807,37 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
             // 4. ดักฟังกรณีมีคนกด Sync ทั้งหมดจาก Google Sheets (ใช้เน็ตเพียง 8 bytes ในการแจ้งเตือน)
             firebase.database().ref('appData/lastUpdated').on('value', async (snap) => {
                 const serverTs = Number(snap.val()) || 0;
-                if (serverTs && currentLastUpdated && serverTs > currentLastUpdated) {
+                if (!serverTs || !currentLastUpdated || serverTs <= currentLastUpdated) {
+                    return;
+                }
+
+                // หากเครื่องนี้เป็นคนกด Sync จาก Google Sheet เอง มี Loading Modal & แจ้งเตือนของตัวเองอยู่แล้ว
+                if (isSyncingFromGoogleSheets) {
+                    currentLastUpdated = serverTs;
+                    return;
+                }
+
+                // Debounce ป้องกันกรณี Google Apps Script บันทึก lastUpdated รัวๆ หลายครั้ง (รอให้จบชุด 1.5 วินาที)
+                clearTimeout(syncRealtimeDebounceTimer);
+                syncRealtimeDebounceTimer = setTimeout(async () => {
+                    if (isSyncingFromGoogleSheets) {
+                        currentLastUpdated = serverTs;
+                        return;
+                    }
+                    if (serverTs <= currentLastUpdated) return;
+
                     console.log("[Firebase Realtime] Full sync triggered from Google Sheets. Reloading data...");
                     currentLastUpdated = serverTs;
+
+                    const now = Date.now();
+                    if (now - lastRealtimeNotificationTs > 10000) {
+                        lastRealtimeNotificationTs = now;
+                        showToast('กำลังอัปเดตข้อมูลล่าสุดจาก Google Sheet...', 'info');
+                    }
+
                     await reloadFullDataFromFirebase(serverTs);
-                }
+                    showToast('อัปเดตข้อมูลจาก Google Sheet เรียบร้อยแล้ว', 'success');
+                }, 1500);
             });
         }
 
@@ -1768,6 +1981,23 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
 // Firebase Direct Backend Bypass Interceptor
 // ==========================================
 
+const originalFetch = window.fetch;
+
+function syncToAppsScriptInBackground(action, payload) {
+    if (typeof API_URL === 'undefined' || !API_URL) return;
+    try {
+        const fetchFn = (typeof originalFetch === 'function') ? originalFetch : window.fetch;
+        fetchFn(API_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: action, payload: payload })
+        }).catch(e => console.warn(`[Background Sync] Apps Script ${action} warning:`, e));
+    } catch (err) {
+        console.warn(`[Background Sync] Apps Script ${action} invoke error:`, err);
+    }
+}
+
 const BYPASS_ACTIONS = [
     'addProduct',
     'editProduct',
@@ -1816,11 +2046,6 @@ async function handleActionDirectlyOnFirebase(action, payload) {
             case 'deleteMachine':
                 await executeDirectDeleteMachine(payload);
                 return { status: 'success', message: 'ลบเครื่องจักรสำเร็จ' };
-                await executeDirectEditProduct(payload);
-                return { status: 'success', message: 'บันทึกแก้ไขสินค้าสำเร็จ' };
-            case 'editMachine':
-                await executeDirectEditMachine(payload);
-                return { status: 'success', message: 'บันทึกแก้ไขเครื่องจักรสำเร็จ' };
             case 'editManual':
                 const manualRes = await executeDirectEditManual(payload);
                 return { status: 'success', data: manualRes, message: 'บันทึกแก้ไขคู่มือสำเร็จ' };
@@ -1918,14 +2143,17 @@ async function executeDirectAddProduct(payload) {
 
     const nextIdx = products.length;
     await firebase.database().ref('appData/products/' + nextIdx).set(newProd);
-    await firebase.database().ref('appData/lastUpdated').set(Date.now());
+    const newAddTs = Date.now();
+    currentLastUpdated = newAddTs;
+    await firebase.database().ref('appData/lastUpdated').set(newAddTs);
     products.push(newProd);
     db.products = products;
     invalidateLocalCache();
 
     if (typeof API_URL !== 'undefined' && API_URL) {
-        fetch(API_URL, {
+        originalFetch(API_URL, {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'addProduct', payload: payload })
         })
         .then(r => r.json())
@@ -1952,13 +2180,16 @@ async function executeDirectDeleteProduct(payload) {
         products = ensureArray(snap.val());
     }
     
-    const idx = products.findIndex(p => p && String(p.id).trim() === pId);
-    if (idx === -1) throw new Error("ไม่พบรหัสสินค้าที่ต้องการลบ");
+    const initialLen = products.length;
+    products = products.filter(p => p && String(p.id).trim() !== pId);
+    if (products.length === initialLen) throw new Error("ไม่พบรหัสสินค้า " + pId + " ในระบบ");
     
-    products.splice(idx, 1);
-    await firebase.database().ref('appData/products').set(products);
-    await firebase.database().ref('appData/lastUpdated').set(Date.now());
-    db.products = products;
+    const cleanProducts = products.filter(Boolean);
+    await firebase.database().ref('appData/products').set(cleanProducts);
+    const newDelTs = Date.now();
+    currentLastUpdated = newDelTs;
+    await firebase.database().ref('appData/lastUpdated').set(newDelTs);
+    db.products = cleanProducts;
     invalidateLocalCache();
 
     // ลบการจับคู่เครื่องจักรที่เกี่ยวข้อง
@@ -1970,12 +2201,8 @@ async function executeDirectDeleteProduct(payload) {
         db.mappings = mappings;
     }
 
-    if (typeof API_URL !== 'undefined' && API_URL) {
-        fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'deleteProduct', payload: { id: pId } })
-        }).catch(e => console.warn('[Background Sync] Apps Script deleteProduct warning:', e));
-    }
+    // ซิงค์ลบข้อมูลบน Google Sheet (Apps Script) ในเบื้องหลัง
+    syncToAppsScriptInBackground('deleteProduct', { id: pId });
 }
 
 async function executeDirectAddMachine(payload) {
@@ -2004,17 +2231,14 @@ async function executeDirectAddMachine(payload) {
 
     const nextIdx = machines.length;
     await firebase.database().ref('appData/machines/' + nextIdx).set(newMach);
-    await firebase.database().ref('appData/lastUpdated').set(Date.now());
+    const newMachTs = Date.now();
+    currentLastUpdated = newMachTs;
+    await firebase.database().ref('appData/lastUpdated').set(newMachTs);
     machines.push(newMach);
     db.machines = machines;
     invalidateLocalCache();
 
-    if (typeof API_URL !== 'undefined' && API_URL) {
-        fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'addMachine', payload: payload })
-        }).catch(e => console.warn('[Background Sync] Apps Script addMachine warning:', e));
-    }
+    syncToAppsScriptInBackground('addMachine', payload);
     return newMach;
 }
 
@@ -2028,13 +2252,16 @@ async function executeDirectDeleteMachine(payload) {
         machines = ensureArray(snap.val());
     }
     
-    const idx = machines.findIndex(m => m && String(m.id).trim() === mId);
-    if (idx === -1) throw new Error("ไม่พบเครื่องจักรที่ต้องการลบ");
+    const initialLen = machines.length;
+    machines = machines.filter(m => m && String(m.id).trim() !== mId);
+    if (machines.length === initialLen) throw new Error("ไม่พบเครื่องจักรที่ต้องการลบ");
     
-    machines.splice(idx, 1);
-    await firebase.database().ref('appData/machines').set(machines);
-    await firebase.database().ref('appData/lastUpdated').set(Date.now());
-    db.machines = machines;
+    const cleanMachines = machines.filter(Boolean);
+    await firebase.database().ref('appData/machines').set(cleanMachines);
+    const newDelMachTs = Date.now();
+    currentLastUpdated = newDelMachTs;
+    await firebase.database().ref('appData/lastUpdated').set(newDelMachTs);
+    db.machines = cleanMachines;
     invalidateLocalCache();
 
     // ลบการจับคู่อะไหล่ที่เกี่ยวข้อง
@@ -2046,12 +2273,8 @@ async function executeDirectDeleteMachine(payload) {
         db.mappings = mappings;
     }
 
-    if (typeof API_URL !== 'undefined' && API_URL) {
-        fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'deleteMachine', payload: { id: mId } })
-        }).catch(e => console.warn('[Background Sync] Apps Script deleteMachine warning:', e));
-    }
+    // ซิงค์ลบข้อมูลบน Google Sheet (Apps Script) ในเบื้องหลัง
+    syncToAppsScriptInBackground('deleteMachine', { id: mId });
 }
 
 async function executeDirectEditProduct(payload) {
@@ -2084,7 +2307,9 @@ async function executeDirectEditProduct(payload) {
     
     // อัปเดตเฉพาะรายการนี้ใน Firebase
     await firebase.database().ref('appData/products/' + index).set(updated);
-    await firebase.database().ref('appData/lastUpdated').set(Date.now());
+    const newEditProdTs = Date.now();
+    currentLastUpdated = newEditProdTs;
+    await firebase.database().ref('appData/lastUpdated').set(newEditProdTs);
     if (db && Array.isArray(db.products)) {
         const localIdx = db.products.findIndex(p => p && String(p.id).trim() === pId);
         if (localIdx !== -1) db.products[localIdx] = updated;
@@ -2093,8 +2318,9 @@ async function executeDirectEditProduct(payload) {
 
     // ซิงค์ส่งไปยัง Apps Script ในเบื้องหลัง (Background sync) เพื่ออัปเดตลง Google Sheets & Google Drive
     if (typeof API_URL !== 'undefined' && API_URL && payload.imageBase64) {
-        fetch(API_URL, {
+        originalFetch(API_URL, {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'editProduct', payload: payload })
         })
         .then(r => r.json())
@@ -2130,7 +2356,9 @@ async function executeDirectEditMachine(payload) {
     };
     // อัปเดตเฉพาะรายการนี้ใน Firebase
     await firebase.database().ref('appData/machines/' + index).set(updated);
-    await firebase.database().ref('appData/lastUpdated').set(Date.now());
+    const newEditMachTs = Date.now();
+    currentLastUpdated = newEditMachTs;
+    await firebase.database().ref('appData/lastUpdated').set(newEditMachTs);
     if (db && Array.isArray(db.machines)) {
         const localIdx = db.machines.findIndex(m => m && String(m.id).trim() === mId);
         if (localIdx !== -1) db.machines[localIdx] = updated;
@@ -2139,8 +2367,9 @@ async function executeDirectEditMachine(payload) {
 
     // ซิงค์ส่งไปยัง Apps Script ในเบื้องหลัง (Background sync) เพื่ออัปเดตลง Google Sheets & Google Drive
     if (typeof API_URL !== 'undefined' && API_URL && payload.imageBase64) {
-        fetch(API_URL, {
+        originalFetch(API_URL, {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'editMachine', payload: payload })
         })
         .then(r => r.json())
@@ -2971,6 +3200,7 @@ async function executeDirectAddMapping(payload) {
         await firebase.database().ref('mappings').set(mappings);
         db.mappings = mappings;
         invalidateLocalCache();
+        syncToAppsScriptInBackground('addMapping', payload);
     }
 }
 
@@ -2984,6 +3214,7 @@ async function executeDirectDeleteMapping(payload) {
         await firebase.database().ref('mappings').set(mappings);
         db.mappings = mappings;
         invalidateLocalCache();
+        syncToAppsScriptInBackground('deleteMapping', payload);
     }
 }
 
@@ -2998,8 +3229,10 @@ async function executeDirectSaveSettings(payload) {
 }
 
 // Global Fetch Interceptor to bypass Apps Script
-const originalFetch = window.fetch;
 window.fetch = async function (url, options) {
+    if (options && options.headers && (options.headers['X-Skip-Interceptor'] || options.headers['X-Background-Sync'])) {
+        return originalFetch.apply(this, arguments);
+    }
     if (typeof url === 'string' && url.includes(API_URL) && options && options.method === 'POST') {
         try {
             const body = JSON.parse(options.body);

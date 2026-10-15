@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/1kH8HErbms_U0xnoiJ7jlW7r79FK3hXeB">
+    <link rel="icon" type="image/png" href="favicon.png">
     <title>แคตตาล็อกอะไหล่เครื่องจักร (Spare Parts Catalog)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -30,7 +30,7 @@
 
                 <!-- รูปภาพใหญ่ -->
                 <div class="bg-slate-100 cursor-zoom-in" onclick="event.stopPropagation(); openImageLightbox(document.getElementById('pd_image').src, document.getElementById('pd_name').innerText)">
-                    <img id="pd_image" src="" alt="" class="w-full h-72 sm:h-96 object-contain p-4" onerror="this.src='https://placehold.co/800x500/f8fafc/94a3b8?text=No+Image'">
+                    <img id="pd_image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt="" class="w-full h-72 sm:h-96 object-contain p-4" onerror="this.src='https://placehold.co/800x500/f8fafc/94a3b8?text=No+Image'">
                 </div>
             </div>
 
@@ -125,7 +125,7 @@
 
                 <!-- รูปภาพใหญ่ -->
                 <div class="bg-slate-100 cursor-zoom-in" onclick="event.stopPropagation(); openImageLightbox(document.getElementById('mdm_image').src, document.getElementById('mdm_name').innerText)">
-                    <img id="mdm_image" src="" alt="" class="w-full h-72 sm:h-96 object-contain p-4" onerror="this.src='https://placehold.co/800x500/1e293b/94a3b8?text=No+Image'">
+                    <img id="mdm_image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt="" class="w-full h-72 sm:h-96 object-contain p-4" onerror="this.src='https://placehold.co/800x500/1e293b/94a3b8?text=No+Image'">
                 </div>
             </div>
 
@@ -1982,7 +1982,7 @@
                                 </div>
                             </div>
                             <div class="w-full mt-4">
-                                <button onclick="syncFromGoogleSheetToSystem()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 px-4 rounded-xl transition-all duration-200 shadow-sm flex items-center justify-center gap-2">
+                                <button onclick="event.stopPropagation(); syncFromGoogleSheetToSystem()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 px-4 rounded-xl transition-all duration-200 shadow-sm flex items-center justify-center gap-2">
                                     <i class="fa-solid fa-arrows-rotate"></i> อัปเดตข้อมูลจาก Google Sheet
                                 </button>
                             </div>
@@ -2869,7 +2869,6 @@
     <!-- Firebase SDK (Compat Version for Vanilla JS) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
     <script>
       const firebaseConfig = {
         apiKey: "AIzaSyB8ANLqn4B4M4yOzd-onX3cvAIxp71XHHo",
@@ -2881,9 +2880,8 @@
         appId: "1:545154967550:web:da7b76fc30b557dcbfc2af",
         measurementId: "G-E7GQZVWE5K"
       };
-      // Initialize Firebase & Analytics
+      // Initialize Firebase
       firebase.initializeApp(firebaseConfig);
-      firebase.analytics();
     </script>
 
     <!-- Modular Application Scripts -->
