@@ -1345,6 +1345,10 @@ function updateApprovalStatus(payload) {
       targetTx.approval_date = dateStr;
       targetTx.approval_by = approverName;
       targetTx.approval_by_email = approverEmail;
+      if (!targetTx.approver || !String(targetTx.approver).trim() || String(targetTx.approver).trim() === '-') {
+        targetTx.approver = approverName;
+        targetTx.approver_email = approverEmail;
+      }
       targetTx.approval_note = note;
       targetTx.status = "Cancelled";
       
@@ -1510,6 +1514,10 @@ function updateApprovalStatus(payload) {
         targetTx.approval_date = dateStr;
         targetTx.approval_by = approverName;
         targetTx.approval_by_email = approverEmail;
+        if (!targetTx.approver || !String(targetTx.approver).trim() || String(targetTx.approver).trim() === '-') {
+          targetTx.approver = approverName;
+          targetTx.approver_email = approverEmail;
+        }
         targetTx.approval_note = note;
       } else if (newStatus === "Pending") {
         if (note) targetTx.approval_note = note;

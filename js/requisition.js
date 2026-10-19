@@ -753,7 +753,7 @@
                     db.approvers = result.data;
                     const select = document.getElementById(selectId);
                     if (select) {
-                        select.innerHTML = '<option value="">-- เลือกผู้อนุมัติ --</option>';
+                        select.innerHTML = '<option value="">-- ไม่ระบุ (ผู้อนุมัติท่านใดก็ได้) --</option>';
                         db.approvers.forEach(appr => {
                             const val = `${appr.fullName}|${appr.email}`;
                             const isSelected = (defaultVal && (appr.email === defaultVal || appr.fullName === defaultVal || val === defaultVal)) ? 'selected' : '';
@@ -771,12 +771,13 @@
             const select = document.getElementById(selectId);
             if (!select) return;
             
-            select.innerHTML = '<option value="">-- เลือกผู้อนุมัติ --</option>';
+            select.innerHTML = '<option value="">-- ไม่ระบุ (ผู้อนุมัติท่านใดก็ได้) --</option>';
             const approvers = (db && Array.isArray(db.approvers)) ? db.approvers : [];
             
             if (approvers.length === 0) {
                 if (typeof currentUser !== 'undefined' && currentUser && currentUser.canApprove) {
-                    select.insertAdjacentHTML('beforeend', `<option value="${escapeHTML(currentUser.fullName)}|${escapeHTML(currentUser.email)}" selected>${escapeHTML(currentUser.fullName)} (${escapeHTML(currentUser.department || 'ผู้ใช้งาน')})</option>`);
+                    const isSel = (defaultVal && (currentUser.email === defaultVal || currentUser.fullName === defaultVal)) ? 'selected' : '';
+                    select.insertAdjacentHTML('beforeend', `<option value="${escapeHTML(currentUser.fullName)}|${escapeHTML(currentUser.email)}" ${isSel}>${escapeHTML(currentUser.fullName)} (${escapeHTML(currentUser.department || 'ผู้ใช้งาน')})</option>`);
                 }
                 fetchApproversAsync(selectId, defaultVal);
                 return;
@@ -1070,10 +1071,6 @@
                 showToast("กรุณาระบุชื่อผู้ประเมินซ่อม", "error");
                 return;
             }
-            if (!approverVal) {
-                showToast("กรุณาเลือกผู้อนุมัติ", "error");
-                return;
-            }
             if (!machineId) {
                 showToast("กรุณาระบุเครื่องจักร", "error");
                 return;
@@ -1099,8 +1096,8 @@
                 return;
             }
 
-            const approverParts = approverVal.split('|');
-            const approverName = approverParts[0] || approverVal;
+            const approverParts = approverVal ? approverVal.split('|') : [];
+            const approverName = approverParts[0] || '';
             const approverEmail = approverParts[1] || '';
 
             let laborRate = 0;
@@ -1236,10 +1233,6 @@
                 showToast("กรุณาระบุชื่อผู้ประเมินซ่อม", "error");
                 return;
             }
-            if (!approverVal) {
-                showToast("กรุณาเลือกผู้อนุมัติ", "error");
-                return;
-            }
             if (!machineId) {
                 showToast("กรุณาระบุเครื่องจักร", "error");
                 return;
@@ -1265,8 +1258,8 @@
                 return;
             }
 
-            const approverParts = approverVal.split('|');
-            const approverName = approverParts[0] || approverVal;
+            const approverParts = approverVal ? approverVal.split('|') : [];
+            const approverName = approverParts[0] || '';
             const approverEmail = approverParts[1] || '';
 
             let laborRate = 0;
@@ -1449,9 +1442,10 @@
                     pendingCount = transactions.filter(t => {
                         if (t.status === 'Restock' || t.status === 'Cancelled') return false;
                         if (t.approval_status && t.approval_status !== 'Pending') return false;
+                        const isUnassigned = !t.approver || !t.approver.trim() || t.approver.trim() === '-';
                         const matchEmail = t.approver_email && currentUser.email && t.approver_email.toLowerCase() === currentUser.email.toLowerCase();
                         const matchName = t.approver && currentUser.fullName && t.approver.trim().toLowerCase() === currentUser.fullName.trim().toLowerCase();
-                        return matchEmail || matchName;
+                        return isUnassigned || matchEmail || matchName;
                     }).length;
                 }
             }
@@ -1476,7 +1470,7 @@
                 if (currentUser.role === 'ADMIN') {
                     subtitleEl.innerHTML = `<span class="inline-flex items-center gap-1 text-blue-600 font-semibold"><i class="fa-solid fa-shield-halved"></i> สิทธิ์ผู้ดูแลระบบ (Admin):</span> สามารถตรวจสอบและพิจารณาอนุมัติ/ไม่อนุมัติใบขอเบิกอะไหล่ทั้งหมด`;
                 } else {
-                    subtitleEl.innerHTML = `<span class="inline-flex items-center gap-1 text-emerald-600 font-semibold"><i class="fa-solid fa-stamp"></i> สิทธิ์ผู้อนุมัติ:</span> แสดงเฉพาะใบขอเบิกที่ส่งถึงคุณ (<strong class="text-slate-800">${escapeHTML(currentUser.fullName)}</strong>)`;
+                    subtitleEl.innerHTML = `<span class="inline-flex items-center gap-1 text-emerald-600 font-semibold"><i class="fa-solid fa-stamp"></i> สิทธิ์ผู้อนุมัติ:</span> แสดงใบขอเบิกที่ส่งถึงคุณ (<strong class="text-slate-800">${escapeHTML(currentUser.fullName)}</strong>) และใบขอเบิกที่ไม่ได้ระบุผู้อนุมัติเจาะจง`;
                 }
             }
 
@@ -1490,13 +1484,21 @@
                     
                     // Collect unique approvers
                     const approverSet = new Set();
+                    let hasUnassigned = false;
                     (transactions || []).forEach(t => {
-                        if (t.approver && t.status !== 'Restock') {
-                            approverSet.add(t.approver.trim());
+                        if (t.status !== 'Restock') {
+                            if (t.approver && t.approver.trim() && t.approver.trim() !== '-') {
+                                approverSet.add(t.approver.trim());
+                            } else {
+                                hasUnassigned = true;
+                            }
                         }
                     });
 
                     let optionsHtml = '<option value="all">-- ดูผู้อนุมัติทุกคน --</option>';
+                    if (hasUnassigned) {
+                        optionsHtml += `<option value="__unassigned__" ${currentSelected === '__unassigned__' ? 'selected' : ''}>👥 ไม่ระบุ (ผู้อนุมัติท่านใดก็ได้)</option>`;
+                    }
                     Array.from(approverSet).sort().forEach(appr => {
                         optionsHtml += `<option value="${escapeHTML(appr)}" ${appr === currentSelected ? 'selected' : ''}>👤 ${escapeHTML(appr)}</option>`;
                     });
@@ -1540,13 +1542,16 @@
 
             if (!currentUser || currentUser.role !== 'ADMIN') {
                 list = list.filter(t => {
+                    const isUnassigned = !t.approver || !t.approver.trim() || t.approver.trim() === '-';
                     const matchEmail = t.approver_email && currentUser?.email && t.approver_email.toLowerCase() === currentUser.email.toLowerCase();
                     const matchName = t.approver && currentUser?.fullName && t.approver.trim().toLowerCase() === currentUser.fullName.trim().toLowerCase();
-                    return matchEmail || matchName;
+                    return isUnassigned || matchEmail || matchName;
                 });
             } else {
                 const adminFilterApprover = document.getElementById('filterApprovalApprover')?.value || 'all';
-                if (adminFilterApprover !== 'all') {
+                if (adminFilterApprover === '__unassigned__') {
+                    list = list.filter(t => !t.approver || !t.approver.trim() || t.approver.trim() === '-');
+                } else if (adminFilterApprover !== 'all') {
                     list = list.filter(t => t.approver && t.approver.trim() === adminFilterApprover);
                 }
             }
@@ -1654,7 +1659,7 @@
                         <td class="p-4 text-slate-800 font-bold">${escapeHTML(t.requester || '-')}</td>
                         <td class="p-4">
                             <span class="inline-flex items-center gap-1 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg">
-                                <i class="fa-solid fa-stamp text-[10px]"></i> ${escapeHTML(t.approver || '-')}
+                                <i class="fa-solid fa-stamp text-[10px]"></i> ${escapeHTML(t.approval_by || t.approver || 'ไม่ระบุ (ท่านใดก็ได้)')}
                             </span>
                         </td>
                         <td class="p-4 text-slate-700 text-xs font-medium">${machineInfo}</td>
@@ -1681,7 +1686,7 @@
             document.getElementById('aam_tx_id').textContent = `เลขที่ใบเบิก: ${t.id}`;
             document.getElementById('aam_date').textContent = t.date || '-';
             document.getElementById('aam_requester').textContent = t.requester || '-';
-            document.getElementById('aam_approver').textContent = t.approver || '-';
+            document.getElementById('aam_approver').textContent = t.approval_by || t.approver || 'ไม่ระบุ (ผู้อนุมัติท่านใดก็ได้)';
             document.getElementById('aam_repair_level').textContent = t.repair_level || '-';
             document.getElementById('aam_customer_type').textContent = t.customer_type || '-';
             document.getElementById('aam_price_tier').textContent = t.price_tier || '-';
@@ -2305,6 +2310,10 @@
                         targetTx.approval_status = 'Approved';
                         targetTx.approval_by = currentUser.fullName;
                         targetTx.approval_by_email = currentUser.email;
+                        if (!targetTx.approver || !targetTx.approver.trim() || targetTx.approver.trim() === '-') {
+                            targetTx.approver = currentUser.fullName;
+                            targetTx.approver_email = currentUser.email;
+                        }
                         targetTx.approval_date = dateStr;
                         targetTx.approval_note = note;
 
@@ -2416,6 +2425,10 @@
                         targetTx.status = 'Cancelled';
                         targetTx.approval_by = currentUser.fullName;
                         targetTx.approval_by_email = currentUser.email;
+                        if (!targetTx.approver || !targetTx.approver.trim() || targetTx.approver.trim() === '-') {
+                            targetTx.approver = currentUser.fullName;
+                            targetTx.approver_email = currentUser.email;
+                        }
                         targetTx.approval_date = dateStr;
                         targetTx.approval_note = note;
                     }
@@ -2554,7 +2567,7 @@
             document.getElementById('tdm_requester').innerText = t.requester || '-';
             
             const approverEl = document.getElementById('tdm_approver');
-            if (approverEl) approverEl.innerText = t.approver || '-';
+            if (approverEl) approverEl.innerText = isRestock ? '-' : (t.approval_by || t.approver || 'ไม่ระบุ (ผู้อนุมัติท่านใดก็ได้)');
             const deptEl = document.getElementById('tdm_department');
             if (deptEl) deptEl.innerText = t.department || '-';
             
@@ -2872,7 +2885,7 @@
                             + '<\/div>'
                             + '<div class="meta-right">'
                                 + '<div class="meta-row"><span class="meta-label">' + operatorLabel + '<\/span> ' + (t.requester || '-') + '<\/div>'
-                                + (isRestock ? ('<div class="meta-row"><span class="meta-label">แผนก:<\/span> ' + (t.department || '-') + '<\/div>') : ('<div class="meta-row"><span class="meta-label">ผู้อนุมัติ:<\/span> ' + (t.approver || '-') + '<\/div><div class="meta-row"><span class="meta-label">ประเภทลูกค้า:<\/span> ' + (t.customer_type || '-') + ' (' + (t.price_tier || '-') + ')<\/div>'))
+                                + (isRestock ? ('<div class="meta-row"><span class="meta-label">แผนก:<\/span> ' + (t.department || '-') + '<\/div>') : ('<div class="meta-row"><span class="meta-label">ผู้อนุมัติ:<\/span> ' + (t.approval_by || t.approver || 'ไม่ระบุ (ท่านใดก็ได้)') + '<\/div><div class="meta-row"><span class="meta-label">ประเภทลูกค้า:<\/span> ' + (t.customer_type || '-') + ' (' + (t.price_tier || '-') + ')<\/div>'))
                                 + '<div class="meta-row"><span class="meta-label">Serial Number:<\/span> ' + (isRestock ? '-' : (t.serial_number || '-')) + '<\/div>'
                             + '<\/div>'
                         + '<\/div>'
@@ -2895,7 +2908,7 @@
                     + '<\/div>'
                     + '<div class="sig-zone">'
                         + '<div class="sig-col"><div class="sig-line">ลงชื่อ ...............................<\/div><div class="sig-name">(' + (t.requester || 'ผู้ประเมินซ่อม') + ')<\/div><div class="sig-name">' + (isRestock ? 'ผู้เติมสต็อก' : 'ผู้ประเมินซ่อม') + '<\/div><\/div>'
-                        + (isRestock ? '' : ('<div class="sig-col"><div class="sig-line">ลงชื่อ ...............................<\/div><div class="sig-name">(' + (t.approver || 'ผู้อนุมัติ') + ')<\/div><div class="sig-name">ผู้อนุมัติ<\/div><\/div>'))
+                        + (isRestock ? '' : ('<div class="sig-col"><div class="sig-line">ลงชื่อ ...............................<\/div><div class="sig-name">(' + (t.approval_by || t.approver || '...............................') + ')<\/div><div class="sig-name">ผู้อนุมัติ<\/div><\/div>'))
                         + '<div class="sig-col"><div class="sig-line">ลงชื่อ ...............................<\/div><div class="sig-name">(...............................)<\/div><div class="sig-name">ผู้จ่ายของสโตร์<\/div><\/div>'
                     + '<\/div>'
                 + '<\/div>'

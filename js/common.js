@@ -3041,6 +3041,10 @@ async function executeDirectUpdateApprovalStatus(payload) {
         targetTx.approval_date = dateStr;
         targetTx.approval_by = approverName;
         targetTx.approval_by_email = approverEmail;
+        if (!targetTx.approver || !String(targetTx.approver).trim() || String(targetTx.approver).trim() === '-') {
+            targetTx.approver = approverName;
+            targetTx.approver_email = approverEmail;
+        }
         targetTx.approval_note = note;
         targetTx.status = "Cancelled";
         
@@ -3150,6 +3154,10 @@ async function executeDirectUpdateApprovalStatus(payload) {
         targetTx.approval_date = dateStr;
         targetTx.approval_by = approverName;
         targetTx.approval_by_email = approverEmail;
+        if (newStatus === "Approved" && (!targetTx.approver || !String(targetTx.approver).trim() || String(targetTx.approver).trim() === '-')) {
+            targetTx.approver = approverName;
+            targetTx.approver_email = approverEmail;
+        }
         targetTx.approval_note = note;
         updates[`transactions/${txIndex}`] = targetTx;
     }
