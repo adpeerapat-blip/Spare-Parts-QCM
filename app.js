@@ -6139,6 +6139,35 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             });
         }
 
+        function groupTransactionItems(items) {
+            if (!Array.isArray(items)) return [];
+            const groupedMap = new Map();
+            items.forEach(item => {
+                if (!item) return;
+                const pid = String(item.product_id || item.id || '').trim();
+                const qty = Number(item.qty) || 0;
+                const price = Number(item.price) || 0;
+                const subtotal = (item.subtotal !== undefined && item.subtotal !== null) ? Number(item.subtotal) : (qty * price);
+                if (groupedMap.has(pid)) {
+                    const existing = groupedMap.get(pid);
+                    existing.qty += qty;
+                    existing.subtotal += subtotal;
+                    if (!existing.price && price) {
+                        existing.price = price;
+                    }
+                } else {
+                    groupedMap.set(pid, {
+                        ...item,
+                        product_id: item.product_id || item.id,
+                        qty: qty,
+                        price: price,
+                        subtotal: subtotal
+                    });
+                }
+            });
+            return Array.from(groupedMap.values());
+        }
+
         function openApprovalModal(txId) {
             const t = (transactions || []).find(x => x.id === txId);
             if (!t) {
@@ -6164,7 +6193,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             const tbody = document.getElementById('aamItemsTableBody');
             tbody.innerHTML = '';
             let calcParts = 0;
-            (t.items || []).forEach(item => {
+            groupTransactionItems(t.items || []).forEach(item => {
                 const prod = (db && Array.isArray(db.products)) ? db.products.find(p => p.id == item.product_id) : null;
                 const prodName = prod ? prod.name : 'ไม่พบชื่อสินค้า';
                 const unit = (prod && prod.unit) ? prod.unit : 'ชิ้น';
@@ -6615,7 +6644,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             itemsTbody.innerHTML = '';
             
             let calculatedPartsTotal = 0;
-            t.items.forEach(item => {
+            groupTransactionItems(t.items).forEach(item => {
                 const prodName = db.products.find(p => p.id == item.product_id)?.name || 'ไม่พบชื่อสินค้า';
                 const subtotal = item.qty * item.price;
                 calculatedPartsTotal += subtotal;
@@ -6722,7 +6751,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByG
             let itemsRows = '';
             let rowNum = 1;
             let calcPartsTotal = 0;
-            t.items.forEach(function(item) {
+            groupTransactionItems(t.items).forEach(function(item) {
                 const prod = db.products.find(p => p.id == item.product_id);
                 const prodName = prod ? prod.name : 'ไม่ระบุชื่อสินค้า';
                 const unit = (prod && prod.unit) ? prod.unit : 'UNIT';

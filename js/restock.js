@@ -1313,7 +1313,8 @@
                 const txDocId = String(t.id || '-').trim();
                 const txNote = String(t.note || '').trim();
 
-                (t.items || []).forEach(item => {
+                const txItems = typeof groupTransactionItems === 'function' ? groupTransactionItems(t.items) : (t.items || []);
+                txItems.forEach(item => {
                     const pIdStr = String(item.product_id).trim();
                     if (allowedProductIds.size > 0 && !allowedProductIds.has(pIdStr)) {
                         return;

@@ -1403,6 +1403,36 @@
             return parseFloat(p.price_a) > 0 ? parseFloat(p.price_a) : (costVal * 2.1);
         }
 
+        // ยุบรวมรายการอะไหล่ที่มีรหัสเดียวกัน (กรณีระบบตัดสต็อกจากหลาย Lot แบบ FIFO) เพื่อแสดงเป็นบรรทัดเดียว
+        function groupTransactionItems(items) {
+            if (!Array.isArray(items)) return [];
+            const groupedMap = new Map();
+            items.forEach(item => {
+                if (!item) return;
+                const pid = String(item.product_id || item.id || '').trim();
+                const qty = Number(item.qty) || 0;
+                const price = Number(item.price) || 0;
+                const subtotal = (item.subtotal !== undefined && item.subtotal !== null) ? Number(item.subtotal) : (qty * price);
+                if (groupedMap.has(pid)) {
+                    const existing = groupedMap.get(pid);
+                    existing.qty += qty;
+                    existing.subtotal += subtotal;
+                    if (!existing.price && price) {
+                        existing.price = price;
+                    }
+                } else {
+                    groupedMap.set(pid, {
+                        ...item,
+                        product_id: item.product_id || item.id,
+                        qty: qty,
+                        price: price,
+                        subtotal: subtotal
+                    });
+                }
+            });
+            return Array.from(groupedMap.values());
+        }
+
         function updateApprovalBadge() {
             const badge = document.getElementById('approvalPendingBadge');
             if (!badge) return;
@@ -1678,7 +1708,7 @@
             );
             const canEditItems = (isAdmin || isApproverUser) && (appStatus === 'Pending');
 
-            currentApprovalEditingItems = (t.items || []).map(item => ({
+            currentApprovalEditingItems = groupTransactionItems(t.items || []).map(item => ({
                 product_id: item.product_id || item.id,
                 qty: Number(item.qty) || 1,
                 price: Number(item.price) || 0
@@ -1945,6 +1975,7 @@
                 qty: formValues.qty,
                 price: newPrice
             };
+            currentApprovalEditingItems = groupTransactionItems(currentApprovalEditingItems);
             hasApprovalItemsChanged = true;
 
             const isAdmin = currentUser && currentUser.role === 'ADMIN';
@@ -2605,7 +2636,8 @@
             itemsTbody.innerHTML = '';
             
             let calculatedPartsTotal = 0;
-            t.items.forEach(item => {
+            const groupedDetailItems = groupTransactionItems(t.items);
+            groupedDetailItems.forEach(item => {
                 const prodName = db.products.find(p => p.id == item.product_id)?.name || 'ไม่พบชื่อสินค้า';
                 const subtotal = item.qty * item.price;
                 calculatedPartsTotal += subtotal;
@@ -2712,7 +2744,8 @@
             let itemsRows = '';
             let rowNum = 1;
             let calcPartsTotal = 0;
-            t.items.forEach(function(item) {
+            const groupedPrintItems = groupTransactionItems(t.items);
+            groupedPrintItems.forEach(function(item) {
                 const prod = db.products.find(p => p.id == item.product_id);
                 const prodName = prod ? prod.name : 'ไม่ระบุชื่อสินค้า';
                 const unit = (prod && prod.unit) ? prod.unit : 'UNIT';
