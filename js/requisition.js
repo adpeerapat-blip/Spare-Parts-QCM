@@ -141,7 +141,8 @@
             // Build map of machine IDs for mapped products
             let mappedProductIds = new Set();
             if (selectedMachine !== 'all') {
-                db.mappings.filter(m => String(m.machine_id) === selectedMachine).forEach(m => mappedProductIds.add(String(m.product_id)));
+                const selMachTrim = String(selectedMachine).trim();
+                db.mappings.filter(m => String(m.machine_id).trim() === selMachTrim).forEach(m => mappedProductIds.add(String(m.product_id).trim()));
             }
             
             let filtered = db.products.filter(p => {
@@ -151,7 +152,7 @@
                 const textToSearch = `${p.id} ${p.name}`.toLowerCase();
                 const matchSearch = keywords.length === 0 || keywords.every(kw => textToSearch.includes(kw));
                 const matchCategory = selectedCategory === 'all' || p.category === selectedCategory;
-                const matchMachine = selectedMachine === 'all' || mappedProductIds.has(String(p.id));
+                const matchMachine = selectedMachine === 'all' || mappedProductIds.has(String(p.id).trim());
                 return matchSearch && matchCategory && matchMachine;
             });
             
@@ -2919,4 +2920,4 @@
             doc.write(html);
             doc.close();
         }
-
+

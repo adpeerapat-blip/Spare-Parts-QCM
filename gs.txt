@@ -2637,21 +2637,31 @@ function uploadSheetsToFirebase(targets) {
     }
   }
 
-  // 6. อ่าน Mappings จาก Sheet
+  // 6. อ่าน Mappings จาก Sheet (หรือดึงจาก Drive JSON หากยังไม่มีชีต Mappings)
   if (isSelected('mappings')) {
-    const mapSheet = ss.getSheetByName("Mappings");
+    const mapSheet = ss.getSheetByName("Mappings") || ss.getSheetByName("Mapping");
     if (mapSheet) {
       const mapData = mapSheet.getDataRange().getValues();
       mappings = [];
       if (mapData.length > 1) {
         for (let i = 1; i < mapData.length; i++) {
-          mappings.push({
-            product_id: String(mapData[i][0]).trim(),
-            machine_id: String(mapData[i][1]).trim()
-          });
+          const pVal = String(mapData[i][0] || "").trim();
+          const mVal = String(mapData[i][1] || "").trim();
+          if (pVal && mVal) {
+            mappings.push({
+              product_id: pVal,
+              machine_id: mVal
+            });
+          }
         }
       }
+      try { saveMappingsToJson(mappings); } catch (_) {}
       firebaseRequests.push(getFirebaseWriteRequest("mappings", mappings));
+      firebaseRequests.push(getFirebaseWriteRequest("appData/mappings", mappings));
+    } else {
+      mappings = getMappingsFromJson() || [];
+      firebaseRequests.push(getFirebaseWriteRequest("mappings", mappings));
+      firebaseRequests.push(getFirebaseWriteRequest("appData/mappings", mappings));
     }
   }
 

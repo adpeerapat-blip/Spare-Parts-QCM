@@ -8,11 +8,12 @@
 
 const API_URL = 'https://script.google.com/macros/s/AKfycby4-NV1kd0YHLMvvFRG_ByGfYMg80KCM8n9fS4pn6JMrGa7hKG2oOR3H1brsQDtrcs1/exec';
 const FIREBASE_DB_URL = 'https://pricelist-qcm-default-rtdb.asia-southeast1.firebasedatabase.app/.json';
-const LS_CACHE_KEY = 'spareparts_qcm_cache_v1';
+const LS_CACHE_KEY = 'spareparts_qcm_cache_v2';
 
 // ป้องกันปัญหาแคชค้างจากโปรเจกต์อื่น (เช่น LDT) บน origin/localhost เดียวกัน
 try {
     localStorage.removeItem('spareparts_cache_v1');
+    localStorage.removeItem('spareparts_qcm_cache_v1');
 } catch (_) {}
 
 
@@ -1804,6 +1805,16 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
                 }
             });
 
+            // 3.5 ดักฟังการจับคู่เครื่องจักร-อะไหล่ (mappings) แบบ Real-time
+            firebase.database().ref('mappings').on('value', (snap) => {
+                const newMappings = ensureArray(snap.val());
+                if (db) {
+                    db.mappings = newMappings;
+                    invalidateLocalCache();
+                    scheduleUpdateViews();
+                }
+            });
+
             // 4. ดักฟังกรณีมีคนกด Sync ทั้งหมดจาก Google Sheets (ใช้เน็ตเพียง 8 bytes ในการแจ้งเตือน)
             firebase.database().ref('appData/lastUpdated').on('value', async (snap) => {
                 const serverTs = Number(snap.val()) || 0;
@@ -1975,7 +1986,8 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
             if(!document.getElementById('filterCategory').value) document.getElementById('filterCategory').value = 'all';
             if(!document.getElementById('filterMachine').value) document.getElementById('filterMachine').value = 'all';
         }
-
+
+
 
 // ==========================================
 // Firebase Direct Backend Bypass Interceptor
@@ -3222,6 +3234,10 @@ async function executeDirectAddMapping(payload) {
     const machId = String(payload.machine_id).trim();
     const productIds = Array.isArray(payload.product_ids) ? payload.product_ids : (payload.product_id ? [payload.product_id] : []);
     let mappings = (db && Array.isArray(db.mappings)) ? db.mappings : [];
+    if (mappings.length === 0) {
+        const snap = await firebase.database().ref('mappings').get();
+        mappings = ensureArray(snap.val());
+    }
     let added = false;
     productIds.forEach(pid => {
         const pStr = String(pid).trim();
@@ -3231,9 +3247,16 @@ async function executeDirectAddMapping(payload) {
         }
     });
     if (added) {
-        await firebase.database().ref('mappings').set(mappings);
+        const newMapTs = Date.now();
+        currentLastUpdated = newMapTs;
+        await Promise.all([
+            firebase.database().ref('mappings').set(mappings),
+            firebase.database().ref('appData/mappings').set(mappings),
+            firebase.database().ref('appData/lastUpdated').set(newMapTs)
+        ]);
         db.mappings = mappings;
         invalidateLocalCache();
+        scheduleUpdateViews();
         syncToAppsScriptInBackground('addMapping', payload);
     }
 }
@@ -3242,12 +3265,23 @@ async function executeDirectDeleteMapping(payload) {
     const machId = String(payload.machine_id).trim();
     const prodId = String(payload.product_id).trim();
     let mappings = (db && Array.isArray(db.mappings)) ? db.mappings : [];
+    if (mappings.length === 0) {
+        const snap = await firebase.database().ref('mappings').get();
+        mappings = ensureArray(snap.val());
+    }
     const idx = mappings.findIndex(m => String(m.machine_id).trim() === machId && String(m.product_id).trim() === prodId);
     if (idx !== -1) {
         mappings.splice(idx, 1);
-        await firebase.database().ref('mappings').set(mappings);
+        const newMapTs = Date.now();
+        currentLastUpdated = newMapTs;
+        await Promise.all([
+            firebase.database().ref('mappings').set(mappings),
+            firebase.database().ref('appData/mappings').set(mappings),
+            firebase.database().ref('appData/lastUpdated').set(newMapTs)
+        ]);
         db.mappings = mappings;
         invalidateLocalCache();
+        scheduleUpdateViews();
         syncToAppsScriptInBackground('deleteMapping', payload);
     }
 }

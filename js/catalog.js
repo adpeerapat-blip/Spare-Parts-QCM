@@ -283,9 +283,10 @@
                 // สร้าง Set สำหรับ lookup O(1) เวลากรองตามเครื่องจักร
                 let mappedProductIds = new Set();
                 if (selectedMachine !== 'all') {
+                    const selMachStr = String(selectedMachine).trim();
                     db.mappings.forEach(m => {
-                        if (String(m.machine_id) === String(selectedMachine)) {
-                            mappedProductIds.add(String(m.product_id));
+                        if (String(m.machine_id).trim() === selMachStr) {
+                            mappedProductIds.add(String(m.product_id).trim());
                         }
                     });
                 }
@@ -294,7 +295,7 @@
                     const textToSearch = `${p.id} ${p.name} ${p.group || ''} ${p.supplier || ''} ${p.storage || ''}`.toLowerCase();
                     const matchSearch = searchKeywords.length === 0 || searchKeywords.every(kw => textToSearch.includes(kw));
                     let matchCategory = selectedCategory === 'all' || p.category === selectedCategory;
-                    let matchMachine = selectedMachine === 'all' || mappedProductIds.has(String(p.id));
+                    let matchMachine = selectedMachine === 'all' || mappedProductIds.has(String(p.id).trim());
                     return matchSearch && matchCategory && matchMachine;
                 });
 
@@ -314,11 +315,11 @@
 
                 // สร้าง machineMap สำหรับ O(1) lookup เครื่องจักรจาก mapping
                 const machineMap = new Map();
-                db.machines.forEach(m => machineMap.set(String(m.id), m));
+                db.machines.forEach(m => machineMap.set(String(m.id).trim(), m));
                 const productToMachinesMap = new Map();
                 db.mappings.forEach(m => {
-                    const pid = String(m.product_id);
-                    const mac = machineMap.get(String(m.machine_id));
+                    const pid = String(m.product_id).trim();
+                    const mac = machineMap.get(String(m.machine_id).trim());
                     if (mac) {
                         if (!productToMachinesMap.has(pid)) productToMachinesMap.set(pid, []);
                         productToMachinesMap.get(pid).push(mac);
@@ -336,7 +337,7 @@
                 const pageProducts = filteredProducts.slice(startIndex, endIndex);
 
                 pageProducts.forEach(p => {
-                    const relatedMachines = productToMachinesMap.get(String(p.id)) || [];
+                    const relatedMachines = productToMachinesMap.get(String(p.id).trim()) || [];
                     const machineCount = relatedMachines.length;
                     let machineBtnHtml = '';
                     if (machineCount > 0) {
@@ -913,8 +914,9 @@
             if(isShowCostInCatalog && isLoggedIn) document.getElementById('pd_cost_box').classList.remove('hidden');
             else document.getElementById('pd_cost_box').classList.add('hidden');
 
-            // แก้บัค 1: ใช้ == แทน === เพื่อรองรับกรณี product_id ใน mapping เป็น number แต่ p.id เป็น string
-            const relatedMachineIds = db.mappings.filter(m => m.product_id == p.id).map(m => m.machine_id);
+            // แก้บัค 1: ใช้ String().trim() เพื่อรองรับกรณี product_id ใน mapping เป็น number หรือมีช่องว่างติดมา
+            const pidStr = String(p.id).trim();
+            const relatedMachineIds = db.mappings.filter(m => String(m.product_id).trim() === pidStr).map(m => String(m.machine_id).trim());
             const machineGrid = document.getElementById('pd_machines_grid');
             machineGrid.innerHTML = '';
 
@@ -922,8 +924,8 @@
                 machineGrid.innerHTML = `<div class="col-span-full py-6 text-center text-gray-400 bg-white rounded-xl border border-dashed border-gray-200"><p class="text-sm"><i class="fa-solid fa-link-slash mr-2"></i>ยังไม่มีการจับคู่เครื่องจักรกับอะไหล่ชิ้นนี้</p></div>`;
             } else {
                 relatedMachineIds.forEach(mId => {
-                    // แก้บัค 2: ใช้ == แทน === เพื่อรองรับ type mismatch ระหว่าง machine_id ใน mapping กับ mac.id
-                    const m = db.machines.find(mac => mac.id == mId);
+                    // แก้บัค 2: ใช้ String().trim() เพื่อรองรับ type mismatch หรือช่องว่างระหว่าง machine_id ใน mapping กับ mac.id
+                    const m = db.machines.find(mac => String(mac.id).trim() === mId);
                     if (m) {
                         let mImg = m.image_url || 'https://placehold.co/100x100/334155/94a3b8?text=No+Img';
                         let action = `closeProductDetailModal(); document.getElementById('filterMachine').value='${escapeForJS(m.id)}'; document.getElementById('input_filterMachine').value='${escapeForJS(m.id)} : ${escapeForJS(m.name)}'; renderCatalog();`;
@@ -954,7 +956,8 @@
         let currentProductForMachines = null;
 
         function openProductMachinesModal(productId) {
-            const p = db.products.find(x => String(x.id) === String(productId));
+            const targetPid = String(productId).trim();
+            const p = db.products.find(x => String(x.id).trim() === targetPid);
             if (!p) return;
             
             currentProductForMachines = p;
@@ -962,11 +965,11 @@
             // Find all machines mapped to this product
             const mappedMachineIds = new Set(
                 db.mappings
-                    .filter(m => String(m.product_id) === String(p.id))
-                    .map(m => String(m.machine_id))
+                    .filter(m => String(m.product_id).trim() === String(p.id).trim())
+                    .map(m => String(m.machine_id).trim())
             );
             
-            currentProductMachinesList = db.machines.filter(m => mappedMachineIds.has(String(m.id)));
+            currentProductMachinesList = db.machines.filter(m => mappedMachineIds.has(String(m.id).trim()));
             
             // Update modal UI elements
             const countBadge = document.getElementById('pm_count_badge');
@@ -1630,7 +1633,8 @@
             const machineId = document.getElementById('map_machine').value;
             
             list.innerHTML = '';
-            const alreadyMapped = new Set(db.mappings.filter(m => m.machine_id == machineId).map(m => String(m.product_id)));
+            const targetMachId = String(machineId).trim();
+            const alreadyMapped = new Set(db.mappings.filter(m => String(m.machine_id).trim() === targetMachId).map(m => String(m.product_id).trim()));
             
             let filteredProducts = db.products.filter(p => {
                 const textToSearch = `${p.id} ${p.name}`.toLowerCase();
@@ -1656,8 +1660,8 @@
             const pageProducts = filteredProducts.slice(startIndex, endIndex);
 
             pageProducts.forEach(p => {
-                const isAlreadyMapped = alreadyMapped.has(String(p.id));
-                const isSelected = selectedMappingProducts.has(String(p.id));
+                const isAlreadyMapped = alreadyMapped.has(String(p.id).trim());
+                const isSelected = selectedMappingProducts.has(String(p.id).trim());
                 
                 let html = `
                     <label class="flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-slate-50 transition cursor-pointer ${isAlreadyMapped ? 'opacity-60 bg-slate-50' : ''}">
@@ -1810,20 +1814,24 @@
             tbody.innerHTML = '';
             
             let filteredMappings = db.mappings.filter(m => {
-                const p = db.products.find(prod => prod.id == m.product_id);
+                const pIdTrim = String(m.product_id).trim();
+                const mIdTrim = String(m.machine_id).trim();
+                const p = db.products.find(prod => String(prod.id).trim() === pIdTrim);
                 const pName = p ? String(p.name).toLowerCase() : '';
-                const pId = String(m.product_id).toLowerCase();
+                const pId = pIdTrim.toLowerCase();
                 const textToSearch = `${pId} ${pName}`;
                 
                 const matchSearch = searchKeywords.length === 0 || searchKeywords.every(kw => textToSearch.includes(kw));
-                const matchMachine = selectedMachine === 'all' || m.machine_id == selectedMachine;
+                const matchMachine = selectedMachine === 'all' || mIdTrim === String(selectedMachine).trim();
                 return matchSearch && matchMachine;
             });
             if (filteredMappings.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-500">ไม่พบรายการจับคู่ที่ตรงกับเงื่อนไขการค้นหา</td></tr>`; return; }
 
             filteredMappings.forEach((m, index) => {
-                const pName = db.products.find(p => p.id == m.product_id)?.name || 'ไม่พบชื่อสินค้า';
-                const mName = db.machines.find(mac => mac.id == m.machine_id)?.name || 'ไม่พบชื่อเครื่องจักร';
+                const pIdTrim = String(m.product_id).trim();
+                const mIdTrim = String(m.machine_id).trim();
+                const pName = db.products.find(p => String(p.id).trim() === pIdTrim)?.name || 'ไม่พบชื่อสินค้า';
+                const mName = db.machines.find(mac => String(mac.id).trim() === mIdTrim)?.name || 'ไม่พบชื่อเครื่องจักร';
                 let tr = `
                     <tr class="hover:bg-slate-50 transition border-b border-gray-100 last:border-0">
                         <td class="p-4 text-center text-gray-500">${index + 1}</td>
