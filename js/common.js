@@ -2795,7 +2795,9 @@ async function executeDirectCheckout(payload) {
         updates[`appData/products/${pIdx}/stock_qty`] = products[pIdx].stock_qty;
     });
     modifiedLotsMap.forEach((qty, lIdx) => {
-        updates[`lots/${lIdx}/remaining_qty`] = qty;
+        if (lIdx < initialLotsLen) {
+            updates[`lots/${lIdx}/remaining_qty`] = qty;
+        }
     });
     for (let i = initialLotsLen; i < lots.length; i++) {
         updates[`lots/${i}`] = lots[i];
@@ -3035,6 +3037,7 @@ async function executeDirectUpdateApprovalStatus(payload) {
     const updates = {};
     const modifiedProdIndices = new Set();
     const modifiedLotsMap = new Map();
+    const initialLotsLen = lots.length;
     
     if (newStatus === "Rejected") {
         targetTx.approval_status = "Rejected";
@@ -3099,8 +3102,26 @@ async function executeDirectUpdateApprovalStatus(payload) {
                 if (q <= 0) throw new Error("จำนวนอะไหล่ต้องมากกว่า 0");
                 const product = prodMap[pId];
                 if (!product) throw new Error("ไม่พบรหัสสินค้า " + pId + " ในระบบ");
-                if ((parseFloat(product.stock_qty) || 0) < q) {
+                const stockQty = parseFloat(product.stock_qty) || 0;
+                if (stockQty < q) {
                     throw new Error("สต็อกไม่เพียงพอสำหรับ " + (product.name || pId));
+                }
+                const prodLots = lots.filter(l => String(l.product_id).trim() === pId && (parseFloat(l.remaining_qty) || 0) > 0);
+                const totalLotQty = prodLots.reduce((sum, l) => sum + (parseFloat(l.remaining_qty) || 0), 0);
+                if (totalLotQty < stockQty) {
+                    const diff = stockQty - totalLotQty;
+                    lots.push({
+                        lot_id: "LOT-SUPP-" + pId + "-" + Date.now(),
+                        product_id: pId,
+                        cost: parseFloat(product.cost) || 0,
+                        price_a: parseFloat(product.price_a) || 0,
+                        price_b: parseFloat(product.price_b) || 0,
+                        price_c: parseFloat(product.price_c) || 0,
+                        initial_qty: diff,
+                        remaining_qty: diff,
+                        created_at: getFormattedDateTimeString(),
+                        note: "Lot สำรองคงเหลือ"
+                    });
                 }
             });
             
@@ -3166,8 +3187,13 @@ async function executeDirectUpdateApprovalStatus(payload) {
         updates[`appData/products/${pIdx}/stock_qty`] = products[pIdx].stock_qty;
     });
     modifiedLotsMap.forEach((remQty, lIdx) => {
-        updates[`lots/${lIdx}/remaining_qty`] = remQty;
+        if (lIdx < initialLotsLen) {
+            updates[`lots/${lIdx}/remaining_qty`] = remQty;
+        }
     });
+    for (let i = initialLotsLen; i < lots.length; i++) {
+        updates[`lots/${i}`] = lots[i];
+    }
     
     await firebase.database().ref().update(updates);
     transactionsCache = null;
