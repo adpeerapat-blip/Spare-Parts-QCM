@@ -653,6 +653,13 @@
                     });
                 }
             }
+
+            // ดึงค่าเครื่องจักรที่เลือกไว้ในตัวกรองหน้า POS มาใส่ให้อัตโนมัติ (ถ้ามี)
+            const selectedPosMachine = document.getElementById('posMachineFilter')?.value;
+            const posMachineInput = document.getElementById('pos_machine');
+            if (posMachineInput && selectedPosMachine && selectedPosMachine !== 'all') {
+                posMachineInput.value = selectedPosMachine;
+            }
             
             // Initialize price tier recalculation & labor cost
             onPOSPriceTierChange(false);
@@ -698,6 +705,13 @@
                             datalist.insertAdjacentHTML('beforeend', `<option value="${escapeHTML(m.id)}">${escapeHTML(m.id)} : ${escapeHTML(m.name)}</option>`);
                         });
                     }
+                }
+
+                // ดึงค่าเครื่องจักรที่เลือกไว้ในตัวกรองหน้า POS มาใส่ให้อัตโนมัติบนมือถือ (ถ้ายังไม่ได้กรอก)
+                const selectedPosMachine = document.getElementById('posMachineFilter')?.value;
+                const mobileMachineInput = document.getElementById('mobile_pos_machine');
+                if (mobileMachineInput && !mobileMachineInput.value && selectedPosMachine && selectedPosMachine !== 'all') {
+                    mobileMachineInput.value = selectedPosMachine;
                 }
                 
                 // Pre-fill requester and department if logged in
@@ -1876,6 +1890,412 @@
             }
         }
 
+        // ดึงรายการอะไหล่ที่ผูกกับเครื่องจักรของใบขอเบิก (พร้อมรองรับการค้นหาทั้งจากรหัสและชื่อเครื่องจักร)
+        function getApprovalMachineProductsContext(tx, includeProductId = null) {
+            const allProducts = (db && Array.isArray(db.products)) ? db.products : [];
+            const machines = (db && Array.isArray(db.machines)) ? db.machines : [];
+            const mappings = (db && Array.isArray(db.mappings)) ? db.mappings : [];
+
+            const rawMachine = String(tx?.machine_id || '').trim();
+            const includePidStr = (includeProductId !== null && includeProductId !== undefined) ? String(includeProductId).trim() : null;
+
+            // กรองสินค้าที่ไม่ได้ถูกยกเลิกใช้ (ยกเว้นอะไหล่ตัวเดิมที่กำลังแก้ไขอยู่)
+            const activeProducts = allProducts.filter(p => {
+                if (includePidStr && String(p.id).trim() === includePidStr) return true;
+                const isCancelled = p.note && (p.note.trim() === 'ยกเลิกใช้' || p.note.includes('ยกเลิกใช้'));
+                return !isCancelled;
+            });
+
+            if (!rawMachine || rawMachine === '-') {
+                return {
+                    machineLabel: 'ไม่ได้ระบุเครื่องจักร',
+                    hasMappedProducts: false,
+                    machineProducts: activeProducts,
+                    allProducts: activeProducts
+                };
+            }
+
+            const rawLower = rawMachine.toLowerCase();
+            const normalizeStr = (s) => String(s || '').toLowerCase().replace(/[\s\-_:()/]+/g, '');
+            const rawNorm = normalizeStr(rawMachine);
+
+            // 1. ค้นหาเครื่องจักรแบบตรงตัว (เทียบทั้งรหัส, ชื่อ, หรือรูปแบบ "รหัส : ชื่อ")
+            let matchedMachines = machines.filter(m => {
+                const mId = String(m.id || '').trim().toLowerCase();
+                const mName = String(m.name || '').trim().toLowerCase();
+                const combined1 = `${mId} : ${mName}`;
+                const combined2 = `${mId} - ${mName}`;
+                return mId === rawLower || mName === rawLower || combined1 === rawLower || combined2 === rawLower;
+            });
+
+            // 2. หากไม่เจอแบบตรงตัว ให้ลองเทียบแบบตัดช่องว่างและเครื่องหมายขีด
+            if (matchedMachines.length === 0 && rawNorm.length > 0) {
+                matchedMachines = machines.filter(m => {
+                    const mIdNorm = normalizeStr(m.id);
+                    const mNameNorm = normalizeStr(m.name);
+                    return (mIdNorm && mIdNorm === rawNorm) || (mNameNorm && mNameNorm === rawNorm);
+                });
+            }
+
+            // 3. หากยังไม่เจอ ให้ลองค้นหาแบบบางส่วนของชื่อ/รหัสเครื่องจักร
+            if (matchedMachines.length === 0 && rawNorm.length >= 2) {
+                matchedMachines = machines.filter(m => {
+                    const mIdNorm = normalizeStr(m.id);
+                    const mNameNorm = normalizeStr(m.name);
+                    return (mIdNorm.length >= 2 && mIdNorm.includes(rawNorm)) ||
+                           (mNameNorm.length >= 2 && mNameNorm.includes(rawNorm)) ||
+                           (mIdNorm.length >= 3 && rawNorm.includes(mIdNorm)) ||
+                           (mNameNorm.length >= 3 && rawNorm.includes(mNameNorm));
+                });
+            }
+
+            const targetMachineIds = new Set();
+            targetMachineIds.add(rawLower);
+            matchedMachines.forEach(m => {
+                if (m.id !== undefined && m.id !== null) {
+                    targetMachineIds.add(String(m.id).trim().toLowerCase());
+                }
+            });
+
+            // ดึงรหัสอะไหล่ที่ผูกกับเครื่องจักรจาก db.mappings
+            const mappedProductIds = new Set();
+            mappings.forEach(map => {
+                const mapMachId = String(map.machine_id || '').trim().toLowerCase();
+                if (targetMachineIds.has(mapMachId) || (rawNorm && normalizeStr(map.machine_id) === rawNorm)) {
+                    mappedProductIds.add(String(map.product_id || '').trim());
+                }
+            });
+
+            const machineProducts = activeProducts.filter(p => {
+                const pidStr = String(p.id).trim();
+                if (includePidStr && pidStr === includePidStr) return true;
+                return mappedProductIds.has(pidStr);
+            });
+
+            let machineLabel = rawMachine;
+            if (matchedMachines.length === 1) {
+                const m = matchedMachines[0];
+                machineLabel = (m.name && String(m.name).trim() !== String(m.id).trim())
+                    ? `${m.id} (${m.name})`
+                    : `${m.id}`;
+            }
+
+            const hasMapped = mappedProductIds.size > 0;
+
+            return {
+                machineLabel,
+                hasMappedProducts: hasMapped,
+                machineProducts: hasMapped ? machineProducts : activeProducts,
+                allProducts: activeProducts
+            };
+        }
+
+        // ป๊อปอัพเลือก/ค้นหาอะไหล่สำหรับหน้าพิจารณาอนุมัติใบขอเบิก (รองรับทั้งโหมดเปลี่ยนและเพิ่มรายการ)
+        async function openApprovalPartPickerDialog({ mode, tx, initialProductId, initialQty }) {
+            const isChangeMode = mode === 'change';
+            const priceTier = tx ? (tx.price_tier || 'ราคากลาง') : 'ราคากลาง';
+            const machineCtx = getApprovalMachineProductsContext(tx, isChangeMode ? initialProductId : null);
+
+            const sortProductList = (list) => {
+                return [...list].sort((a, b) => {
+                    if (isChangeMode && initialProductId !== null && initialProductId !== undefined) {
+                        const aIsInit = String(a.id).trim() === String(initialProductId).trim() ? 1 : 0;
+                        const bIsInit = String(b.id).trim() === String(initialProductId).trim() ? 1 : 0;
+                        if (aIsInit !== bIsInit) return bIsInit - aIsInit;
+                    }
+                    return (a.name || '').localeCompare(b.name || '');
+                });
+            };
+
+            const sortedMachineProducts = sortProductList(machineCtx.machineProducts);
+            const sortedAllProducts = sortProductList(machineCtx.allProducts);
+
+            let selectedPid = initialProductId !== null && initialProductId !== undefined
+                ? String(initialProductId).trim()
+                : (sortedMachineProducts[0] ? String(sortedMachineProducts[0].id).trim() : '');
+
+            const findProductById = (pid) => {
+                if (!pid) return null;
+                return machineCtx.allProducts.find(p => String(p.id).trim() === String(pid).trim()) || null;
+            };
+
+            const initialProd = findProductById(selectedPid) || sortedMachineProducts[0] || null;
+            if (initialProd) {
+                selectedPid = String(initialProd.id).trim();
+            }
+            const initialPrice = initialProd ? getProductPriceByTier(initialProd, priceTier) : 0;
+            const startQty = Math.max(1, Number(initialQty) || 1);
+
+            const themeColor = isChangeMode ? 'blue' : 'emerald';
+            const confirmBtnColor = isChangeMode ? '#2563eb' : '#059669';
+
+            const machineBadgeHtml = machineCtx.hasMappedProducts
+                ? `<div class="flex flex-wrap items-center justify-between gap-2 bg-indigo-50/80 border border-indigo-200 px-3 py-2 rounded-xl">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <i class="fa-solid fa-industry text-indigo-600 text-xs flex-shrink-0"></i>
+                            <span class="text-[11px] font-bold text-indigo-900 truncate" title="${escapeHTML(machineCtx.machineLabel)}">เครื่องจักร: ${escapeHTML(machineCtx.machineLabel)}</span>
+                            <span id="swal_part_scope_badge" class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">${sortedMachineProducts.length} รายการ</span>
+                        </div>
+                        <label class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 hover:text-slate-900 cursor-pointer select-none flex-shrink-0">
+                            <input type="checkbox" id="swal_show_all_parts_toggle" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer">
+                            <span>ดูอะไหล่ทั้งหมด</span>
+                        </label>
+                   </div>`
+                : `<div class="flex items-center justify-between gap-2 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl text-[11px] text-amber-800">
+                        <span><i class="fa-solid fa-circle-info mr-1 text-amber-600"></i>เครื่องจักร <strong>${escapeHTML(machineCtx.machineLabel)}</strong> ยังไม่มีการจับคู่อะไหล่เฉพาะ (แสดงอะไหล่ทั้งหมด ${sortedAllProducts.length} รายการ)</span>
+                   </div>`;
+
+            const { value: formValues } = await Swal.fire({
+                title: isChangeMode
+                    ? '<div class="text-base font-bold text-slate-800"><i class="fa-solid fa-pen-to-square text-blue-600 mr-1.5"></i>แก้ไข / เปลี่ยนรายการอะไหล่</div>'
+                    : '<div class="text-base font-bold text-slate-800"><i class="fa-solid fa-plus-circle text-emerald-600 mr-1.5"></i>เพิ่มรายการอะไหล่ในใบเบิก</div>',
+                html: `
+                    <div class="text-left text-xs space-y-3 pt-1">
+                        ${machineBadgeHtml}
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block font-bold text-slate-700">${isChangeMode ? 'เลือกอะไหล่ทดแทน / อะไหล่เดิม:' : 'เลือกอะไหล่:'}</label>
+                                <span id="swal_part_match_count" class="text-[11px] font-semibold text-slate-500"></span>
+                            </div>
+
+                            <!-- ช่องพิมพ์ค้นหาอะไหล่ -->
+                            <div class="relative mb-1.5">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                                <input type="text" id="swal_part_search_input" autocomplete="off"
+                                    placeholder="พิมพ์ค้นหารหัส หรือชื่ออะไหล่ (เว้นวรรคคำได้)..."
+                                    class="w-full pl-8 pr-8 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-${themeColor}-500 focus:border-${themeColor}-500 focus:outline-none transition shadow-sm" />
+                                <button type="button" id="swal_part_search_clear" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1" title="ล้างคำค้นหา">
+                                    <i class="fa-solid fa-circle-xmark text-xs"></i>
+                                </button>
+                            </div>
+
+                            <!-- รายการอะไหล่ที่กรองแล้ว (คลิกเลือกได้ทันที) -->
+                            <input type="hidden" id="swal_selected_product_id" value="${escapeHTML(selectedPid)}" />
+                            <div id="swal_part_options_list" class="max-h-48 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-slate-50/50 shadow-inner"></div>
+
+                            <!-- แสดงอะไหล่ที่เลือกอยู่ปัจจุบัน -->
+                            <div id="swal_selected_part_box" class="mt-1.5 px-3 py-2 bg-${themeColor}-50/80 border border-${themeColor}-200 rounded-xl flex items-center justify-between gap-2">
+                                <div class="min-w-0 flex-1">
+                                    <span class="text-[10px] font-bold text-${themeColor}-600 uppercase block">อะไหล่ที่เลือก:</span>
+                                    <div id="swal_selected_part_label" class="font-bold text-slate-800 truncate text-xs mt-0.5">-</div>
+                                </div>
+                                <span id="swal_selected_part_stock" class="text-[11px] font-bold px-2 py-0.5 rounded-lg flex-shrink-0"></span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">จำนวนที่ต้องการเบิก:</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="swal_part_qty" min="1" step="1" value="${startQty}" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-${themeColor}-500 focus:outline-none" />
+                                <span id="swal_part_unit" class="text-slate-500 font-bold whitespace-nowrap">${escapeHTML(initialProd?.unit || 'ชิ้น')}</span>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-${themeColor}-50/70 border border-${themeColor}-200 rounded-xl flex justify-between items-center text-xs">
+                            <span class="text-slate-600 font-medium">ระดับราคา (${escapeHTML(priceTier)}):</span>
+                            <span id="swal_part_price_preview" class="font-bold text-${themeColor}-700">฿${Number(initialPrice).toLocaleString('th-TH', {minimumFractionDigits: 2})} / ${escapeHTML(initialProd?.unit || 'ชิ้น')}</span>
+                        </div>
+
+                        <div class="flex justify-between items-center text-xs px-1">
+                            <span class="text-slate-500 font-medium">รวมย่อยรายการนี้:</span>
+                            <span id="swal_part_subtotal_preview" class="font-black text-slate-900 text-sm">฿${Number(initialPrice * startQty).toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                        </div>
+                    </div>
+                `,
+                didOpen: () => {
+                    const searchInput = document.getElementById('swal_part_search_input');
+                    const clearBtn = document.getElementById('swal_part_search_clear');
+                    const showAllToggle = document.getElementById('swal_show_all_parts_toggle');
+                    const scopeBadge = document.getElementById('swal_part_scope_badge');
+                    const matchCountEl = document.getElementById('swal_part_match_count');
+                    const optionsListEl = document.getElementById('swal_part_options_list');
+                    const hiddenPidInput = document.getElementById('swal_selected_product_id');
+                    const selectedLabelEl = document.getElementById('swal_selected_part_label');
+                    const selectedStockEl = document.getElementById('swal_selected_part_stock');
+                    const qtyInput = document.getElementById('swal_part_qty');
+                    const unitSpan = document.getElementById('swal_part_unit');
+                    const pricePreview = document.getElementById('swal_part_price_preview');
+                    const subtotalPreview = document.getElementById('swal_part_subtotal_preview');
+
+                    const getStockQty = (p) => Number(p?.stock_qty ?? p?.stock ?? 0);
+
+                    const updateSelectedSummaryAndPrice = () => {
+                        const pid = hiddenPidInput.value;
+                        const prod = findProductById(pid);
+                        const q = Math.max(1, parseInt(qtyInput.value, 10) || 1);
+
+                        if (prod) {
+                            const unit = prod.unit || 'ชิ้น';
+                            const stock = getStockQty(prod);
+                            const pr = getProductPriceByTier(prod, priceTier);
+
+                            selectedLabelEl.textContent = `${prod.id} - ${prod.name}`;
+                            selectedLabelEl.title = `${prod.id} - ${prod.name}`;
+                            selectedStockEl.textContent = `คงเหลือ: ${stock.toLocaleString()} ${unit}`;
+                            selectedStockEl.className = stock > 0
+                                ? 'text-[11px] font-bold px-2 py-0.5 rounded-lg flex-shrink-0 bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                : 'text-[11px] font-bold px-2 py-0.5 rounded-lg flex-shrink-0 bg-rose-100 text-rose-700 border border-rose-200';
+
+                            unitSpan.textContent = unit;
+                            pricePreview.textContent = `฿${pr.toLocaleString('th-TH', {minimumFractionDigits: 2})} / ${unit}`;
+                            subtotalPreview.textContent = `฿${(pr * q).toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+                        } else {
+                            selectedLabelEl.textContent = 'ยังไม่ได้เลือกอะไหล่';
+                            selectedStockEl.textContent = '';
+                            selectedStockEl.className = 'hidden';
+                            pricePreview.textContent = '฿0.00';
+                            subtotalPreview.textContent = '฿0.00';
+                        }
+                    };
+
+                    const renderFilteredOptions = (autoSelectFirstIfMissing = false) => {
+                        const isShowAll = showAllToggle ? showAllToggle.checked : !machineCtx.hasMappedProducts;
+                        const sourceList = isShowAll ? sortedAllProducts : sortedMachineProducts;
+                        const rawKeyword = (searchInput.value || '').trim().toLowerCase();
+                        const keywords = rawKeyword ? rawKeyword.split(/\s+/).filter(Boolean) : [];
+
+                        if (clearBtn) {
+                            if (rawKeyword.length > 0) clearBtn.classList.remove('hidden');
+                            else clearBtn.classList.add('hidden');
+                        }
+
+                        if (scopeBadge) {
+                            scopeBadge.textContent = isShowAll
+                                ? `ทั้งหมด ${sortedAllProducts.length} รายการ`
+                                : `${sortedMachineProducts.length} รายการ`;
+                        }
+
+                        const filtered = sourceList.filter(p => {
+                            if (keywords.length === 0) return true;
+                            const target = `${p.id} ${p.name} ${p.category || ''} ${p.group || ''} ${p.note || ''}`.toLowerCase();
+                            return keywords.every(kw => target.includes(kw));
+                        });
+
+                        if (matchCountEl) {
+                            matchCountEl.textContent = keywords.length > 0
+                                ? `พบ ${filtered.length.toLocaleString()} รายการ`
+                                : `แสดง ${filtered.length.toLocaleString()} รายการ`;
+                        }
+
+                        const currentPid = hiddenPidInput.value;
+                        const hasCurrentInFiltered = filtered.some(p => String(p.id).trim() === String(currentPid).trim());
+                        if (autoSelectFirstIfMissing && !hasCurrentInFiltered && filtered.length > 0) {
+                            hiddenPidInput.value = String(filtered[0].id).trim();
+                        }
+
+                        optionsListEl.innerHTML = '';
+                        if (filtered.length === 0) {
+                            optionsListEl.innerHTML = `
+                                <div class="p-5 text-center text-slate-400 text-xs">
+                                    <i class="fa-solid fa-box-open text-xl mb-1.5 block opacity-40"></i>
+                                    ไม่พบรายการอะไหล่ที่ตรงกับคำค้นหา
+                                </div>
+                            `;
+                            updateSelectedSummaryAndPrice();
+                            return;
+                        }
+
+                        const displayLimit = 150;
+                        const itemsToRender = filtered.slice(0, displayLimit);
+                        const activePid = hiddenPidInput.value;
+
+                        itemsToRender.forEach(p => {
+                            const pidStr = String(p.id).trim();
+                            const isSelected = pidStr === String(activePid).trim();
+                            const stock = getStockQty(p);
+                            const unit = p.unit || 'ชิ้น';
+                            const pr = getProductPriceByTier(p, priceTier);
+
+                            const rowEl = document.createElement('div');
+                            rowEl.dataset.pid = pidStr;
+                            rowEl.className = isSelected
+                                ? `p-2.5 cursor-pointer transition flex items-center justify-between gap-2 bg-${themeColor}-50 border-l-4 border-${themeColor}-600`
+                                : 'p-2.5 cursor-pointer transition flex items-center justify-between gap-2 bg-white hover:bg-slate-100/80';
+
+                            const stockBadgeClass = stock > 0
+                                ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                                : 'text-rose-600 bg-rose-50 border-rose-200';
+
+                            rowEl.innerHTML = `
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded ${isSelected ? `bg-${themeColor}-600 text-white` : 'bg-slate-200 text-slate-700'}">${escapeHTML(p.id)}</span>
+                                        <span class="font-bold text-slate-800 truncate text-xs" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-1 text-[10px] text-slate-500">
+                                        <span class="px-1.5 py-0.2 rounded border font-semibold ${stockBadgeClass}">คงเหลือ: ${stock.toLocaleString()} ${escapeHTML(unit)}</span>
+                                        <span class="font-bold text-slate-700">฿${pr.toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                                    </div>
+                                </div>
+                                <div class="flex-shrink-0 pl-1">
+                                    ${isSelected
+                                        ? `<i class="fa-solid fa-circle-check text-${themeColor}-600 text-sm"></i>`
+                                        : `<i class="fa-regular fa-circle text-slate-300 text-sm"></i>`}
+                                </div>
+                            `;
+
+                            rowEl.addEventListener('click', () => {
+                                hiddenPidInput.value = pidStr;
+                                renderFilteredOptions(false);
+                            });
+
+                            optionsListEl.appendChild(rowEl);
+                        });
+
+                        if (filtered.length > displayLimit) {
+                            const moreDiv = document.createElement('div');
+                            moreDiv.className = 'p-2 text-center bg-amber-50 text-[11px] text-amber-700 font-semibold';
+                            moreDiv.innerHTML = `<i class="fa-solid fa-magnifying-glass mr-1"></i>แสดง ${displayLimit} รายการแรก (จาก ${filtered.length.toLocaleString()} รายการ) — พิมพ์ค้นหาเพิ่มเพื่อเจาะจง`;
+                            optionsListEl.appendChild(moreDiv);
+                        }
+
+                        updateSelectedSummaryAndPrice();
+                    };
+
+                    searchInput.addEventListener('input', () => renderFilteredOptions(true));
+                    if (clearBtn) {
+                        clearBtn.addEventListener('click', () => {
+                            searchInput.value = '';
+                            renderFilteredOptions(false);
+                            searchInput.focus();
+                        });
+                    }
+                    if (showAllToggle) {
+                        showAllToggle.addEventListener('change', () => renderFilteredOptions(true));
+                    }
+                    qtyInput.addEventListener('input', updateSelectedSummaryAndPrice);
+
+                    renderFilteredOptions(false);
+                    setTimeout(() => {
+                        searchInput.focus();
+                    }, 50);
+                },
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: isChangeMode ? '<i class="fa-solid fa-check"></i> บันทึกรายการนี้' : '<i class="fa-solid fa-plus"></i> เพิ่มรายการ',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: confirmBtnColor,
+                cancelButtonColor: '#94a3b8',
+                customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-xl font-bold', cancelButton: 'rounded-xl' },
+                preConfirm: () => {
+                    const pid = document.getElementById('swal_selected_product_id')?.value;
+                    const qty = parseInt(document.getElementById('swal_part_qty')?.value, 10);
+                    if (!pid) {
+                        Swal.showValidationMessage('กรุณาเลือกรายการอะไหล่');
+                        return false;
+                    }
+                    if (isNaN(qty) || qty <= 0) {
+                        Swal.showValidationMessage('จำนวนอะไหล่ต้องมากกว่า 0');
+                        return false;
+                    }
+                    return { productId: pid, qty: qty };
+                }
+            });
+
+            return formValues || null;
+        }
+
         async function promptChangeApprovalItem(index) {
             if (index < 0 || index >= currentApprovalEditingItems.length) return;
             const currentItem = currentApprovalEditingItems[index];
@@ -1888,91 +2308,16 @@
                 return;
             }
 
-            const sortedProducts = [...products].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-
-            const productOptionsHtml = sortedProducts.map(p => {
-                const isSel = (p.id == currentItem.product_id) ? 'selected' : '';
-                const price = getProductPriceByTier(p, priceTier);
-                return `<option value="${escapeHTML(p.id)}" ${isSel}>${escapeHTML(p.id)} - ${escapeHTML(p.name)} (คงเหลือ: ${(p.stock || 0).toLocaleString()} ${escapeHTML(p.unit || 'ชิ้น')} | ฿${price.toLocaleString('th-TH', {minimumFractionDigits: 2})})</option>`;
-            }).join('');
-
-            const initialProd = products.find(p => p.id == currentItem.product_id);
-            const initialPrice = initialProd ? getProductPriceByTier(initialProd, priceTier) : (currentItem.price || 0);
-
-            const { value: formValues } = await Swal.fire({
-                title: '<div class="text-base font-bold text-slate-800"><i class="fa-solid fa-pen-to-square text-blue-600 mr-1.5"></i>แก้ไข / เปลี่ยนรายการอะไหล่</div>',
-                html: `
-                    <div class="text-left text-xs space-y-3 pt-2">
-                        <div>
-                            <label class="block font-bold text-slate-700 mb-1">เลือกอะไหล่ทดแทน / อะไหล่เดิม:</label>
-                            <select id="swal_change_product" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                                ${productOptionsHtml}
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-700 mb-1">จำนวนที่ต้องการเบิก:</label>
-                            <div class="flex items-center gap-2">
-                                <input type="number" id="swal_change_qty" min="1" step="1" value="${currentItem.qty}" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                                <span id="swal_change_unit" class="text-slate-500 font-bold whitespace-nowrap">${escapeHTML(initialProd?.unit || 'ชิ้น')}</span>
-                            </div>
-                        </div>
-                        <div class="p-3 bg-blue-50/70 border border-blue-200 rounded-xl flex justify-between items-center text-xs">
-                            <span class="text-slate-600 font-medium">ระดับราคา (${escapeHTML(priceTier)}):</span>
-                            <span id="swal_change_price_preview" class="font-bold text-blue-700">฿${Number(initialPrice).toLocaleString('th-TH', {minimumFractionDigits: 2})} / ชิ้น</span>
-                        </div>
-                        <div class="flex justify-between items-center text-xs px-1">
-                            <span class="text-slate-500 font-medium">รวมย่อยรายการนี้:</span>
-                            <span id="swal_change_subtotal_preview" class="font-black text-slate-900 text-sm">฿${Number(initialPrice * currentItem.qty).toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
-                        </div>
-                    </div>
-                `,
-                didOpen: () => {
-                    const prodSel = document.getElementById('swal_change_product');
-                    const qtyInput = document.getElementById('swal_change_qty');
-                    const unitSpan = document.getElementById('swal_change_unit');
-                    const pricePreview = document.getElementById('swal_change_price_preview');
-                    const subtotalPreview = document.getElementById('swal_change_subtotal_preview');
-
-                    const updatePreview = () => {
-                        const pid = prodSel.value;
-                        const prod = products.find(p => p.id == pid);
-                        const q = Math.max(1, parseInt(qtyInput.value, 10) || 1);
-                        if (prod) {
-                            unitSpan.textContent = prod.unit || 'ชิ้น';
-                            const pr = getProductPriceByTier(prod, priceTier);
-                            pricePreview.textContent = `฿${pr.toLocaleString('th-TH', {minimumFractionDigits: 2})} / ${prod.unit || 'ชิ้น'}`;
-                            subtotalPreview.textContent = `฿${(pr * q).toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
-                        }
-                    };
-
-                    prodSel.addEventListener('change', updatePreview);
-                    qtyInput.addEventListener('input', updatePreview);
-                },
-                focusConfirm: false,
-                showCancelButton: true,
-                confirmButtonText: '<i class="fa-solid fa-check"></i> บันทึกรายการนี้',
-                cancelButtonText: 'ยกเลิก',
-                confirmButtonColor: '#2563eb',
-                cancelButtonColor: '#94a3b8',
-                customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-xl font-bold', cancelButton: 'rounded-xl' },
-                preConfirm: () => {
-                    const pid = document.getElementById('swal_change_product').value;
-                    const qty = parseInt(document.getElementById('swal_change_qty').value, 10);
-                    if (!pid) {
-                        Swal.showValidationMessage('กรุณาเลือกรายการสินค้า');
-                        return false;
-                    }
-                    if (isNaN(qty) || qty <= 0) {
-                        Swal.showValidationMessage('จำนวนสินค้าต้องมากกว่า 0');
-                        return false;
-                    }
-                    return { productId: pid, qty: qty };
-                }
+            const formValues = await openApprovalPartPickerDialog({
+                mode: 'change',
+                tx: tx,
+                initialProductId: currentItem.product_id,
+                initialQty: currentItem.qty
             });
 
             if (!formValues) return;
 
-            const selectedProd = products.find(p => p.id == formValues.productId);
+            const selectedProd = products.find(p => String(p.id).trim() === String(formValues.productId).trim());
             if (!selectedProd) return;
 
             const newPrice = getProductPriceByTier(selectedProd, priceTier);
@@ -2004,94 +2349,20 @@
                 return;
             }
 
-            const sortedProducts = [...products].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-
-            const productOptionsHtml = sortedProducts.map((p, i) => {
-                const price = getProductPriceByTier(p, priceTier);
-                return `<option value="${escapeHTML(p.id)}" ${i === 0 ? 'selected' : ''}>${escapeHTML(p.id)} - ${escapeHTML(p.name)} (คงเหลือ: ${(p.stock || 0).toLocaleString()} ${escapeHTML(p.unit || 'ชิ้น')} | ฿${price.toLocaleString('th-TH', {minimumFractionDigits: 2})})</option>`;
-            }).join('');
-
-            const firstProd = sortedProducts[0];
-            const initialPrice = firstProd ? getProductPriceByTier(firstProd, priceTier) : 0;
-
-            const { value: formValues } = await Swal.fire({
-                title: '<div class="text-base font-bold text-slate-800"><i class="fa-solid fa-plus-circle text-emerald-600 mr-1.5"></i>เพิ่มรายการอะไหล่ในใบเบิก</div>',
-                html: `
-                    <div class="text-left text-xs space-y-3 pt-2">
-                        <div>
-                            <label class="block font-bold text-slate-700 mb-1">เลือกอะไหล่:</label>
-                            <select id="swal_add_product" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                                ${productOptionsHtml}
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-700 mb-1">จำนวนที่ต้องการเบิก:</label>
-                            <div class="flex items-center gap-2">
-                                <input type="number" id="swal_add_qty" min="1" step="1" value="1" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-                                <span id="swal_add_unit" class="text-slate-500 font-bold whitespace-nowrap">${escapeHTML(firstProd?.unit || 'ชิ้น')}</span>
-                            </div>
-                        </div>
-                        <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex justify-between items-center text-xs">
-                            <span class="text-slate-600 font-medium">ระดับราคา (${escapeHTML(priceTier)}):</span>
-                            <span id="swal_add_price_preview" class="font-bold text-emerald-700">฿${Number(initialPrice).toLocaleString('th-TH', {minimumFractionDigits: 2})} / ชิ้น</span>
-                        </div>
-                        <div class="flex justify-between items-center text-xs px-1">
-                            <span class="text-slate-500 font-medium">รวมย่อยรายการนี้:</span>
-                            <span id="swal_add_subtotal_preview" class="font-black text-slate-900 text-sm">฿${Number(initialPrice).toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
-                        </div>
-                    </div>
-                `,
-                didOpen: () => {
-                    const prodSel = document.getElementById('swal_add_product');
-                    const qtyInput = document.getElementById('swal_add_qty');
-                    const unitSpan = document.getElementById('swal_add_unit');
-                    const pricePreview = document.getElementById('swal_add_price_preview');
-                    const subtotalPreview = document.getElementById('swal_add_subtotal_preview');
-
-                    const updatePreview = () => {
-                        const pid = prodSel.value;
-                        const prod = products.find(p => p.id == pid);
-                        const q = Math.max(1, parseInt(qtyInput.value, 10) || 1);
-                        if (prod) {
-                            unitSpan.textContent = prod.unit || 'ชิ้น';
-                            const pr = getProductPriceByTier(prod, priceTier);
-                            pricePreview.textContent = `฿${pr.toLocaleString('th-TH', {minimumFractionDigits: 2})} / ${prod.unit || 'ชิ้น'}`;
-                            subtotalPreview.textContent = `฿${(pr * q).toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
-                        }
-                    };
-
-                    prodSel.addEventListener('change', updatePreview);
-                    qtyInput.addEventListener('input', updatePreview);
-                },
-                focusConfirm: false,
-                showCancelButton: true,
-                confirmButtonText: '<i class="fa-solid fa-plus"></i> เพิ่มรายการ',
-                cancelButtonText: 'ยกเลิก',
-                confirmButtonColor: '#059669',
-                cancelButtonColor: '#94a3b8',
-                customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-xl font-bold', cancelButton: 'rounded-xl' },
-                preConfirm: () => {
-                    const pid = document.getElementById('swal_add_product').value;
-                    const qty = parseInt(document.getElementById('swal_add_qty').value, 10);
-                    if (!pid) {
-                        Swal.showValidationMessage('กรุณาเลือกรายการสินค้า');
-                        return false;
-                    }
-                    if (isNaN(qty) || qty <= 0) {
-                        Swal.showValidationMessage('จำนวนสินค้าต้องมากกว่า 0');
-                        return false;
-                    }
-                    return { productId: pid, qty: qty };
-                }
+            const formValues = await openApprovalPartPickerDialog({
+                mode: 'add',
+                tx: tx,
+                initialProductId: null,
+                initialQty: 1
             });
 
             if (!formValues) return;
 
-            const selectedProd = products.find(p => p.id == formValues.productId);
+            const selectedProd = products.find(p => String(p.id).trim() === String(formValues.productId).trim());
             if (!selectedProd) return;
 
             const newPrice = getProductPriceByTier(selectedProd, priceTier);
-            const existingIdx = currentApprovalEditingItems.findIndex(it => it.product_id == selectedProd.id);
+            const existingIdx = currentApprovalEditingItems.findIndex(it => String(it.product_id).trim() === String(selectedProd.id).trim());
             if (existingIdx !== -1) {
                 currentApprovalEditingItems[existingIdx].qty += formValues.qty;
             } else {
