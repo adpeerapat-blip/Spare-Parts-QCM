@@ -1064,6 +1064,289 @@
             }
         }
 
+        // ===== Digital Signature System (ระบบลายเซ็นดิจิทัลและบันทึกไว้ใช้อัตโนมัติ) =====
+        function _getSignatureStorageKeys(requesterName) {
+            const keys = [];
+            if (isLoggedIn && currentUser && currentUser.email) {
+                keys.push(`qcm_user_sig_email_${String(currentUser.email).trim().toLowerCase()}`);
+            }
+            if (requesterName && String(requesterName).trim()) {
+                keys.push(`qcm_user_sig_name_${String(requesterName).trim().toLowerCase()}`);
+            }
+            if (isLoggedIn && currentUser && currentUser.fullName) {
+                keys.push(`qcm_user_sig_name_${String(currentUser.fullName).trim().toLowerCase()}`);
+            }
+            return [...new Set(keys)];
+        }
+
+        function getSavedRequesterSignature(requesterName) {
+            const reqTrim = String(requesterName || '').trim().toLowerCase();
+            const userFullTrim = (isLoggedIn && currentUser && currentUser.fullName) ? String(currentUser.fullName).trim().toLowerCase() : '';
+
+            // 1. ตรวจสอบจากโปรไฟล์ผู้ใช้ปัจจุบัน (กรณีชื่อตรงกัน หรือไม่ได้เปลี่ยนเป็นชื่อคนอื่น)
+            if (isLoggedIn && currentUser && currentUser.signature && (!reqTrim || reqTrim === userFullTrim)) {
+                return currentUser.signature;
+            }
+
+            // 2. ตรวจสอบจาก localStorage
+            try {
+                if (reqTrim) {
+                    const byName = localStorage.getItem(`qcm_user_sig_name_${reqTrim}`);
+                    if (byName) return byName;
+                }
+                if (isLoggedIn && currentUser && currentUser.email && (!reqTrim || reqTrim === userFullTrim)) {
+                    const byEmail = localStorage.getItem(`qcm_user_sig_email_${String(currentUser.email).trim().toLowerCase()}`);
+                    if (byEmail) return byEmail;
+                }
+            } catch (_) {}
+
+            return '';
+        }
+
+        async function saveRequesterSignature(requesterName, signatureDataUrl) {
+            const sig = String(signatureDataUrl || '');
+            const keys = _getSignatureStorageKeys(requesterName);
+
+            try {
+                keys.forEach(k => {
+                    if (sig) localStorage.setItem(k, sig);
+                    else localStorage.removeItem(k);
+                });
+            } catch (_) {}
+
+            if (isLoggedIn && currentUser) {
+                currentUser.signature = sig;
+                try {
+                    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+                } catch (_) {}
+
+                if (currentUser.email) {
+                    try {
+                        await fetch(API_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'saveUserSignature',
+                                payload: { email: currentUser.email, signature: sig }
+                            })
+                        });
+                    } catch (err) {
+                        console.warn('Could not sync signature to server:', err);
+                    }
+                }
+            }
+        }
+
+        async function openSignaturePadPopup({ signerName = '', isUpdateMode = false, roleTitle = '', confirmBtnLabel = '' } = {}) {
+            const displaySigner = signerName || (currentUser?.fullName) || 'ผู้ประเมินซ่อม';
+            const popupTitle = isUpdateMode
+                ? 'เปลี่ยนลายเซ็นดิจิทัล'
+                : (roleTitle || 'ลงลายมือชื่อผู้ประเมินซ่อม / ผู้เบิก');
+            const popupConfirmText = isUpdateMode
+                ? '<i class="fa-solid fa-save mr-1"></i> บันทึกลายเซ็น'
+                : (confirmBtnLabel || '<i class="fa-solid fa-check-circle mr-1"></i> ยืนยันลายเซ็นและบันทึกใบเบิก');
+
+            const { value: sigDataUrl } = await Swal.fire({
+                title: `<div class="text-base sm:text-lg font-bold text-slate-800"><i class="fa-solid fa-signature text-amber-500 mr-2"></i>${popupTitle}</div>`,
+                html: `
+                    <div class="text-left text-xs space-y-3 pt-1">
+                        <div class="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-amber-900 flex items-start gap-2">
+                            <i class="fa-solid fa-circle-info text-amber-600 mt-0.5 flex-shrink-0"></i>
+                            <div>
+                                <p class="font-bold">ลงลายมือชื่อสำหรับ: <span class="text-blue-700">${escapeHTML(displaySigner)}</span></p>
+                                <p class="text-[11px] text-amber-700 mt-0.5">ระบบจะบันทึกลายเซ็นนี้ไว้ใช้อัตโนมัติในครั้งต่อไป โดยจะไม่เด้งป๊อปอัพถามซ้ำอีก (สามารถแก้ไขภายหลังได้ที่เมนู <strong>ตั้งค่า USER</strong>)</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="font-bold text-slate-700"><i class="fa-solid fa-pen-fancy mr-1 text-slate-500"></i>วาดลายเซ็นในกรอบด้านล่าง:</span>
+                                <button type="button" id="swal_sig_clear_btn" class="px-2.5 py-1 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1">
+                                    <i class="fa-solid fa-eraser"></i> ล้างลายเซ็น
+                                </button>
+                            </div>
+                            <div class="relative bg-white border-2 border-dashed border-slate-300 rounded-2xl overflow-hidden shadow-inner" style="touch-action: none;">
+                                <canvas id="swal_signature_canvas" class="w-full h-44 cursor-crosshair block" style="touch-action: none;"></canvas>
+                                <div class="pointer-events-none absolute bottom-6 left-6 right-6 border-b border-slate-200"></div>
+                                <span class="pointer-events-none absolute bottom-1.5 left-0 right-0 text-center text-[10px] text-slate-300 select-none">เส้นบรรทัดสำหรับเซ็นชื่อ</span>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                didOpen: () => {
+                    const canvas = document.getElementById('swal_signature_canvas');
+                    const clearBtn = document.getElementById('swal_sig_clear_btn');
+                    if (!canvas) return;
+
+                    const rect = canvas.getBoundingClientRect();
+                    const dpr = window.devicePixelRatio || 1;
+                    canvas.width = rect.width * dpr;
+                    canvas.height = rect.height * dpr;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.scale(dpr, dpr);
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.lineWidth = 2.4;
+                    ctx.strokeStyle = '#0f172a';
+
+                    let isDrawing = false;
+                    let hasStroke = false;
+                    let lastX = 0;
+                    let lastY = 0;
+
+                    canvas.dataset.hasStroke = 'false';
+
+                    const getPos = (evt) => {
+                        const r = canvas.getBoundingClientRect();
+                        if (evt.touches && evt.touches.length > 0) {
+                            return {
+                                x: evt.touches[0].clientX - r.left,
+                                y: evt.touches[0].clientY - r.top
+                            };
+                        }
+                        return {
+                            x: evt.clientX - r.left,
+                            y: evt.clientY - r.top
+                        };
+                    };
+
+                    const startDraw = (evt) => {
+                        evt.preventDefault();
+                        isDrawing = true;
+                        const pos = getPos(evt);
+                        lastX = pos.x;
+                        lastY = pos.y;
+                        ctx.beginPath();
+                        ctx.moveTo(lastX, lastY);
+                        ctx.lineTo(lastX + 0.1, lastY + 0.1);
+                        ctx.stroke();
+                        hasStroke = true;
+                        canvas.dataset.hasStroke = 'true';
+                    };
+
+                    const moveDraw = (evt) => {
+                        if (!isDrawing) return;
+                        evt.preventDefault();
+                        const pos = getPos(evt);
+                        ctx.beginPath();
+                        ctx.moveTo(lastX, lastY);
+                        ctx.lineTo(pos.x, pos.y);
+                        ctx.stroke();
+                        lastX = pos.x;
+                        lastY = pos.y;
+                        hasStroke = true;
+                        canvas.dataset.hasStroke = 'true';
+                    };
+
+                    const endDraw = () => {
+                        isDrawing = false;
+                    };
+
+                    canvas.addEventListener('mousedown', startDraw);
+                    canvas.addEventListener('mousemove', moveDraw);
+                    window.addEventListener('mouseup', endDraw);
+
+                    canvas.addEventListener('touchstart', startDraw, { passive: false });
+                    canvas.addEventListener('touchmove', moveDraw, { passive: false });
+                    canvas.addEventListener('touchend', endDraw);
+
+                    if (clearBtn) {
+                        clearBtn.addEventListener('click', () => {
+                            ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+                            hasStroke = false;
+                            canvas.dataset.hasStroke = 'false';
+                        });
+                    }
+                },
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: popupConfirmText,
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#f59e0b',
+                cancelButtonColor: '#94a3b8',
+                customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-xl font-bold text-slate-900', cancelButton: 'rounded-xl' },
+                preConfirm: () => {
+                    const canvas = document.getElementById('swal_signature_canvas');
+                    if (!canvas || canvas.dataset.hasStroke !== 'true') {
+                        Swal.showValidationMessage('กรุณาลงลายมือชื่อก่อนกดยืนยัน');
+                        return false;
+                    }
+                    return canvas.toDataURL('image/png');
+                }
+            });
+
+            return sigDataUrl || null;
+        }
+
+        async function getOrPromptRequesterSignature(requesterName, options = {}) {
+            // 1. ตรวจสอบว่ามีลายเซ็นบันทึกไว้แล้วหรือไม่ (ถ้ามีแล้ว ให้ดึงมาใช้ทันทีโดยไม่ต้องเปิดป๊อปอัพ)
+            let existingSig = getSavedRequesterSignature(requesterName);
+            if (existingSig) {
+                return existingSig;
+            }
+
+            // 2. หากล็อกอินอยู่ ลองตรวจสอบจากฐานข้อมูล Firebase ของผู้ใช้เผื่อเพิ่งเข้าเครื่องใหม่
+            if (isLoggedIn && currentUser && currentUser.email) {
+                try {
+                    const snap = await firebase.database().ref('users').get();
+                    const users = ensureArray(snap.val());
+                    const found = users.find(u => String(u.email || '').toLowerCase() === String(currentUser.email).toLowerCase());
+                    if (found && found.signature) {
+                        await saveRequesterSignature(requesterName, found.signature);
+                        return found.signature;
+                    }
+                } catch (_) {}
+            }
+
+            // 3. หากยังไม่มีลายเซ็นเลย ให้แสดงป๊อปอัพเซ็นลายเซ็น แล้วบันทึกเก็บไว้ใช้ครั้งต่อไป
+            const newSig = await openSignaturePadPopup({ signerName: requesterName, isUpdateMode: false, ...options });
+            if (!newSig) return null;
+
+            await saveRequesterSignature(requesterName, newSig);
+            showToast('บันทึกลายเซ็นไว้ใช้ในครั้งต่อไปเรียบร้อยแล้ว', 'success');
+            return newSig;
+        }
+
+        function renderSelfSignaturePreview() {
+            const box = document.getElementById('self_signature_preview_box');
+            const clearBtn = document.getElementById('btnClearSelfSignature');
+            if (!box) return;
+
+            const sig = getSavedRequesterSignature(currentUser?.fullName || '');
+            if (sig) {
+                box.innerHTML = `<img src="${escapeHTML(sig)}" alt="Saved Signature" class="max-h-20 object-contain" />`;
+                if (clearBtn) clearBtn.classList.remove('hidden');
+            } else {
+                box.innerHTML = `<span class="text-xs text-slate-400">ยังไม่ได้บันทึกลายเซ็น (ระบบจะถามอัตโนมัติเมื่อกดยืนยันเบิกอะไหล่ครั้งแรก)</span>`;
+                if (clearBtn) clearBtn.classList.add('hidden');
+            }
+        }
+
+        async function openChangeSelfSignaturePad() {
+            const signerName = document.getElementById('self_fullName')?.value.trim() || currentUser?.fullName || '';
+            const newSig = await openSignaturePadPopup({ signerName: signerName, isUpdateMode: true });
+            if (newSig) {
+                await saveRequesterSignature(signerName, newSig);
+                renderSelfSignaturePreview();
+                if (typeof renderApprovalModalSignatures === 'function' && currentApprovalSelectedTxId) {
+                    const activeTx = (transactions || []).find(x => x.id === currentApprovalSelectedTxId);
+                    if (activeTx) renderApprovalModalSignatures(activeTx);
+                }
+                showToast('อัปเดตลายเซ็นดิจิทัลเรียบร้อยแล้ว', 'success');
+            }
+        }
+
+        async function clearSavedSelfSignature() {
+            const signerName = document.getElementById('self_fullName')?.value.trim() || currentUser?.fullName || '';
+            await saveRequesterSignature(signerName, '');
+            renderSelfSignaturePreview();
+            if (typeof renderApprovalModalSignatures === 'function' && currentApprovalSelectedTxId) {
+                const activeTx = (transactions || []).find(x => x.id === currentApprovalSelectedTxId);
+                if (activeTx) renderApprovalModalSignatures(activeTx);
+            }
+            showToast('ลบลายเซ็นที่บันทึกไว้เรียบร้อยแล้ว', 'info');
+        }
+
         async function submitPOSCheckout(e) {
             e.preventDefault();
             if (posCart.length === 0) return;
@@ -1111,6 +1394,12 @@
                 return;
             }
 
+            // ดึงลายเซ็นที่เคยบันทึกไว้ หรือแสดงป๊อปอัพให้เซ็นในครั้งแรกแล้วบันทึกไว้ใช้อัตโนมัติในครั้งถัดไป
+            const requesterSignature = await getOrPromptRequesterSignature(requester);
+            if (!requesterSignature) {
+                return;
+            }
+
             const approverParts = approverVal ? approverVal.split('|') : [];
             const approverName = approverParts[0] || '';
             const approverEmail = approverParts[1] || '';
@@ -1151,6 +1440,7 @@
                 serial_number: serialNumber,
                 note: note,
                 job_details: jobDetails,
+                requester_signature: requesterSignature,
                 total_price: grandTotal,
                 approval_status: 'Pending',
                 cart: cartItems
@@ -1202,6 +1492,7 @@
                                 serial_number: serialNumber,
                                 note: note,
                                 job_details: jobDetails,
+                                requester_signature: requesterSignature,
                                 total_price: grandTotal,
                                 items: cartItems.map(item => ({
                                     product_id: item.id,
@@ -1273,6 +1564,12 @@
                 return;
             }
 
+            // ดึงลายเซ็นที่เคยบันทึกไว้ หรือแสดงป๊อปอัพให้เซ็นในครั้งแรกแล้วบันทึกไว้ใช้อัตโนมัติในครั้งถัดไป
+            const requesterSignature = await getOrPromptRequesterSignature(requester);
+            if (!requesterSignature) {
+                return;
+            }
+
             const approverParts = approverVal ? approverVal.split('|') : [];
             const approverName = approverParts[0] || '';
             const approverEmail = approverParts[1] || '';
@@ -1313,6 +1610,7 @@
                 serial_number: serialNumber,
                 note: note,
                 job_details: jobDetails,
+                requester_signature: requesterSignature,
                 total_price: grandTotal,
                 approval_status: 'Pending',
                 cart: cartItems
@@ -1372,6 +1670,7 @@
                                 serial_number: serialNumber,
                                 note: note,
                                 job_details: jobDetails,
+                                requester_signature: requesterSignature,
                                 total_price: grandTotal,
                                 items: cartItems.map(item => ({
                                     product_id: item.id,
@@ -1797,7 +2096,86 @@
             }
 
             renderApprovalItemsTable(canEditItems);
+            renderApprovalModalSignatures(t);
             document.getElementById('approvalActionModal').classList.remove('hidden');
+        }
+
+        function renderApprovalModalSignatures(t) {
+            const sigSection = document.getElementById('aam_signatures_section');
+            if (!sigSection || !t) return;
+
+            const appStatus = t.approval_status || (t.status === 'Cancelled' ? 'Rejected' : 'Pending');
+            const reqName = t.requester || '-';
+            const reqSig = t.requester_signature || getSavedRequesterSignature(reqName);
+
+            const reqBoxHtml = `
+                <div class="bg-white border border-slate-200 rounded-xl p-3 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="font-bold text-slate-700"><i class="fa-solid fa-pen-nib text-amber-500 mr-1"></i>ลายมือชื่อผู้ประเมินซ่อม / ผู้เบิก</span>
+                        <span class="text-[11px] font-semibold text-slate-500">${escapeHTML(reqName)}</span>
+                    </div>
+                    <div class="h-16 bg-slate-50 border border-dashed border-slate-200 rounded-lg flex items-center justify-center p-1">
+                        ${reqSig
+                            ? `<img src="${escapeHTML(reqSig)}" alt="Requester Signature" class="max-h-14 object-contain" />`
+                            : `<span class="text-[11px] text-slate-400 italic">ไม่มีลายเซ็นดิจิทัลแนบ</span>`
+                        }
+                    </div>
+                </div>
+            `;
+
+            let appBoxHtml = '';
+            if (appStatus === 'Approved') {
+                const appSigner = t.approval_by || t.approver || '-';
+                const appSig = t.approver_signature || getSavedRequesterSignature(appSigner);
+                appBoxHtml = `
+                    <div class="bg-white border border-emerald-200 rounded-xl p-3 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="font-bold text-emerald-800"><i class="fa-solid fa-stamp text-emerald-600 mr-1"></i>ลายมือชื่อผู้อนุมัติ</span>
+                            <span class="text-[11px] font-semibold text-emerald-700">${escapeHTML(appSigner)}</span>
+                        </div>
+                        <div class="h-16 bg-emerald-50/40 border border-dashed border-emerald-200 rounded-lg flex items-center justify-center p-1">
+                            ${appSig
+                                ? `<img src="${escapeHTML(appSig)}" alt="Approver Signature" class="max-h-14 object-contain" />`
+                                : `<span class="text-[11px] text-slate-400 italic">อนุมัติแล้ว (ไม่มีรูปภาพลายเซ็น)</span>`
+                            }
+                        </div>
+                    </div>
+                `;
+            } else if (appStatus === 'Pending') {
+                const myName = currentUser?.fullName || t.approver || 'ผู้อนุมัติ';
+                const savedMySig = getSavedRequesterSignature(myName);
+                appBoxHtml = `
+                    <div class="bg-white border border-amber-200 rounded-xl p-3 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-1.5 gap-2">
+                            <span class="font-bold text-slate-700"><i class="fa-solid fa-signature text-emerald-600 mr-1"></i>ลายมือชื่อผู้อนุมัติ (${escapeHTML(myName)})</span>
+                            <button type="button" onclick="openChangeSelfSignaturePad()" class="px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-bold transition flex items-center gap-1 flex-shrink-0">
+                                <i class="fa-solid fa-pen"></i> ${savedMySig ? 'เปลี่ยนลายเซ็น' : 'เซ็นไว้ล่วงหน้า'}
+                            </button>
+                        </div>
+                        <div class="h-16 bg-slate-50 border border-dashed border-slate-200 rounded-lg flex items-center justify-center p-1">
+                            ${savedMySig
+                                ? `<div class="flex items-center gap-2"><img src="${escapeHTML(savedMySig)}" alt="Saved Approver Signature" class="max-h-14 object-contain" /><span class="text-[10px] text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check"></i> พร้อมใช้เซ็นอัตโนมัติ</span></div>`
+                                : `<span class="text-[11px] text-amber-700 text-center px-2"><i class="fa-solid fa-circle-info mr-1"></i>เมื่อกดอนุมัติ ระบบจะเปิดให้เซ็นชื่อ 1 ครั้ง และบันทึกไว้ใช้อัตโนมัติในครั้งต่อไป</span>`
+                            }
+                        </div>
+                    </div>
+                `;
+            } else {
+                const appSigner = t.approval_by || t.approver || '-';
+                appBoxHtml = `
+                    <div class="bg-white border border-rose-200 rounded-xl p-3 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="font-bold text-rose-700"><i class="fa-solid fa-ban text-rose-500 mr-1"></i>สถานะผู้อนุมัติ</span>
+                            <span class="text-[11px] font-semibold text-rose-600">${escapeHTML(appSigner)}</span>
+                        </div>
+                        <div class="h-16 bg-rose-50/40 border border-dashed border-rose-200 rounded-lg flex items-center justify-center p-1">
+                            <span class="text-[11px] text-rose-500 font-semibold">รายการนี้ไม่ได้รับอนุมัติ</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            sigSection.innerHTML = reqBoxHtml + appBoxHtml;
         }
 
         function renderApprovalItemsTable(canEditItems) {
@@ -2546,6 +2924,16 @@
 
             if (!confirmResult.isConfirmed) return;
 
+            // ดึงลายเซ็นผู้อนุมัติที่บันทึกไว้ (หากยังไม่เคยเซ็น จะเด้งป๊อปอัพให้เซ็นและบันทึกไว้ใช้ในครั้งต่อไปอัตโนมัติ)
+            const approverSignerName = currentUser?.fullName || 'ผู้อนุมัติ';
+            const approverSignature = await getOrPromptRequesterSignature(approverSignerName, {
+                roleTitle: 'ลงลายมือชื่อผู้อนุมัติใบขอเบิกอะไหล่',
+                confirmBtnLabel: '<i class="fa-solid fa-check-circle mr-1"></i> ยืนยันลายเซ็นและอนุมัติเอกสาร'
+            });
+            if (!approverSignature) {
+                return;
+            }
+
             showLoading('กำลังบันทึกผลการอนุมัติเอกสาร...');
             try {
                 const payload = {
@@ -2553,7 +2941,8 @@
                     approval_status: 'Approved',
                     approval_note: note,
                     approved_by: currentUser.fullName,
-                    approved_by_email: currentUser.email
+                    approved_by_email: currentUser.email,
+                    approver_signature: approverSignature
                 };
 
                 if (hasApprovalItemsChanged) {
@@ -2582,6 +2971,7 @@
                         targetTx.approval_status = 'Approved';
                         targetTx.approval_by = currentUser.fullName;
                         targetTx.approval_by_email = currentUser.email;
+                        targetTx.approver_signature = approverSignature;
                         if (!targetTx.approver || !targetTx.approver.trim() || targetTx.approver.trim() === '-') {
                             targetTx.approver = currentUser.fullName;
                             targetTx.approver_email = currentUser.email;
@@ -3179,8 +3569,22 @@
                             + '<\/div>'))
                     + '<\/div>'
                     + '<div class="sig-zone">'
-                        + '<div class="sig-col"><div class="sig-line">ลงชื่อ ...............................<\/div><div class="sig-name">(' + (t.requester || 'ผู้ประเมินซ่อม') + ')<\/div><div class="sig-name">' + (isRestock ? 'ผู้เติมสต็อก' : 'ผู้ประเมินซ่อม') + '<\/div><\/div>'
-                        + (isRestock ? '' : ('<div class="sig-col"><div class="sig-line">ลงชื่อ ...............................<\/div><div class="sig-name">(' + (t.approval_by || t.approver || '...............................') + ')<\/div><div class="sig-name">ผู้อนุมัติ<\/div><\/div>'))
+                        + (function() {
+                            var reqSig = t.requester_signature || getSavedRequesterSignature(t.requester || '');
+                            var sigImgHtml = reqSig
+                                ? '<div style="height:42px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:3px;"><img src="' + reqSig + '" style="max-height:40px;max-width:150px;object-fit:contain;" alt="signature"><\/div><div class="sig-line" style="margin-top:0;">ลงชื่อ ผู้' + (isRestock ? 'เติมสต็อก' : 'ประเมินซ่อม') + '<\/div>'
+                                : '<div class="sig-line">ลงชื่อ ...............................<\/div>';
+                            return '<div class="sig-col">' + sigImgHtml + '<div class="sig-name">(' + (t.requester || 'ผู้ประเมินซ่อม') + ')<\/div><div class="sig-name">' + (isRestock ? 'ผู้เติมสต็อก' : 'ผู้ประเมินซ่อม') + '<\/div><\/div>';
+                        })()
+                        + (isRestock ? '' : (function() {
+                            var isApproved = (t.approval_status === 'Approved');
+                            var appSignerName = t.approval_by || t.approver || '';
+                            var appSig = isApproved ? (t.approver_signature || getSavedRequesterSignature(appSignerName)) : '';
+                            var appSigHtml = appSig
+                                ? '<div style="height:42px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:3px;"><img src="' + appSig + '" style="max-height:40px;max-width:150px;object-fit:contain;" alt="approver signature"><\/div><div class="sig-line" style="margin-top:0;">ลงชื่อ ผู้อนุมัติ<\/div>'
+                                : '<div class="sig-line">ลงชื่อ ...............................<\/div>';
+                            return '<div class="sig-col">' + appSigHtml + '<div class="sig-name">(' + (appSignerName || '...............................') + ')<\/div><div class="sig-name">ผู้อนุมัติ<\/div><\/div>';
+                        })())
                         + '<div class="sig-col"><div class="sig-line">ลงชื่อ ...............................<\/div><div class="sig-name">(...............................)<\/div><div class="sig-name">ผู้จ่ายของสโตร์<\/div><\/div>'
                     + '<\/div>'
                 + '<\/div>'

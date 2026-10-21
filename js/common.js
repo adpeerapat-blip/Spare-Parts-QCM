@@ -1117,6 +1117,10 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
             
             document.getElementById('self_password').value = '';
             document.getElementById('self_confirmPassword').value = '';
+
+            if (typeof renderSelfSignaturePreview === 'function') {
+                renderSelfSignaturePreview();
+            }
             
             document.getElementById('selfSettingsModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
@@ -2033,6 +2037,7 @@ const BYPASS_ACTIONS = [
     'updateUserByAdmin',
     'deleteUserByAdmin',
     'updateSelfProfile',
+    'saveUserSignature',
     'updateUserApprovalPermission',
     'getApprovers'
 ];
@@ -2078,6 +2083,8 @@ async function handleActionDirectlyOnFirebase(action, payload) {
                 return { status: 'success', message: 'ลบผู้ใช้สำเร็จ' };
             case 'updateSelfProfile':
                 return { status: 'success', data: await executeDirectUpdateSelfProfile(payload), message: 'อัปเดตโปรไฟล์สำเร็จ' };
+            case 'saveUserSignature':
+                return { status: 'success', data: await executeDirectSaveUserSignature(payload), message: 'บันทึกลายเซ็นสำเร็จ' };
             case 'updateUserApprovalPermission':
                 const permRes = await executeDirectUpdateUserApprovalPermission(payload);
                 return { status: 'success', data: permRes, message: 'อัปเดตสิทธิ์อนุมัติสำเร็จ' };
@@ -2466,7 +2473,8 @@ async function executeDirectLogin(payload) {
         role: user.role,
         priceLevel: user.priceLevel || "A",
         userType: user.userType || "insource",
-        canApprove: !!user.canApprove
+        canApprove: !!user.canApprove,
+        signature: user.signature || ""
     };
 }
 
@@ -2572,6 +2580,9 @@ async function executeDirectUpdateSelfProfile(payload) {
     if (payload.password) {
         users[index].passwordHash = await sha256(payload.password);
     }
+    if (payload.signature !== undefined) {
+        users[index].signature = payload.signature;
+    }
     
     await firebase.database().ref('users').set(users);
     invalidateLocalCache();
@@ -2584,8 +2595,25 @@ async function executeDirectUpdateSelfProfile(payload) {
         role: users[index].role,
         priceLevel: users[index].priceLevel || "A",
         userType: users[index].userType || "insource",
-        canApprove: !!users[index].canApprove
+        canApprove: !!users[index].canApprove,
+        signature: users[index].signature || ""
     };
+}
+
+async function executeDirectSaveUserSignature(payload) {
+    const email = String(payload.email || "").trim().toLowerCase();
+    const signature = String(payload.signature || "");
+    if (!email) return { signature };
+
+    const snapshot = await firebase.database().ref('users').get();
+    const users = ensureArray(snapshot.val());
+    const index = users.findIndex(u => String(u.email || "").toLowerCase() === email);
+    if (index !== -1) {
+        users[index].signature = signature;
+        await firebase.database().ref(`users/${index}/signature`).set(signature);
+        invalidateLocalCache();
+    }
+    return { signature };
 }
 
 async function executeDirectUpdateUserApprovalPermission(payload) {
@@ -2795,6 +2823,7 @@ async function executeDirectCheckout(payload) {
         total_price: grandTotal,
         note: payload.note || "",
         job_details: payload.job_details || "",
+        requester_signature: payload.requester_signature || "",
         status: "Success",
         approval_status: payload.approval_status || "Pending",
         items: checkoutItems
@@ -3190,6 +3219,9 @@ async function executeDirectUpdateApprovalStatus(payload) {
         if (newStatus === "Approved" && (!targetTx.approver || !String(targetTx.approver).trim() || String(targetTx.approver).trim() === '-')) {
             targetTx.approver = approverName;
             targetTx.approver_email = approverEmail;
+        }
+        if (payload.approver_signature) {
+            targetTx.approver_signature = payload.approver_signature;
         }
         targetTx.approval_note = note;
         updates[`transactions/${txIndex}`] = targetTx;

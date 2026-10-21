@@ -2247,6 +2247,23 @@
                                         <input type="email" id="self_email" required class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition text-sm">
                                     </div>
                                     <div class="border-t border-gray-150 pt-4">
+                                        <div class="flex items-center justify-between mb-1.5">
+                                            <label class="block text-sm font-semibold text-slate-800"><i class="fa-solid fa-signature text-amber-500 mr-1.5"></i>ลายเซ็นดิจิทัลที่บันทึกไว้</label>
+                                            <div class="flex items-center gap-1.5">
+                                                <button type="button" onclick="openChangeSelfSignaturePad()" class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                                                    <i class="fa-solid fa-pen-nib text-[10px]"></i> เซ็นใหม่
+                                                </button>
+                                                <button type="button" id="btnClearSelfSignature" onclick="clearSavedSelfSignature()" class="hidden px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                                                    <i class="fa-solid fa-trash-can text-[10px]"></i> ลบ
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div id="self_signature_preview_box" class="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-3 flex flex-col items-center justify-center min-h-[84px]">
+                                            <span class="text-xs text-slate-400">ยังไม่ได้บันทึกลายเซ็น</span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-400 mt-1"><i class="fa-solid fa-circle-info mr-1"></i>ระบบจะนำลายเซ็นนี้ไปใช้อัตโนมัติเมื่อทำรายการเบิกอะไหล่ โดยไม่ต้องเซ็นซ้ำทุกครั้ง</p>
+                                    </div>
+                                    <div class="border-t border-gray-150 pt-4">
                                         <label class="block text-sm font-semibold text-slate-800 mb-1.5"><i class="fa-solid fa-key text-slate-400 mr-1.5"></i>เปลี่ยนรหัสผ่านใหม่</label>
                                         <input type="password" id="self_password" placeholder="เว้นว่างไว้หากไม่ต้องการเปลี่ยนรหัสผ่าน" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition text-sm mb-3">
                                         <input type="password" id="self_confirmPassword" placeholder="ยืนยันรหัสผ่านใหม่อีกครั้ง" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition text-sm">
@@ -2742,6 +2759,11 @@
                                     <span class="text-sm font-bold text-emerald-950">ยอดรวมสุทธิทั้งสิ้น:</span>
                                     <span id="aam_total_price" class="text-xl font-black text-emerald-700">฿0.00</span>
                                 </div>
+                            </div>
+
+                            <!-- Digital Signatures Section -->
+                            <div id="aam_signatures_section" class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50/80 border border-slate-200 p-3.5 rounded-2xl text-xs">
+                                <!-- เรนเดอร์ด้วย JS -->
                             </div>
 
                             <!-- History Banner (if already reviewed) -->
