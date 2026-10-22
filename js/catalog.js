@@ -192,7 +192,7 @@
 
             banner.classList.remove('hidden');
             
-            const imgSrc = m.image_url || 'https://placehold.co/400x300/334155/94a3b8?text=No+Image';
+            const imgSrc = formatImageUrl(m.image_url, 400);
             const costVal = parseFloat(String(m.cost).replace(/,/g, '')) || 0;
             const costStr = costVal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             const pA = fNumberM(m.price_a, costVal * 2.1);
@@ -225,7 +225,7 @@
                 <div class="absolute -right-10 -top-10 text-9xl text-white opacity-5 pointer-events-none"><i class="fa-solid fa-cogs"></i></div>
                 <div class="flex flex-col md:flex-row gap-6 items-start relative z-10">
                     <div class="flex-shrink-0 bg-white/10 p-2 rounded-xl border border-white/20 flex items-center justify-center overflow-hidden self-center md:self-start">
-                        <img src="${escapeHTML(imgSrc)}" class="max-w-[140px] max-h-[140px] md:max-w-[160px] md:max-h-[160px] w-auto h-auto object-contain rounded-lg bg-slate-100" onerror="this.src='https://placehold.co/400x300/334155/94a3b8?text=Err'">
+                        <img src="${escapeHTML(imgSrc)}" referrerpolicy="no-referrer" class="max-w-[140px] max-h-[140px] md:max-w-[160px] md:max-h-[160px] w-auto h-auto object-contain rounded-lg bg-slate-100" onerror="handleImgError(this, '${escapeForJS(m.image_url || '')}')">
                     </div>
                     <div class="flex-1 w-full">
                         <div class="flex flex-wrap items-center gap-3 mb-2">
@@ -371,7 +371,7 @@
                         `;
                     }
 
-                    let imgSource = p.image_url ? p.image_url : `https://placehold.co/400x300/f8fafc/94a3b8?text=No+Image`;
+                    let imgSource = formatImageUrl(p.image_url, 400);
 
                     const costVal = parseFloat(String(p.cost).replace(/,/g, '')) || 0;
                     const costStr = costVal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -392,9 +392,9 @@
                     let card = `
                         <div onclick="openProductDetailModal('${escapeForJS(p.id)}')" class="${isCancelled ? 'bg-red-50/20 border-red-200 hover:border-red-300' : 'bg-white border-gray-100 hover:border-blue-200'} rounded-2xl shadow-sm border overflow-hidden hover:shadow-lg transition-all duration-300 group flex flex-col h-full transform hover:-translate-y-1 cursor-pointer">
                             <div class="h-48 sm:h-52 bg-slate-50 overflow-hidden relative flex-shrink-0 flex items-center justify-center">
-                                <img src="${escapeHTML(imgSource)}" alt="${escapeHTML(p.name)}" loading="lazy" decoding="async" class="max-w-full max-h-full object-contain p-2 group-hover:scale-105 transition duration-500 ${isCancelled ? 'opacity-50 grayscale-[30%]' : ''}" onerror="this.src='https://placehold.co/400x300/fee2e2/ef4444?text=Image+Error'">
+                                <img src="${escapeHTML(imgSource)}" alt="${escapeHTML(p.name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" class="max-w-full max-h-full object-contain p-2 group-hover:scale-105 transition duration-500 ${isCancelled ? 'opacity-50 grayscale-[30%]' : ''}" onerror="handleImgError(this, '${escapeForJS(p.image_url || '')}')">
                                 <div class="absolute top-3 left-3 bg-white/90 backdrop-blur px-2.5 py-1 rounded-md text-xs font-bold text-gray-800 shadow-sm border border-gray-100">${escapeHTML(p.id)}</div>
-                                <button class="img-zoom-btn" onclick="event.stopPropagation(); openImageLightbox('${escapeForJS(imgSource)}', '${escapeForJS(p.name)}')">
+                                <button class="img-zoom-btn" onclick="event.stopPropagation(); openImageLightbox('${escapeForJS(p.image_url || imgSource)}', '${escapeForJS(p.name)}')">
                                     <i class="fa-solid fa-magnifying-glass-plus"></i> ขยายภาพ
                                 </button>
                                 ${isCancelled ? `
@@ -492,7 +492,7 @@
                 const pageMachines = filteredMachines.slice(startIndexM, endIndexM);
 
                 pageMachines.forEach(m => {
-                    let imgSource = m.image_url ? m.image_url : `https://placehold.co/400x300/f8fafc/94a3b8?text=No+Image`;
+                    let imgSource = formatImageUrl(m.image_url, 400);
                     const clickAction = `openMachineDetailModal('${escapeForJS(m.id)}');`;
                     const partsCount = machinePartsCountMap.get(String(m.id).trim()) || 0;
 
@@ -509,7 +509,7 @@
                     let card = `
                         <div onclick="${clickAction}" class="${isCancelledM ? 'bg-red-50/20 border-red-200 hover:border-red-300' : 'bg-white border-gray-200 hover:border-purple-300'} rounded-2xl shadow-sm border overflow-hidden hover:shadow-lg transition-all duration-300 group flex flex-col h-full transform hover:-translate-y-1 cursor-pointer">
                             <div class="h-56 bg-slate-800 overflow-hidden relative flex-shrink-0 flex items-center justify-center p-3">
-                                <img src="${escapeHTML(imgSource)}" alt="${escapeHTML(m.name)}" loading="lazy" decoding="async" class="max-w-full max-h-full object-contain group-hover:scale-105 transition duration-500 rounded ${isCancelledM ? 'opacity-40 grayscale-[30%]' : ''}" onerror="this.src='https://placehold.co/400x300/1e293b/94a3b8?text=Image+Error'">
+                                <img src="${escapeHTML(imgSource)}" alt="${escapeHTML(m.name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" class="max-w-full max-h-full object-contain group-hover:scale-105 transition duration-500 rounded ${isCancelledM ? 'opacity-40 grayscale-[30%]' : ''}" onerror="handleImgError(this, '${escapeForJS(m.image_url || '')}')">
                                 <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
                                 <div class="absolute bottom-3 left-4 right-4">
                                     <span class="bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-1 inline-block">Machine</span>
@@ -744,7 +744,12 @@
                 mdmNoteEl.className = "text-gray-700 text-sm whitespace-pre-line leading-relaxed bg-gray-50 border border-gray-100 rounded-xl p-4";
                 document.getElementById('mdm_name').className = "text-2xl sm:text-3xl font-extrabold text-gray-900 leading-snug";
             }
-            document.getElementById('mdm_image').src = m.image_url || 'https://placehold.co/800x500/1e293b/94a3b8?text=No+Image';
+            const mdmImg = document.getElementById('mdm_image');
+            mdmImg.referrerPolicy = "no-referrer";
+            mdmImg.dataset.retries = '0';
+            mdmImg.dataset.origSrc = m.image_url || '';
+            mdmImg.onerror = () => handleImgError(mdmImg, m.image_url);
+            mdmImg.src = formatImageUrl(m.image_url, 800);
 
             const costVal = parseFloat(String(m.cost).replace(/,/g, '')) || 0;
             document.getElementById('mdm_cost').innerText = '฿' + costVal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -856,7 +861,12 @@
                 pdNoteEl.className = "text-gray-700 text-sm whitespace-pre-line leading-relaxed bg-gray-50 border border-gray-100 rounded-xl p-4";
                 document.getElementById('pd_name').className = "text-2xl sm:text-3xl font-extrabold text-gray-900 leading-snug";
             }
-            document.getElementById('pd_image').src = p.image_url || 'https://placehold.co/400x300/f8fafc/94a3b8?text=No+Image';
+            const pdImg = document.getElementById('pd_image');
+            pdImg.referrerPolicy = "no-referrer";
+            pdImg.dataset.retries = '0';
+            pdImg.dataset.origSrc = p.image_url || '';
+            pdImg.onerror = () => handleImgError(pdImg, p.image_url);
+            pdImg.src = formatImageUrl(p.image_url, 800);
             
             const costVal = parseFloat(String(p.cost).replace(/,/g, '')) || 0;
             document.getElementById('pd_cost').innerText = '฿' + costVal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -927,12 +937,12 @@
                     // แก้บัค 2: ใช้ String().trim() เพื่อรองรับ type mismatch หรือช่องว่างระหว่าง machine_id ใน mapping กับ mac.id
                     const m = db.machines.find(mac => String(mac.id).trim() === mId);
                     if (m) {
-                        let mImg = m.image_url || 'https://placehold.co/100x100/334155/94a3b8?text=No+Img';
+                        let mImg = formatImageUrl(m.image_url, 120);
                         let action = `closeProductDetailModal(); document.getElementById('filterMachine').value='${escapeForJS(m.id)}'; document.getElementById('input_filterMachine').value='${escapeForJS(m.id)} : ${escapeForJS(m.name)}'; renderCatalog();`;
                         
                         let mCard = `
                             <div onclick="${action}" class="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition cursor-pointer group">
-                                <img src="${escapeHTML(mImg)}" class="w-12 h-12 object-cover rounded-lg bg-slate-100" onerror="this.src='https://placehold.co/100x100/334155/94a3b8?text=Err'">
+                                <img src="${escapeHTML(mImg)}" referrerpolicy="no-referrer" class="w-12 h-12 object-cover rounded-lg bg-slate-100" onerror="handleImgError(this, '${escapeForJS(m.image_url || '')}')">
                                 <div>
                                     <p class="text-xs font-bold text-gray-500 mb-0.5 group-hover:text-blue-500 transition">${escapeHTML(m.id)}</p>
                                     <p class="text-sm font-semibold text-gray-800 line-clamp-1" title="${escapeHTML(m.name)}">${escapeHTML(m.name)}</p>
@@ -1015,14 +1025,14 @@
             }
             
             machines.forEach(m => {
-                const mImg = m.image_url || 'https://placehold.co/100x100/334155/94a3b8?text=No+Img';
+                const mImg = formatImageUrl(m.image_url, 120);
                 const isCancelled = m.note && (m.note.trim() === 'ยกเลิกใช้' || m.note.includes('ยกเลิกใช้'));
                 
                 const cardHtml = `
                     <div class="bg-white p-3.5 rounded-2xl border ${isCancelled ? 'border-red-200 bg-red-50/20' : 'border-slate-200/80'} shadow-xs hover:shadow-md hover:border-blue-300 transition-all flex flex-col justify-between group">
                         <div class="flex items-start gap-3 mb-3">
                             <div class="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0 border border-slate-100 relative">
-                                <img src="${escapeHTML(mImg)}" alt="${escapeHTML(m.name)}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 ${isCancelled ? 'opacity-50 grayscale-[30%]' : ''}" onerror="this.src='https://placehold.co/100x100/334155/94a3b8?text=Err'">
+                                <img src="${escapeHTML(mImg)}" alt="${escapeHTML(m.name)}" referrerpolicy="no-referrer" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 ${isCancelled ? 'opacity-50 grayscale-[30%]' : ''}" onerror="handleImgError(this, '${escapeForJS(m.image_url || '')}')">
                                 ${isCancelled ? `<span class="absolute bottom-0 inset-x-0 bg-red-600 text-white text-[8px] font-bold text-center py-0.5">ยกเลิก</span>` : ''}
                             </div>
                             <div class="min-w-0 flex-1">
@@ -1101,7 +1111,12 @@
 
         function openImageLightbox(src, caption) {
             const lb = document.getElementById('imageLightbox');
-            document.getElementById('lightboxImg').src = src;
+            const lbImg = document.getElementById('lightboxImg');
+            lbImg.referrerPolicy = "no-referrer";
+            lbImg.dataset.retries = '0';
+            lbImg.dataset.origSrc = src || '';
+            lbImg.onerror = () => handleImgError(lbImg, src);
+            lbImg.src = formatImageUrl(src, 1600);
             document.getElementById('lightboxCaption').textContent = caption || '';
             lb.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
@@ -1463,11 +1478,11 @@
             }
             
             filteredMachines.forEach(m => {
-                const imgSrc = m.image_url || 'https://placehold.co/80x80/f1f5f9/94a3b8?text=No+Img';
+                const imgSrc = formatImageUrl(m.image_url, 100);
                 let tr = `
                     <tr class="hover:bg-slate-50/80 transition-colors duration-150 border-b border-gray-100 last:border-0">
                         <td class="p-3 text-center">
-                            <img src="${escapeHTML(imgSrc)}" alt="${escapeHTML(m.name)}" loading="lazy" decoding="async" class="w-14 h-14 object-cover rounded-xl shadow-sm border border-gray-200 bg-white mx-auto" onerror="this.src='https://placehold.co/80x80/f1f5f9/94a3b8?text=Err'">
+                            <img src="${escapeHTML(imgSrc)}" alt="${escapeHTML(m.name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" class="w-14 h-14 object-cover rounded-xl shadow-sm border border-gray-200 bg-white mx-auto" onerror="handleImgError(this, '${escapeForJS(m.image_url || '')}')">
                         </td>
                         <td class="p-4 font-semibold text-gray-800 whitespace-nowrap">${escapeHTML(m.id)}</td>
                         <td class="p-4 text-gray-600">${escapeHTML(m.name)}</td>
@@ -1669,7 +1684,7 @@
                             ${isAlreadyMapped ? 'disabled checked' : (isSelected ? 'checked' : '')} 
                             onchange="toggleMapProduct('${escapeForJS(p.id)}', this.checked)"
                             class="w-5 h-5 text-purple-600 rounded border-gray-300 focus:ring-purple-500 disabled:bg-gray-200 disabled:border-gray-300 transition cursor-pointer disabled:cursor-not-allowed">
-                        <img src="${escapeHTML(p.image_url || 'https://placehold.co/100x100?text=NoImg')}" loading="lazy" decoding="async" class="w-10 h-10 object-cover rounded-lg shadow-sm bg-white" onerror="this.src='https://placehold.co/100x100?text=Err'">
+                        <img src="${escapeHTML(formatImageUrl(p.image_url, 100))}" loading="lazy" decoding="async" referrerpolicy="no-referrer" class="w-10 h-10 object-cover rounded-lg shadow-sm bg-white" onerror="handleImgError(this, '${escapeForJS(p.image_url || '')}')">
                         <div class="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 overflow-hidden">
                             <span class="font-bold text-gray-800 sm:w-32 truncate" title="${escapeHTML(p.id)}">${escapeHTML(p.id)}</span>
                             <span class="text-gray-600 flex-1 truncate text-sm" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</span>
@@ -1776,7 +1791,7 @@
                 let tr = `
                     <tr class="hover:bg-blue-50/30 border-b border-gray-200 transition ${isCancelled ? 'bg-red-50/10' : ''}">
                         <td class="p-4 text-center text-gray-500">${index + 1}</td>
-                        <td class="p-3"><img src="${escapeHTML(p.image_url || 'https://placehold.co/100x100?text=NoImg')}" loading="lazy" decoding="async" class="w-12 h-12 object-cover rounded-lg shadow-sm border border-gray-200 bg-white ${isCancelled ? 'opacity-50 grayscale' : ''}" onerror="this.src='https://placehold.co/100x100?text=Err'"></td>
+                        <td class="p-3"><img src="${escapeHTML(formatImageUrl(p.image_url, 100))}" loading="lazy" decoding="async" referrerpolicy="no-referrer" class="w-12 h-12 object-cover rounded-lg shadow-sm border border-gray-200 bg-white ${isCancelled ? 'opacity-50 grayscale' : ''}" onerror="handleImgError(this, '${escapeForJS(p.image_url || '')}')"></td>
                         <td class="p-4 font-semibold ${isCancelled ? 'text-gray-400 line-through decoration-red-500' : 'text-gray-800'}">${escapeHTML(p.id)}</td>
                         <td class="p-4 ${isCancelled ? 'text-gray-400 line-through decoration-red-500' : 'text-gray-700'} max-w-xs truncate" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</td>
                         <td class="p-4 text-gray-600">${escapeHTML(p.unit || '-')}</td>

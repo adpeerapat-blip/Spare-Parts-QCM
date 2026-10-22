@@ -307,7 +307,7 @@
                 let tr = `
                     <tr class="hover:bg-blue-50/30 border-b border-gray-200 transition ${isCancelled ? 'bg-red-50/10' : ''} ${bulkStockChanges[p.id] !== undefined ? 'bg-emerald-50/30' : ''}">
                         <td class="p-4 text-center text-gray-500 font-medium">${itemIndex}</td>
-                        <td class="p-3"><img src="${escapeHTML(p.image_url || 'https://placehold.co/100x100?text=NoImg')}" loading="lazy" decoding="async" class="w-12 h-12 object-cover rounded-lg shadow-sm border border-gray-200 bg-white ${isCancelled ? 'opacity-50 grayscale' : ''}" onerror="this.src='https://placehold.co/100x100?text=Err'"></td>
+                        <td class="p-3"><img src="${escapeHTML(formatImageUrl(p.image_url, 100))}" loading="lazy" decoding="async" referrerpolicy="no-referrer" class="w-12 h-12 object-cover rounded-lg shadow-sm border border-gray-200 bg-white ${isCancelled ? 'opacity-50 grayscale' : ''}" onerror="handleImgError(this, '${escapeForJS(p.image_url || '')}')"></td>
                         <td class="p-4 font-semibold ${isCancelled ? 'text-gray-400 line-through decoration-red-500' : 'text-gray-800'}">${escapeHTML(p.id)}</td>
                         <td class="p-4 ${isCancelled ? 'text-gray-400 line-through decoration-red-500' : 'text-gray-700'} max-w-xs truncate" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</td>
                         <td class="p-4 text-gray-500">${escapeHTML(p.category || 'ทั่วไป')}</td>

@@ -44,6 +44,90 @@ function getFormattedDateTimeString() {
     return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 }
 
+// ==========================================
+// Image Processing, Optimization & Error Fallback
+// ==========================================
+const NO_IMAGE_SVG = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23f8fafc'/%3E%3Cg fill='%23cbd5e1'%3E%3Ccircle cx='160' cy='115' r='20'/%3E%3Cpath d='M80 210h240l-75-90-55 65-35-40-75 65z'/%3E%3C/g%3E%3Ctext x='50%25' y='245' text-anchor='middle' font-family='sans-serif, system-ui' font-size='15' font-weight='600' fill='%2394a3b8'%3E%E0%B9%84%E0%B8%A1%E0%B9%88%E0%B8%A1%E0%B8%B5%E0%B8%A3%E0%B8%B9%E0%B8%9B%E0%B8%A0%E0%B8%B2%E0%B8%9E%3C/text%3E%3C/svg%3E";
+
+function extractGoogleDriveFileId(url) {
+    if (!url || typeof url !== 'string') return null;
+    const str = url.trim();
+    // 1. lh3.googleusercontent.com/d/{id} (อาจมี =s... ต่อท้าย)
+    const m1 = str.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
+    if (m1) return m1[1];
+    // 2. drive.google.com/file/d/{id}
+    const m2 = str.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (m2) return m2[1];
+    // 3. drive.google.com/... id={id}
+    const m3 = str.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (m3 && (str.includes('drive.google.com') || str.includes('googleusercontent.com'))) {
+        return m3[1];
+    }
+    return null;
+}
+
+function formatImageUrl(url, size = 400) {
+    if (!url || typeof url !== 'string' || !url.trim()) {
+        return NO_IMAGE_SVG;
+    }
+    const trimmed = url.trim();
+    if (trimmed.startsWith('data:image/')) {
+        return trimmed;
+    }
+    const fileId = extractGoogleDriveFileId(trimmed);
+    if (fileId) {
+        return `https://lh3.googleusercontent.com/d/${fileId}=s${size}`;
+    }
+    return trimmed;
+}
+
+function handleImgError(img, originalUrl) {
+    if (!img) return;
+    const rawUrl = originalUrl || img.dataset.origSrc || img.getAttribute('src') || '';
+    const fileId = extractGoogleDriveFileId(rawUrl);
+    let retries = parseInt(img.dataset.retries || '0', 10);
+    
+    img.dataset.origSrc = rawUrl;
+    img.dataset.retries = String(retries + 1);
+
+    if (fileId && retries < 3) {
+        setTimeout(() => {
+            if (retries === 0) {
+                // ทางเลือกที่ 1: Google Drive Thumbnail API
+                img.src = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+            } else if (retries === 1) {
+                // ทางเลือกที่ 2: lh3 แบบ Cache-Buster ป้องกันแคชค้าง
+                img.src = `https://lh3.googleusercontent.com/d/${fileId}?cb=${Date.now()}`;
+            } else if (retries === 2) {
+                // ทางเลือกที่ 3: Google Drive UC Export View
+                img.src = `https://drive.google.com/uc?export=view&id=${fileId}`;
+            }
+        }, retries * 500 + 350);
+        return;
+    }
+
+    // กรณีโหลดซ้ำไม่สำเร็จ หรือไม่มีไฟล์ในไดรฟ์
+    img.onerror = null; // ป้องกัน infinite loop
+    img.src = NO_IMAGE_SVG;
+    img.classList.add('img-load-fallback');
+    img.setAttribute('title', 'คลิกเพื่อลองโหลดภาพใหม่');
+    img.style.cursor = 'pointer';
+    img.onclick = function(e) {
+        e.stopPropagation();
+        retryLoadImage(img, rawUrl);
+    };
+}
+
+function retryLoadImage(img, url) {
+    if (!img) return;
+    const targetUrl = url || img.dataset.origSrc || '';
+    if (!targetUrl) return;
+    img.dataset.retries = '0';
+    img.onerror = function() { handleImgError(img, targetUrl); };
+    const sep = targetUrl.includes('?') ? '&' : '?';
+    img.src = formatImageUrl(targetUrl, 400) + sep + 't=' + Date.now();
+}
+
 let currentLastUpdated = 0;
 let isSyncingFromGoogleSheets = false;
 let isManualBackingUp = false;
