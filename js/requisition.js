@@ -1772,7 +1772,11 @@
             }
         }
 
+        let approvalCurrentPage = 1;
+        const APPROVAL_PAGE_SIZE = 20;
+
         async function initApprovalView(forceRefresh = false) {
+            approvalCurrentPage = 1;
             if (!hasAccess('view-approval')) {
                 showToast("คุณไม่มีสิทธิ์เข้าถึงหน้านี้", "error");
                 switchView('view-catalog');
@@ -1846,6 +1850,7 @@
             const selectEl = document.getElementById('filterApprovalStatus');
             if (selectEl) {
                 selectEl.value = status;
+                approvalCurrentPage = 1;
                 renderApprovalTable();
             }
         }
@@ -1921,13 +1926,24 @@
                 return true;
             });
 
+            const totalItems = filtered.length;
+            const totalPages = Math.ceil(totalItems / APPROVAL_PAGE_SIZE) || 1;
+            if (approvalCurrentPage > totalPages) approvalCurrentPage = totalPages;
+            if (approvalCurrentPage < 1) approvalCurrentPage = 1;
+
             tbody.innerHTML = '';
-            if (filtered.length === 0) {
+            if (totalItems === 0) {
                 tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-slate-400"><i class="fa-solid fa-file-circle-xmark text-4xl mb-3 opacity-30 block"></i>ไม่พบเอกสารขออนุมัติที่ตรงกับเงื่อนไขการค้นหา</td></tr>`;
+                renderApprovalPagination(0, 1, 1);
                 return;
             }
 
-            filtered.forEach((t, index) => {
+            const startIndex = (approvalCurrentPage - 1) * APPROVAL_PAGE_SIZE;
+            const endIndex = Math.min(startIndex + APPROVAL_PAGE_SIZE, totalItems);
+            const pageItems = filtered.slice(startIndex, endIndex);
+
+            pageItems.forEach((t, index) => {
+                const itemIndex = startIndex + index + 1;
                 const appStatus = t.approval_status || (t.status === 'Cancelled' ? 'Rejected' : 'Pending');
                 let statusBadge = '';
                 let actionBtn = '';
@@ -1963,7 +1979,7 @@
 
                 const tr = `
                     <tr class="hover:bg-slate-50 transition border-b border-gray-100 last:border-0 ${appStatus === 'Pending' ? 'bg-amber-50/20' : ''}">
-                        <td class="p-4 text-center text-gray-400 font-medium">${index + 1}</td>
+                        <td class="p-4 text-center text-gray-400 font-medium">${itemIndex}</td>
                         <td class="p-4 font-bold text-slate-900">
                             <a href="#" onclick="openApprovalModal('${escapeForJS(t.id)}'); return false;" class="text-blue-600 hover:underline flex items-center gap-1">
                                 <i class="fa-solid fa-receipt text-xs opacity-60"></i> ${escapeHTML(t.id)}
@@ -1985,6 +2001,114 @@
                 `;
                 tbody.insertAdjacentHTML('beforeend', tr);
             });
+
+            renderApprovalPagination(totalItems, approvalCurrentPage, totalPages);
+        }
+
+        function renderApprovalPagination(totalItems, currentPage, totalPages) {
+            const infoEl = document.getElementById('approvalPaginationInfo');
+            const controlsEl = document.getElementById('approvalPaginationControls');
+            const container = document.getElementById('approvalPagination');
+            if (!infoEl || !controlsEl || !container) return;
+
+            if (totalItems === 0) {
+                container.classList.add('hidden');
+                infoEl.innerText = "ไม่พบเอกสารขออนุมัติ";
+                controlsEl.innerHTML = '';
+                return;
+            }
+
+            container.classList.remove('hidden');
+
+            const pageSize = APPROVAL_PAGE_SIZE;
+            const startItem = (currentPage - 1) * pageSize + 1;
+            const endItem = Math.min(currentPage * pageSize, totalItems);
+            infoEl.innerHTML = `แสดง <span class="font-bold text-slate-800">${startItem} - ${endItem}</span> จากทั้งหมด <span class="font-bold text-slate-800">${totalItems}</span> รายการ (หน้า <span class="font-bold text-emerald-600">${currentPage}</span> / ${totalPages})`;
+
+            if (totalPages <= 1) {
+                controlsEl.innerHTML = '';
+                return;
+            }
+
+            let buttonsHtml = '';
+
+            // First page button <<
+            buttonsHtml += `
+                <button onclick="changeApprovalPage(1)" ${currentPage === 1 ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-emerald-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าแรก">
+                    <i class="fa-solid fa-angles-left"></i>
+                </button>
+            `;
+
+            // Prev page button <
+            buttonsHtml += `
+                <button onclick="changeApprovalPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-emerald-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าก่อนหน้า">
+                    <i class="fa-solid fa-angle-left mr-1"></i> ก่อนหน้า
+                </button>
+            `;
+
+            // Page numbers
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, currentPage + 2);
+
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                if (currentPage < 3) {
+                    endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                } else {
+                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                }
+            }
+
+            if (startPage > 1) {
+                buttonsHtml += `<button onclick="changeApprovalPage(1)" class="px-3.5 py-1.5 bg-white hover:bg-emerald-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition shadow-sm">1</button>`;
+                if (startPage > 2) {
+                    buttonsHtml += `<span class="px-1 text-gray-400 text-xs font-bold">...</span>`;
+                }
+            }
+
+            for (let p = startPage; p <= endPage; p++) {
+                if (p === currentPage) {
+                    buttonsHtml += `<button class="px-3.5 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-extrabold shadow-md shadow-emerald-500/20 cursor-default">${p}</button>`;
+                } else {
+                    buttonsHtml += `<button onclick="changeApprovalPage(${p})" class="px-3.5 py-1.5 bg-white hover:bg-emerald-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm">${p}</button>`;
+                }
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    buttonsHtml += `<span class="px-1 text-gray-400 text-xs font-bold">...</span>`;
+                }
+                buttonsHtml += `<button onclick="changeApprovalPage(${totalPages})" class="px-3.5 py-1.5 bg-white hover:bg-emerald-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition shadow-sm">${totalPages}</button>`;
+            }
+
+            // Next page button >
+            buttonsHtml += `
+                <button onclick="changeApprovalPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-emerald-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าถัดไป">
+                    ถัดไป <i class="fa-solid fa-angle-right ml-1"></i>
+                </button>
+            `;
+
+            // Last page button >>
+            buttonsHtml += `
+                <button onclick="changeApprovalPage(${totalPages})" ${currentPage === totalPages ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-emerald-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าสุดท้าย">
+                    <i class="fa-solid fa-angles-right"></i>
+                </button>
+            `;
+
+            controlsEl.innerHTML = buttonsHtml;
+        }
+
+        function changeApprovalPage(page) {
+            const totalItems = getScopedApprovalTransactions().length;
+            const totalPages = Math.ceil(totalItems / APPROVAL_PAGE_SIZE) || 1;
+            if (page < 1) page = 1;
+            if (page > totalPages) page = totalPages;
+            approvalCurrentPage = page;
+            renderApprovalTable();
+            const tableEl = document.getElementById('view-approval');
+            if (tableEl) {
+                tableEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
 
         function openApprovalModal(txId) {

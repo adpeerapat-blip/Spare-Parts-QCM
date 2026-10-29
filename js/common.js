@@ -175,14 +175,30 @@ let transactions = [];
             'user': ['view-catalog', 'view-pos', 'view-transactions', 'view-settings', 'view-manual'],
             'Technician': ['view-catalog', 'view-pos', 'view-transactions', 'view-settings', 'view-manual'],
             'Manager': ['view-catalog', 'view-pos', 'view-transactions', 'view-add-product', 'view-edit-products', 'view-restock', 'view-report', 'view-restock-history', 'view-settings', 'view-manage-manuals', 'view-manual', 'view-user-management'],
-            'ADMIN': ['view-catalog', 'view-pos', 'view-approval', 'view-transactions', 'view-add-product', 'view-machines', 'view-mapping', 'view-edit-products', 'view-edit-mapping', 'view-restock', 'view-report', 'view-restock-history', 'view-settings', 'view-manage-manuals', 'view-manual', 'view-user-management']
+            'ADMIN': ['view-catalog', 'view-pos', 'view-transactions', 'view-add-product', 'view-machines', 'view-mapping', 'view-edit-products', 'view-edit-mapping', 'view-restock', 'view-report', 'view-restock-history', 'view-settings', 'view-manage-manuals', 'view-manual', 'view-user-management']
         };
+
+        function hasApprovalPermission(user) {
+            if (!user) return false;
+            // ตรวจสอบสิทธิ์อนุมัติเอกสาร (canApprove) โดยตรง
+            if (user.canApprove === true || String(user.canApprove).toLowerCase() === 'true' || user.canApprove === 1 || user.canApprove === '1') {
+                return true;
+            }
+            if (user.canApprove === false || String(user.canApprove).toLowerCase() === 'false' || user.canApprove === 0 || user.canApprove === '0') {
+                return false;
+            }
+            // กรณีเป็น Admin ที่ไม่ได้ระบุค่า canApprove (Legacy) ให้ถือว่ามีสิทธิ์
+            if (user.role === 'ADMIN' && (user.canApprove === undefined || user.canApprove === null)) {
+                return true;
+            }
+            return false;
+        }
 
         function hasAccess(viewId) {
             if (viewId === 'view-catalog' || viewId === 'view-manual') return true;
             if (!isLoggedIn || !currentUser) return false;
             if (viewId === 'view-approval') {
-                return Boolean(currentUser.canApprove || currentUser.role === 'ADMIN');
+                return hasApprovalPermission(currentUser);
             }
             const allowedViews = ROLE_PERMISSIONS[currentUser.role] || [];
             return allowedViews.includes(viewId);
@@ -881,6 +897,12 @@ if (cardMachines) cardMachines.classList.toggle('hidden', !hasAccess('view-machi
             if (cardSyncSheets) {
                 const canManage = isLoggedIn && currentUser && (currentUser.role === 'ADMIN' || currentUser.role === 'Manager');
                 cardSyncSheets.classList.toggle('hidden', !canManage);
+            }
+
+            const cardErpSync = document.getElementById('card-settings-erp-sync');
+            if (cardErpSync) {
+                const canSync = isLoggedIn && currentUser && (currentUser.role === 'ADMIN' || currentUser.role === 'Manager' || currentUser.role === 'StoreOfficer' || hasAccess('view-restock'));
+                cardErpSync.classList.toggle('hidden', !canSync);
             }
         }
 

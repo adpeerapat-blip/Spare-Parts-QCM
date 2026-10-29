@@ -11,6 +11,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="style.css">
@@ -1574,11 +1576,11 @@
                     <div class="flex flex-col md:flex-row justify-start items-center gap-3 mb-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm w-full">
                         <div class="relative w-full md:w-80 flex-shrink-0">
                             <i class="fa-solid fa-search absolute left-3.5 top-3.5 text-gray-400"></i>
-                            <input type="text" id="searchApprovalInput" onkeyup="renderApprovalTable()" placeholder="ค้นหา เลขที่ใบเบิก, ผู้ประเมิน, เครื่องจักร..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm transition">
+                            <input type="text" id="searchApprovalInput" onkeyup="approvalCurrentPage = 1; renderApprovalTable()" placeholder="ค้นหา เลขที่ใบเบิก, ผู้ประเมิน, เครื่องจักร..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm transition">
                         </div>
                         
                         <div class="w-full md:w-48 flex-shrink-0">
-                            <select id="filterApprovalStatus" onchange="renderApprovalTable()" class="w-full p-2.5 border border-gray-200 rounded-xl bg-white text-sm cursor-pointer text-gray-700 font-medium">
+                            <select id="filterApprovalStatus" onchange="approvalCurrentPage = 1; renderApprovalTable()" class="w-full p-2.5 border border-gray-200 rounded-xl bg-white text-sm cursor-pointer text-gray-700 font-medium">
                                 <option value="all">-- ทุกสถานะอนุมัติ --</option>
                                 <option value="Pending" selected>⏳ รออนุมัติ (Pending)</option>
                                 <option value="Approved">✅ อนุมัติแล้ว (Approved)</option>
@@ -1588,7 +1590,7 @@
 
                         <!-- ตัวกรองเฉพาะ Admin: กรองตามผู้อนุมัติ -->
                         <div id="adminApprovalFilterWrap" class="w-full md:w-60 flex-shrink-0 hidden">
-                            <select id="filterApprovalApprover" onchange="renderApprovalTable()" class="w-full p-2.5 border border-emerald-300 rounded-xl bg-emerald-50/50 text-sm cursor-pointer text-emerald-900 font-medium">
+                            <select id="filterApprovalApprover" onchange="approvalCurrentPage = 1; renderApprovalTable()" class="w-full p-2.5 border border-emerald-300 rounded-xl bg-emerald-50/50 text-sm cursor-pointer text-emerald-900 font-medium">
                                 <option value="all">-- ดูผู้อนุมัติทุกคน --</option>
                             </select>
                         </div>
@@ -1616,6 +1618,15 @@
                                     <!-- เรนเดอร์ด้วย JS -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+
+                    <!-- Pagination Bar for Approval -->
+                    <div id="approvalPagination" class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm w-full">
+                        <div id="approvalPaginationInfo" class="text-xs sm:text-sm font-medium text-slate-500">
+                            แสดง 1 - 20 จากทั้งหมด 0 รายการ
+                        </div>
+                        <div id="approvalPaginationControls" class="flex items-center gap-1.5 flex-wrap">
                         </div>
                     </div>
                 </section>
@@ -1947,6 +1958,28 @@
                             <div>
                                 <h3 class="text-lg font-bold text-slate-800 group-hover:text-purple-600 transition-all duration-300">จัดการคู่มือ</h3>
                                 <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">อัพโหลดคู่มือการใช้งานระบบ (ภาพ/PDF) แก้ไข และบริหารจัดการรายการคู่มือ</p>
+                            </div>
+                        </div>
+
+                        <!-- Card: อัพเดทสต็อกจาก ERP -->
+                        <div id="card-settings-erp-sync" class="bg-white rounded-2xl border border-gray-150 p-6 hover:shadow-xl hover:border-emerald-200 transition-all duration-300 flex flex-col justify-between group hidden">
+                            <div class="flex gap-4 items-start">
+                                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
+                                    <i class="fa-solid fa-file-excel text-xl"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <h3 class="text-lg font-bold text-slate-800 group-hover:text-emerald-600 transition-all duration-300">อัพเดทสต็อกจาก ERP</h3>
+                                        <span class="text-[10px] font-bold px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full">ERP Sync</span>
+                                    </div>
+                                    <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">อัพเดทยอดคงเหลือ (On Hand) ในระบบให้ตรงกับไฟล์รายงานสต็อกจากระบบ ERP</p>
+                                </div>
+                            </div>
+                            <div class="w-full mt-4">
+                                <button onclick="triggerErpStockUpload()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md active:scale-95 flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-cloud-arrow-up text-sm"></i> อัพโหลดไฟลสต๊อกจาก ERP
+                                </button>
+                                <input type="file" id="erpStockFileInput" accept=".csv, .xlsx, .xls" class="hidden" onchange="handleErpStockFileSelected(event)">
                             </div>
                         </div>
 

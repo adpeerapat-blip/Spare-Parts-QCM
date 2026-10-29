@@ -1522,3 +1522,391 @@
             });
         }
 
+        // ================== ระบบอัปเดตสต็อกจาก ERP ==================
+        let erpPreviewState = {
+            matchedToUpdate: [],
+            matchedUnchanged: [],
+            notFoundInSystem: [],
+            fileName: '',
+            activeTab: 'update'
+        };
+
+        window.triggerErpStockUpload = function() {
+            if (!isLoggedIn || !currentUser) {
+                showToast('กรุณาเข้าสู่ระบบก่อนดำเนินการ', 'warning');
+                return;
+            }
+            const canSync = currentUser.role === 'ADMIN' || currentUser.role === 'Manager' || currentUser.role === 'StoreOfficer' || hasAccess('view-restock');
+            if (!canSync) {
+                showToast('คุณไม่มีสิทธิ์ในการอัปเดตสต็อก', 'error');
+                return;
+            }
+            const input = document.getElementById('erpStockFileInput');
+            if (input) input.click();
+        };
+
+        window.handleErpStockFileSelected = function(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            event.target.value = '';
+
+            showLoading('กำลังอ่านและวิเคราะห์ไฟล์สต็อก ERP...');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+                    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+                    if (!rows || rows.length === 0) {
+                        hideLoading();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'ไฟล์ว่างเปล่า',
+                            text: 'ไม่พบข้อมูลในไฟล์ที่เลือก กรุณาตรวจสอบไฟล์อีกครั้ง',
+                            customClass: { popup: 'rounded-2xl' }
+                        });
+                        return;
+                    }
+
+                    const firstRow = rows[0];
+                    const keys = Object.keys(firstRow);
+
+                    const idKey = keys.find(k => {
+                        const c = k.trim().toLowerCase();
+                        return c === 'รหัสสินค้า' || c === 'รหัส' || c === 'item code' || c === 'product id' || c === 'item_code' || c === 'product_id' || c === 'code';
+                    });
+
+                    const onHandKey = keys.find(k => {
+                        const c = k.trim().toLowerCase();
+                        return c === 'on hand' || c === 'onhand' || c === 'available' || c === 'ยอดคงเหลือ' || c === 'จำนวน' || c === 'stock' || c === 'stock_qty';
+                    });
+
+                    const nameKey = keys.find(k => {
+                        const c = k.trim().toLowerCase();
+                        return c === 'ชื่อสินค้า' || c === 'ชื่อ' || c === 'description' || c === 'item name' || c === 'name';
+                    });
+
+                    if (!idKey || !onHandKey) {
+                        hideLoading();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'โครงสร้างไฟล์ไม่ถูกต้อง',
+                            html: `ไม่พบคอลัมน์ <b>"รหัสสินค้า"</b> หรือ <b>"On Hand"</b> ในไฟล์<br><br><span class="text-xs text-slate-500">คอลัมน์ที่พบในไฟล์: ${keys.join(', ')}</span>`,
+                            customClass: { popup: 'rounded-2xl' }
+                        });
+                        return;
+                    }
+
+                    const erpMap = {};
+                    rows.forEach(r => {
+                        const rawId = String(r[idKey] || '').trim();
+                        if (!rawId) return;
+
+                        let qtyStr = String(r[onHandKey] !== undefined ? r[onHandKey] : '0').replace(/,/g, '').trim();
+                        const qty = parseFloat(qtyStr);
+                        if (isNaN(qty)) return;
+
+                        const rawName = nameKey ? String(r[nameKey] || '').trim() : '';
+
+                        if (!erpMap[rawId]) {
+                            erpMap[rawId] = { id: rawId, name: rawName, qty: qty, count: 1 };
+                        } else {
+                            erpMap[rawId].qty += qty;
+                            erpMap[rawId].count += 1;
+                            if (!erpMap[rawId].name && rawName) erpMap[rawId].name = rawName;
+                        }
+                    });
+
+                    const allProducts = (typeof db !== 'undefined' && db.products) ? db.products : [];
+                    const erpIds = Object.keys(erpMap);
+
+                    const matchedToUpdate = [];
+                    const matchedUnchanged = [];
+                    const notFoundInSystem = [];
+
+                    erpIds.forEach(id => {
+                        const item = erpMap[id];
+                        const prod = allProducts.find(p => String(p.id).trim() === id);
+                        if (prod) {
+                            const currentStock = parseFloat(prod.stock_qty) || 0;
+                            const newStock = item.qty;
+                            const diff = newStock - currentStock;
+                            const dataObj = {
+                                id: id,
+                                name: prod.name || item.name || 'ไม่ระบุชื่อ',
+                                unit: prod.unit || 'ชิ้น',
+                                currentStock: currentStock,
+                                newStock: newStock,
+                                diff: diff
+                            };
+
+                            if (diff !== 0) {
+                                matchedToUpdate.push(dataObj);
+                            } else {
+                                matchedUnchanged.push(dataObj);
+                            }
+                        } else {
+                            notFoundInSystem.push({
+                                id: id,
+                                name: item.name || 'ไม่ระบุชื่อ',
+                                erpQty: item.qty
+                            });
+                        }
+                    });
+
+                    matchedToUpdate.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+
+                    hideLoading();
+                    erpPreviewState = {
+                        matchedToUpdate: matchedToUpdate,
+                        matchedUnchanged: matchedUnchanged,
+                        notFoundInSystem: notFoundInSystem,
+                        fileName: file.name,
+                        activeTab: matchedToUpdate.length > 0 ? 'update' : (matchedUnchanged.length > 0 ? 'unchanged' : 'notfound')
+                    };
+                    renderErpStockPreviewModal();
+                } catch (err) {
+                    hideLoading();
+                    console.error(err);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาดในการประมวลผลไฟล์',
+                        text: err.message,
+                        customClass: { popup: 'rounded-2xl' }
+                    });
+                }
+            };
+            reader.onerror = function() {
+                hideLoading();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่สามารถอ่านไฟล์ได้',
+                    text: 'เกิดข้อผิดพลาดในการอ่านไฟล์จากอุปกรณ์',
+                    customClass: { popup: 'rounded-2xl' }
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        window.setErpPreviewTab = function(tab) {
+            erpPreviewState.activeTab = tab;
+            renderErpStockPreviewModal();
+        };
+
+        function renderErpStockPreviewModal() {
+            const { matchedToUpdate, matchedUnchanged, notFoundInSystem, fileName, activeTab } = erpPreviewState;
+            const totalErpItems = matchedToUpdate.length + matchedUnchanged.length + notFoundInSystem.length;
+
+            let tableRowsHtml = '';
+            let currentList = [];
+
+            if (activeTab === 'update') {
+                currentList = matchedToUpdate;
+                if (currentList.length === 0) {
+                    tableRowsHtml = '<tr><td colspan="5" class="py-8 text-center text-slate-400">สต็อกในระบบตรงกับ ERP ทั้งหมดแล้ว ไม่มียอดที่ต้องปรับปรุง</td></tr>';
+                } else {
+                    tableRowsHtml = currentList.slice(0, 100).map(it => {
+                        const diffBadge = it.diff > 0 
+                            ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">+${it.diff.toLocaleString()}</span>`
+                            : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">${it.diff.toLocaleString()}</span>`;
+                        return `
+                            <tr class="hover:bg-slate-50 transition border-b border-slate-100 text-xs">
+                                <td class="p-2.5 font-mono text-slate-500">${escapeHTML(it.id)}</td>
+                                <td class="p-2.5 font-medium text-slate-800">${escapeHTML(it.name)}</td>
+                                <td class="p-2.5 text-right font-mono text-slate-500">${it.currentStock.toLocaleString()}</td>
+                                <td class="p-2.5 text-right font-mono font-bold text-blue-600">${it.newStock.toLocaleString()}</td>
+                                <td class="p-2.5 text-center">${diffBadge}</td>
+                            </tr>`;
+                    }).join('');
+                    if (currentList.length > 100) {
+                        tableRowsHtml += `<tr><td colspan="5" class="p-2 text-center text-xs text-slate-400 italic bg-slate-50">...และอีก ${(currentList.length - 100).toLocaleString()} รายการ (จะได้รับการอัปเดตทั้งหมด)</td></tr>`;
+                    }
+                }
+            } else if (activeTab === 'unchanged') {
+                currentList = matchedUnchanged;
+                if (currentList.length === 0) {
+                    tableRowsHtml = '<tr><td colspan="5" class="py-8 text-center text-slate-400">ไม่มีรายการที่ยอดตรงกัน</td></tr>';
+                } else {
+                    tableRowsHtml = currentList.slice(0, 100).map(it => `
+                        <tr class="hover:bg-slate-50 transition border-b border-slate-100 text-xs">
+                            <td class="p-2.5 font-mono text-slate-500">${escapeHTML(it.id)}</td>
+                            <td class="p-2.5 font-medium text-slate-800">${escapeHTML(it.name)}</td>
+                            <td class="p-2.5 text-right font-mono text-slate-600">${it.currentStock.toLocaleString()}</td>
+                            <td class="p-2.5 text-right font-mono font-bold text-slate-700">${it.newStock.toLocaleString()}</td>
+                            <td class="p-2.5 text-center"><span class="text-xs text-slate-400 font-mono">ตรงกัน (0)</span></td>
+                        </tr>`).join('');
+                    if (currentList.length > 100) {
+                        tableRowsHtml += `<tr><td colspan="5" class="p-2 text-center text-xs text-slate-400 italic bg-slate-50">...และอีก ${(currentList.length - 100).toLocaleString()} รายการ</td></tr>`;
+                    }
+                }
+            } else if (activeTab === 'notfound') {
+                currentList = notFoundInSystem;
+                if (currentList.length === 0) {
+                    tableRowsHtml = '<tr><td colspan="5" class="py-8 text-center text-slate-400">ทุกรายการในไฟล์มีอยู่ในระบบครบถ้วน</td></tr>';
+                } else {
+                    tableRowsHtml = currentList.slice(0, 100).map(it => `
+                        <tr class="hover:bg-slate-50 transition border-b border-slate-100 text-xs">
+                            <td class="p-2.5 font-mono text-rose-500">${escapeHTML(it.id)}</td>
+                            <td class="p-2.5 font-medium text-slate-700">${escapeHTML(it.name)}</td>
+                            <td class="p-2.5 text-right text-slate-400 italic">-</td>
+                            <td class="p-2.5 text-right font-mono font-bold text-slate-700">${it.erpQty.toLocaleString()}</td>
+                            <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">ไม่พบในระบบ</span></td>
+                        </tr>`).join('');
+                    if (currentList.length > 100) {
+                        tableRowsHtml += `<tr><td colspan="5" class="p-2 text-center text-xs text-slate-400 italic bg-slate-50">...และอีก ${(currentList.length - 100).toLocaleString()} รายการ (ข้ามการอัปเดต)</td></tr>`;
+                    }
+                }
+            }
+
+            const modalHtml = `
+                <div class="space-y-4 text-left">
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-100 text-xs">
+                        <span class="text-slate-500 flex items-center gap-1.5"><i class="fa-solid fa-file-csv text-emerald-600"></i> ไฟล์: <b class="text-slate-700">${escapeHTML(fileName)}</b></span>
+                        <span class="text-slate-400 font-mono">ทั้งหมด ${totalErpItems.toLocaleString()} รายการ</span>
+                    </div>
+
+                    <!-- Metric Cards -->
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <button type="button" onclick="setErpPreviewTab('update')" class="p-2.5 rounded-xl border transition-all ${activeTab === 'update' ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-500/20' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}">
+                            <div class="text-[11px] font-semibold text-slate-500">ต้องปรับปรุงยอด</div>
+                            <div class="text-lg font-extrabold text-blue-600 mt-0.5">${matchedToUpdate.length.toLocaleString()}</div>
+                            <div class="text-[10px] text-slate-400">รายการที่ยอดเปลี่ยน</div>
+                        </button>
+                        <button type="button" onclick="setErpPreviewTab('unchanged')" class="p-2.5 rounded-xl border transition-all ${activeTab === 'unchanged' ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}">
+                            <div class="text-[11px] font-semibold text-slate-500">ยอดตรงอยู่แล้ว</div>
+                            <div class="text-lg font-extrabold text-emerald-600 mt-0.5">${matchedUnchanged.length.toLocaleString()}</div>
+                            <div class="text-[10px] text-slate-400">ไม่ต้องปรับ</div>
+                        </button>
+                        <button type="button" onclick="setErpPreviewTab('notfound')" class="p-2.5 rounded-xl border transition-all ${activeTab === 'notfound' ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}">
+                            <div class="text-[11px] font-semibold text-slate-500">ไม่พบในระบบ</div>
+                            <div class="text-lg font-extrabold text-amber-600 mt-0.5">${notFoundInSystem.length.toLocaleString()}</div>
+                            <div class="text-[10px] text-slate-400">จะข้ามรายการนี้</div>
+                        </button>
+                    </div>
+
+                    <!-- Preview Table Container -->
+                    <div class="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+                        <div class="max-h-64 overflow-y-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="sticky top-0 bg-slate-100 text-[11px] font-bold text-slate-600 uppercase border-b border-slate-200 z-10">
+                                    <tr>
+                                        <th class="p-2.5">รหัสสินค้า</th>
+                                        <th class="p-2.5">ชื่อสินค้า</th>
+                                        <th class="p-2.5 text-right">สต็อกเดิม</th>
+                                        <th class="p-2.5 text-right">สต็อก ERP</th>
+                                        <th class="p-2.5 text-center">ผลต่าง</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    ${tableRowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    ${matchedToUpdate.length > 0 ? `
+                        <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl text-[11px] text-amber-800 flex items-start gap-2">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm mt-0.5"></i>
+                            <div>
+                                <b>คำเตือน:</b> การกดยืนยันจะปรับปรุงยอดคงเหลือของอะไหล่จำนวน <b>${matchedToUpdate.length.toLocaleString()} รายการ</b> ในระบบทันที พร้อมบันทึกล็อตและประวัติการปรับปรุงสต็อก (Restock Transaction)
+                            </div>
+                        </div>` : ''}
+                </div>`;
+
+            Swal.fire({
+                title: '<i class="fa-solid fa-file-circle-check text-emerald-600 mr-2"></i>ตรวจสอบยอดสต็อก ERP',
+                html: modalHtml,
+                width: '780px',
+                showCancelButton: true,
+                confirmButtonText: matchedToUpdate.length > 0 ? `<i class="fa-solid fa-cloud-arrow-up mr-1.5"></i> ยืนยันอัปเดตสต็อก (${matchedToUpdate.length.toLocaleString()} รายการ)` : 'ปิดหน้าต่าง',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: matchedToUpdate.length > 0 ? '#059669' : '#6b7280',
+                cancelButtonColor: '#94a3b8',
+                showConfirmButton: true,
+                reverseButtons: true,
+                customClass: {
+                    popup: 'rounded-3xl',
+                    confirmButton: 'rounded-xl font-semibold !text-xs !py-2.5 !px-5',
+                    cancelButton: 'rounded-xl font-semibold !text-xs !py-2.5 !px-5'
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    if (matchedToUpdate.length > 0) {
+                        await executeSyncErpStock(matchedToUpdate);
+                    }
+                }
+            });
+        }
+        window.renderErpStockPreviewModal = renderErpStockPreviewModal;
+
+        async function executeSyncErpStock(itemsToUpdate) {
+            if (!itemsToUpdate || itemsToUpdate.length === 0) return;
+
+            showLoading(`กำลังบันทึกการปรับปรุงสต็อก ${itemsToUpdate.length} รายการ...`);
+            try {
+                const operator = (isLoggedIn && currentUser && currentUser.fullName) ? currentUser.fullName : 'สโตร์ (ERP Sync)';
+                const payload = {
+                    requester: operator,
+                    department: 'สโตร์ (อัปเดตสต็อก ERP)',
+                    note: `อัปเดตสต็อกจากไฟล์ ERP (${itemsToUpdate.length} รายการ)`,
+                    items: itemsToUpdate.map(it => ({
+                        id: it.id,
+                        newQty: it.newStock,
+                        currentStock: it.currentStock,
+                        diff: it.diff
+                    }))
+                };
+
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'syncErpStock', payload: payload })
+                });
+                const resData = await res.json();
+                hideLoading();
+
+                if (resData.status === 'success') {
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'อัปเดตสต็อกสำเร็จ!',
+                        html: `
+                            <div class="text-left text-xs space-y-2 text-slate-600">
+                                <p class="font-bold text-slate-800 text-sm">ระบบได้ปรับปรุงยอดคงเหลือเรียบร้อยแล้ว</p>
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>อัปเดตยอดสินค้า: <b class="text-emerald-600">${itemsToUpdate.length.toLocaleString()} รายการ</b></li>
+                                    <li>บันทึกประวัติ Transaction: <span class="font-mono font-bold text-slate-700">${resData.data?.transaction_id || '-'}</span></li>
+                                </ul>
+                            </div>`,
+                        confirmButtonColor: '#059669',
+                        confirmButtonText: 'ตกลง',
+                        customClass: {
+                            popup: 'rounded-2xl',
+                            confirmButton: 'rounded-xl font-semibold !text-xs !py-2 !px-4'
+                        }
+                    });
+                    await fetchData(true);
+                    if (typeof renderCatalog === 'function') renderCatalog();
+                    if (typeof renderRestockTable === 'function') renderRestockTable();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: resData.message || 'ไม่สามารถอัปเดตสต็อกได้',
+                        customClass: { popup: 'rounded-2xl' }
+                    });
+                }
+            } catch (err) {
+                hideLoading();
+                console.error(err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: err.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้',
+                    customClass: { popup: 'rounded-2xl' }
+                });
+            }
+        }
+        window.executeSyncErpStock = executeSyncErpStock;

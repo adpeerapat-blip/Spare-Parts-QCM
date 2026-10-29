@@ -78,6 +78,10 @@ function doPost(e) {
       response.data = restockProduct(payload);
       response.message = 'เติมสต็อกสำเร็จ';
     }
+    else if (action === 'syncErpStock') {
+      response.data = syncErpStock(payload);
+      response.message = 'อัปเดตสต็อกจาก ERP สำเร็จ';
+    }
     else if (action === 'getTransactions') {
       response.data = getTransactions();
       response.message = 'ดึงข้อมูลประวัติการเบิกสำเร็จ';
@@ -1988,6 +1992,153 @@ function restockProduct(payload) {
     
     return { new_stock: newStock, transaction_id: txId, lot_id: lotId };
     
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+
+// อัปเดตสต็อกจากไฟล์ ERP อัตโนมัติ
+function syncErpStock(payload) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch (e) {
+    throw new Error("ระบบกำลังทำงานอยู่ กรุณาลองใหม่อีกครั้ง");
+  }
+  
+  try {
+    const db = getFirebaseData("") || {};
+    let products = (db.appData && db.appData.products) ? db.appData.products : (getFirebaseData("appData/products") || []);
+    let lots = db.lots || [];
+    let transactions = db.transactions || [];
+    
+    if (!lots || lots.length === 0) {
+      try { lots = getLotsFromJson() || []; } catch(e) {}
+    }
+    if (!transactions || transactions.length === 0) {
+      try { transactions = getTransactionsFromJson() || []; } catch(e) {}
+    }
+
+    const items = payload.items || [];
+    if (items.length === 0) return { updatedCount: 0 };
+    
+    const now = new Date();
+    const nowStr = Utilities.formatDate(now, "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss");
+    const datePrefix = Utilities.formatDate(now, "Asia/Bangkok", "yyyyMMdd");
+
+    let lastTxId = 0;
+    const reRegex = new RegExp("^(?:TX-|QCM-RE-|QCM-)" + datePrefix + "-(\\d+)$");
+    let maxCounter = 0;
+    if (transactions.length > 0) {
+      transactions.forEach(function(tx) {
+        if (!tx || !tx.id) return;
+        const tid = String(tx.id).trim();
+        const m = tid.match(reRegex);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (!isNaN(num) && num > maxCounter) maxCounter = num;
+        } else {
+          const simpleNum = parseInt(tid.replace(/\D/g, ""), 10);
+          if (!isNaN(simpleNum) && simpleNum > lastTxId) lastTxId = simpleNum;
+        }
+      });
+    }
+    let nextTxId = "TX-" + String((maxCounter > 0 ? maxCounter : lastTxId) + 1).padStart(6, '0');
+
+    let prodSheet = null;
+    let prodRowMap = {};
+    try {
+      const ss = SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.openById(SPREADSHEET_ID);
+      prodSheet = ss.getSheetByName("Products");
+      if (prodSheet) {
+        const prodValues = prodSheet.getDataRange().getValues();
+        for (let r = 1; r < prodValues.length; r++) {
+          prodRowMap[String(prodValues[r][0]).trim()] = r + 1;
+        }
+      }
+    } catch(sheetErr) {
+      Logger.log("Sheet access warning in syncErpStock: " + sheetErr.toString());
+    }
+
+    const txItems = [];
+    let updatedCount = 0;
+
+    items.forEach(function(it, idx) {
+      const pId = String(it.id).trim();
+      const prod = products.find(function(p) { return String(p.id).trim() === pId; });
+      if (!prod) return;
+      
+      const oldQty = parseFloat(prod.stock_qty) || 0;
+      const newQty = parseFloat(it.newQty) || 0;
+      const diff = newQty - oldQty;
+      
+      prod.stock_qty = newQty;
+      updatedCount++;
+      
+      if (prodSheet && prodRowMap[pId]) {
+        try {
+          prodSheet.getRange(prodRowMap[pId], 11).setValue(newQty);
+        } catch(e) {}
+      }
+      
+      if (diff !== 0) {
+        const lotId = "LOT-ERP-" + pId + "-" + Date.now() + "-" + idx;
+        lots.push({
+          lot_id: lotId,
+          product_id: pId,
+          cost: parseFloat(prod.cost) || 0,
+          price_a: parseFloat(prod.price_a) || 0,
+          price_b: parseFloat(prod.price_b) || 0,
+          price_c: parseFloat(prod.price_c) || 0,
+          initial_qty: diff,
+          remaining_qty: diff,
+          created_at: nowStr,
+          note: "อัปเดตสต็อก ERP (" + oldQty + " -> " + newQty + ")"
+        });
+        
+        txItems.push({
+          lot_id: lotId,
+          product_id: pId,
+          qty: diff,
+          cost: parseFloat(prod.cost) || 0,
+          price: 0
+        });
+      }
+    });
+
+    if (txItems.length > 0) {
+      transactions.push({
+        id: nextTxId,
+        date: nowStr,
+        requester: payload.requester || "สโตร์ (ERP Sync)",
+        department: payload.department || "สโตร์ (ERP Sync)",
+        machine_id: "ERP-SYNC",
+        serial_number: "",
+        total_price: 0,
+        note: payload.note || ("อัปเดตสต็อกจากไฟล์ ERP จำนวน " + txItems.length + " รายการ"),
+        created_at: nowStr,
+        status: "Restock",
+        items: txItems
+      });
+    }
+
+    try { saveLotsToJson(lots); } catch(e) {}
+    try { saveTransactionsToJson(transactions); } catch(e) {}
+
+    const updates = {
+      "appData/products": products,
+      "lots": lots,
+      "transactions": transactions,
+      "appData/lastUpdated": new Date().getTime()
+    };
+    try {
+      patchFirebaseData("", updates);
+    } catch(fbErr) {
+      Logger.log("Firebase patch in syncErpStock warning: " + fbErr.toString());
+    }
+
+    return { updatedCount: updatedCount, changedCount: txItems.length, transaction_id: nextTxId };
   } finally {
     lock.releaseLock();
   }
