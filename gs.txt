@@ -1100,33 +1100,32 @@ function checkoutOrder(payload) {
       };
     }
     
-    // ตรวจเช็คสต็อกคงเหลือ
+    // ตรวจสอบความถูกต้องของสินค้าในตะกร้า (ปลดล็อกให้เบิกได้แม้สต็อกไม่พอหรือเป็น 0)
     for (let k = 0; k < cart.length; k++) {
       const item = cart[k];
       const prodId = String(item.id).trim();
       const product = prodRowMap[prodId];
       if (!product) throw new Error("ไม่พบอะไหล่รหัส " + prodId + " ในระบบ");
-      if (product.stock < item.qty) {
-        throw new Error("สต็อกไม่เพียงพอ: อะไหล่ " + product.name + " (" + prodId + ") มีคงเหลือ " + product.stock + " ชิ้น แต่พยายามเบิก " + item.qty + " ชิ้น");
-      }
       
-      // ตรวจสอบข้อมูล Lot ว่าพอเพียงหรือไม่ ถ้า Lot ยังน้อยกว่า stock_qty ให้สร้าง Lot สำรองให้อัตโนมัติ
-      const prodLots = lots.filter(l => String(l.product_id).trim() === prodId && l.remaining_qty > 0);
-      const totalLotQty = prodLots.reduce((sum, l) => sum + l.remaining_qty, 0);
-      if (totalLotQty < product.stock) {
-        const diff = product.stock - totalLotQty;
-        lots.push({
-          lot_id: "LOT-SUPP-" + prodId + "-" + Date.now(),
-          product_id: prodId,
-          cost: product.cost,
-          price_a: product.price_a,
-          price_b: product.price_b,
-          price_c: product.price_c,
-          initial_qty: diff,
-          remaining_qty: diff,
-          created_at: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss"),
-          note: "Lot สำรองคงเหลือ"
-        });
+      // หาก product.stock > 0 และ Lot ยังน้อยกว่า stock_qty ให้สร้าง Lot สำรองให้อัตโนมัติ
+      if (product.stock > 0) {
+        const prodLots = lots.filter(l => String(l.product_id).trim() === prodId && l.remaining_qty > 0);
+        const totalLotQty = prodLots.reduce((sum, l) => sum + l.remaining_qty, 0);
+        if (totalLotQty < product.stock) {
+          const diff = product.stock - totalLotQty;
+          lots.push({
+            lot_id: "LOT-SUPP-" + prodId + "-" + Date.now(),
+            product_id: prodId,
+            cost: product.cost,
+            price_a: product.price_a,
+            price_b: product.price_b,
+            price_c: product.price_c,
+            initial_qty: diff,
+            remaining_qty: diff,
+            created_at: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss"),
+            note: "Lot สำรองคงเหลือ"
+          });
+        }
       }
     }
     
@@ -1136,6 +1135,7 @@ function checkoutOrder(payload) {
     for (let k = 0; k < cart.length; k++) {
       const item = cart[k];
       const prodId = String(item.id).trim();
+      const product = prodRowMap[prodId];
       let neededQty = item.qty;
       
       // ดึง Lot ของสินค้าตัวนี้ที่ยังเหลืออยู่ เรียงจากสร้างก่อนไปหลัง (FIFO)
@@ -1165,9 +1165,27 @@ function checkoutOrder(payload) {
           subtotal: takeQty * lotPrice
         });
       }
+
+      // หากยังมีจำนวนที่เบิกเกินสต็อกคงเหลือ (ยอดติดลบ / Backorder)
+      if (neededQty > 0) {
+        let fallbackPrice = item.price;
+        if (item.priceLevel === 'A' && product.price_a) fallbackPrice = product.price_a;
+        else if (item.priceLevel === 'B' && product.price_b) fallbackPrice = product.price_b;
+        else if (item.priceLevel === 'C' && product.price_c) fallbackPrice = product.price_c;
+        
+        checkoutItems.push({
+          detail_id: "",
+          product_id: prodId,
+          lot_id: "LOT-BACKORDER-" + prodId,
+          qty: neededQty,
+          unit_cost: product.cost || 0,
+          price: fallbackPrice,
+          subtotal: neededQty * fallbackPrice,
+          is_backorder: true
+        });
+      }
       
-      // หักสต็อกในชีต Products
-      const product = prodRowMap[prodId];
+      // หักสต็อกในชีต Products (อนุญาตให้ติดลบได้)
       const newStock = product.stock - item.qty;
       prodSheet.getRange(product.rowIndex, 11).setValue(newStock);
       product.stock = newStock;
@@ -1239,6 +1257,28 @@ function checkoutOrder(payload) {
     
     transactions.push(newTransaction);
     saveTransactionsToJson(transactions);
+    
+    // ซิงค์ยอดสต็อกใหม่ไปยัง Firebase
+    try {
+      const fbProducts = getFirebaseData("appData/products");
+      if (Array.isArray(fbProducts) && fbProducts.length > 0) {
+        let hasFbUpdate = false;
+        for (let k = 0; k < cart.length; k++) {
+          const pId = String(cart[k].id).trim();
+          const pIdx = fbProducts.findIndex(p => p && String(p.id).trim() === pId);
+          if (pIdx !== -1 && prodRowMap[pId]) {
+            fbProducts[pIdx].stock_qty = prodRowMap[pId].stock;
+            hasFbUpdate = true;
+          }
+        }
+        if (hasFbUpdate) {
+          setFirebaseData("appData/products", fbProducts);
+          setFirebaseData("appData/lastUpdated", new Date().getTime());
+        }
+      }
+    } catch(fbErr) {
+      Logger.log("Firebase sync warning in checkoutOrder: " + fbErr.toString());
+    }
     
     return { transaction_id: txId, items: checkoutItems };
     
@@ -1903,7 +1943,11 @@ function restockProduct(payload) {
     if (rowIndex === -1) throw new Error("ไม่พบอะไหล่รหัส " + productId);
     
     const newStock = currentStock + qtyToAdd;
-    if (newStock < 0) throw new Error("ยอดสต็อกหลังปรับปรุงต้องไม่ต่ำกว่า 0 (สต็อกปัจจุบัน: " + currentStock + ", ปรับปรุง: " + qtyToAdd + ")");
+    // หมายเหตุ: กรณีเติมสต็อก (qtyToAdd > 0) จะนำยอดที่เติมไปหักลบกับยอดติดลบโดยอัตโนมัติ (เช่น ติดลบ -2 เติม 5 -> เหลือ +3)
+    // หากเป็นการปรับลดสต็อก (qtyToAdd < 0) ให้ตรวจสอบว่าไม่ปรับลดจนติดลบ
+    if (qtyToAdd < 0 && newStock < 0 && currentStock >= 0) {
+      throw new Error("ยอดสต็อกหลังปรับปรุงต้องไม่ต่ำกว่า 0 (สต็อกปัจจุบัน: " + currentStock + ", ปรับปรุง: " + qtyToAdd + ")");
+    }
     
     // รับค่าต้นทุนและราคาขายใหม่ของ Lot (หากระบุ)
     const lotCost = (payload.cost !== undefined && payload.cost !== "") ? parseFloat(payload.cost) : currentCost;
@@ -1916,6 +1960,13 @@ function restockProduct(payload) {
     prodSheet.getRange(rowIndex, 11).setValue(newStock);
     if (payload.cost !== undefined && payload.cost !== "") {
       prodSheet.getRange(rowIndex, 4, 1, 4).setValues([[lotCost, lotPriceA, lotPriceB, lotPriceC]]);
+    }
+    
+    // คำนวณ remaining_qty ของ Lot ใหม่:
+    // หากสต็อกเดิมติดลบ ยอดที่เติมจะถูกนำไปชดเชยยอดที่เบิกค้างไว้ก่อนหน้า
+    let lotRemainingQty = qtyToAdd;
+    if (qtyToAdd > 0 && currentStock < 0) {
+      lotRemainingQty = Math.max(0, newStock);
     }
     
     // สร้าง Lot ใหม่ใน lots.json
@@ -1933,9 +1984,9 @@ function restockProduct(payload) {
       price_b: lotPriceB,
       price_c: lotPriceC,
       initial_qty: qtyToAdd,
-      remaining_qty: qtyToAdd,
+      remaining_qty: lotRemainingQty,
       created_at: dateStr,
-      note: payload.note || "เติมสต็อกอะไหล่"
+      note: payload.note || (currentStock < 0 ? ("เติมสต็อกหักลบยอดติดลบ (เดิม " + currentStock + " -> ใหม่ " + newStock + ")") : "เติมสต็อกอะไหล่")
     });
     saveLotsToJson(lots);
     
@@ -1989,6 +2040,27 @@ function restockProduct(payload) {
     
     transactions.push(newRestockTransaction);
     saveTransactionsToJson(transactions);
+    
+    // ซิงค์ยอดสต็อกใหม่ไปยัง Firebase
+    try {
+      const fbProducts = getFirebaseData("appData/products");
+      if (Array.isArray(fbProducts) && fbProducts.length > 0) {
+        const pIdx = fbProducts.findIndex(p => p && String(p.id).trim() === productId);
+        if (pIdx !== -1) {
+          fbProducts[pIdx].stock_qty = newStock;
+          if (payload.cost !== undefined && payload.cost !== "") {
+            fbProducts[pIdx].cost = lotCost;
+            fbProducts[pIdx].price_a = lotPriceA;
+            fbProducts[pIdx].price_b = lotPriceB;
+            fbProducts[pIdx].price_c = lotPriceC;
+          }
+          setFirebaseData("appData/products", fbProducts);
+          setFirebaseData("appData/lastUpdated", new Date().getTime());
+        }
+      }
+    } catch(fbErr) {
+      Logger.log("Firebase sync warning in restockProduct: " + fbErr.toString());
+    }
     
     return { new_stock: newStock, transaction_id: txId, lot_id: lotId };
     
