@@ -180,45 +180,52 @@
                 let cardClass = "";
                 let imageOverlayHtml = "";
                 let stockStatusHtml = "";
-                let isOutOfStock = p.stock_qty <= 0;
+                const stockNum = parseFloat(p.stock_qty) || 0;
+                const isCancelled = p.note && (p.note.trim() === 'ยกเลิกใช้' || p.note.includes('ยกเลิกใช้'));
                 
-                if (isOutOfStock) {
+                if (isCancelled) {
                     cardClass = "bg-red-50/20 border-red-200 hover:border-red-300 cursor-not-allowed opacity-75";
                     imageOverlayHtml = `
                         <div class="absolute inset-0 bg-red-50/20 backdrop-blur-[0.5px] flex items-center justify-center z-10 pointer-events-none">
                             <span class="bg-red-600/90 text-white text-[10px] font-extrabold px-3 py-1.5 rounded-lg shadow-md border border-white tracking-wider uppercase transform -rotate-12 select-none">
-                                OUT OF STOCK
+                                ระงับใช้
                             </span>
                         </div>
                     `;
-                    stockStatusHtml = `<span class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-150 px-2 py-0.5 rounded-md">คลัง: 0</span>`;
+                    stockStatusHtml = `<span class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-150 px-2 py-0.5 rounded-md">ระงับใช้</span>`;
+                } else if (stockNum < 0) {
+                    cardClass = "bg-rose-50/20 border-rose-300 hover:border-rose-400 shadow-sm hover:-translate-y-0.5 cursor-pointer";
+                    stockStatusHtml = `<span class="text-[10px] font-extrabold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">ติดลบ: ${stockNum}</span>`;
+                } else if (stockNum === 0) {
+                    cardClass = "bg-white border-dashed border-amber-300 hover:border-amber-500 shadow-sm hover:-translate-y-0.5 cursor-pointer";
+                    stockStatusHtml = `<span class="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">คลัง: 0 (เบิกได้)</span>`;
                 } else {
                     cardClass = "bg-white border-gray-200 hover:border-amber-400 shadow-sm hover:-translate-y-0.5 cursor-pointer";
-                    if (p.stock_qty <= 5) {
-                        stockStatusHtml = `<span class="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-150 px-2 py-0.5 rounded-md">เหลือน้อย: ${p.stock_qty}</span>`;
+                    if (stockNum <= 5) {
+                        stockStatusHtml = `<span class="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-150 px-2 py-0.5 rounded-md">เหลือน้อย: ${stockNum}</span>`;
                     } else {
-                        stockStatusHtml = `<span class="text-[10px] font-bold text-green-600 bg-green-50 border border-green-150 px-2 py-0.5 rounded-md">คลัง: ${p.stock_qty}</span>`;
+                        stockStatusHtml = `<span class="text-[10px] font-bold text-green-600 bg-green-50 border border-green-150 px-2 py-0.5 rounded-md">คลัง: ${stockNum}</span>`;
                     }
                 }
                 
                 let itemHtml = `
-                    <div onclick="${isOutOfStock ? 'showToast(\'สินค้าชิ้นนี้หมดสต็อก\', \'error\')' : `showPOSQuantityPopup('${escapeForJS(p.id)}')`}" 
+                    <div onclick="${isCancelled ? 'showToast(\'ไม่สามารถเบิกอะไหล่ชิ้นนี้ได้ เนื่องจากถูกระงับใช้ชั่วคราว\', \'error\')' : `showPOSQuantityPopup('${escapeForJS(p.id)}')`}" 
                          class="${cardClass} p-3 rounded-xl border flex flex-col justify-between transition-all duration-300 relative">
                         <div class="h-24 bg-slate-50 rounded-lg overflow-hidden flex items-center justify-center mb-2 relative">
-                            <img src="${escapeHTML(imgSource)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" class="max-h-full max-w-full object-contain p-1 ${isOutOfStock ? 'filter grayscale-[30%] opacity-55' : ''}" onerror="handleImgError(this, '${escapeForJS(p.image_url || '')}')">
+                            <img src="${escapeHTML(imgSource)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" class="max-h-full max-w-full object-contain p-1 ${isCancelled ? 'filter grayscale-[30%] opacity-55' : ''}" onerror="handleImgError(this, '${escapeForJS(p.image_url || '')}')">
                             <span class="absolute top-1 left-1 bg-slate-900/80 backdrop-blur text-white text-[9px] font-mono font-bold px-1.5 py-0.5 rounded z-10">${escapeHTML(p.id)}</span>
                             ${imageOverlayHtml}
                         </div>
                         <div class="flex-1 flex flex-col justify-between">
                             <div>
-                                <h4 class="text-xs font-bold ${isOutOfStock ? 'text-gray-500' : 'text-gray-800'} line-clamp-2 min-h-[32px] leading-tight mb-1" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</h4>
+                                <h4 class="text-xs font-bold ${isCancelled ? 'text-gray-500' : 'text-gray-800'} line-clamp-2 min-h-[32px] leading-tight mb-1" title="${escapeHTML(p.name)}">${escapeHTML(p.name)}</h4>
                                 <div class="flex justify-between items-center mb-2">
                                     <span class="text-[10px] text-gray-400 truncate max-w-[70%]">${escapeHTML(p.category || 'ทั่วไป')}</span>
                                     <span class="text-[9px] text-gray-400 font-bold uppercase">${escapeHTML(p.unit || 'ชิ้น')}</span>
                                 </div>
                             </div>
                             <div class="flex justify-between items-center mt-auto border-t border-slate-50 pt-2">
-                                <span class="font-extrabold ${isOutOfStock ? 'text-gray-400' : 'text-blue-600'} text-xs sm:text-sm">฿${pA}</span>
+                                <span class="font-extrabold ${isCancelled ? 'text-gray-400' : 'text-blue-600'} text-xs sm:text-sm">฿${pA}</span>
                                 ${stockStatusHtml}
                             </div>
                         </div>
@@ -241,8 +248,6 @@
                     const isCancelled = p.note && (p.note.trim() === 'ยกเลิกใช้' || p.note.includes('ยกเลิกใช้'));
                     if (isCancelled) {
                         showToast("ไม่สามารถเบิกอะไหล่ชิ้นนี้ได้ เนื่องจากถูกระงับใช้ชั่วคราว", "error");
-                    } else if (p.stock_qty <= 0) {
-                        showToast(`ไม่สามารถเพิ่มอะไหล่ได้ เนื่องจากอะไหล่รหัส ${p.id} หมดสต็อก`, "error");
                     } else {
                         showPOSQuantityPopup(p.id);
                     }
@@ -263,18 +268,18 @@
                 showToast("ไม่สามารถเบิกอะไหล่ชิ้นนี้ได้ เนื่องจากถูกระงับใช้ชั่วคราว", "error");
                 return;
             }
-            if (p.stock_qty <= 0) {
-                showToast(`ไม่สามารถเพิ่มอะไหล่ได้ เนื่องจากอะไหล่รหัส ${p.id} หมดสต็อก`, "error");
-                return;
-            }
 
+            const currentStock = parseFloat(p.stock_qty) || 0;
             const existing = posCart.find(item => item.id == productId);
             const existingQty = existing ? existing.qty : 0;
-            const maxAvailable = p.stock_qty - existingQty;
 
-            if (maxAvailable <= 0) {
-                showToast(`สินค้าในตะกร้าเท่ากับจำนวนสต็อกที่มีแล้ว (มีคลัง ${p.stock_qty} ${p.unit || 'ชิ้น'})`, "error");
-                return;
+            let stockDisplayHtml = '';
+            if (currentStock < 0) {
+                stockDisplayHtml = `<span class="font-bold text-red-600">ติดลบ ${currentStock} ${p.unit || 'ชิ้น'} (เบิกเพิ่มยอดจะติดลบสะสม)</span>`;
+            } else if (currentStock === 0) {
+                stockDisplayHtml = `<span class="font-bold text-amber-600">0 ${p.unit || 'ชิ้น'} (ไม่มีในคลัง ยอดจะติดลบ)</span>`;
+            } else {
+                stockDisplayHtml = `<span class="font-bold text-green-600">${currentStock} ${p.unit || 'ชิ้น'}</span>`;
             }
 
             Swal.fire({
@@ -291,7 +296,7 @@
                         </div>
                         <div class="flex justify-between items-center text-xs px-1">
                             <span class="text-gray-500 font-medium">สต็อกคงเหลือในคลัง:</span>
-                            <span class="font-bold text-green-600">${p.stock_qty} ${p.unit || 'ชิ้น'}</span>
+                            ${stockDisplayHtml}
                         </div>
                         ${existingQty > 0 ? `
                         <div class="flex justify-between items-center text-xs px-1 border-t border-slate-100 pt-1.5">
@@ -299,12 +304,17 @@
                             <span class="font-bold text-blue-600">${existingQty} ${p.unit || 'ชิ้น'}</span>
                         </div>
                         ` : ''}
+                        ${(currentStock <= 0) ? `
+                        <div class="bg-amber-50 border border-amber-200 text-amber-800 text-[11px] p-2 rounded-lg flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-info text-amber-600 flex-shrink-0"></i>
+                            <span>อะไหล่นี้ไม่มีในสต็อก ระบบจะบันทึกยอดเป็น<strong>สต็อกติดลบ</strong>ให้อัตโนมัติ</span>
+                        </div>
+                        ` : ''}
                     </div>
                 `,
                 input: 'number',
                 inputAttributes: {
                     min: 1,
-                    max: maxAvailable,
                     step: 1
                 },
                 inputValue: 1,
@@ -317,9 +327,6 @@
                     const qty = parseInt(value);
                     if (isNaN(qty) || qty <= 0) {
                         return 'กรุณาระบุจำนวนที่ถูกต้องอย่างน้อย 1 ชิ้น';
-                    }
-                    if (qty > maxAvailable) {
-                        return `ระบุเกินจำนวนที่เบิกได้ (เบิกเพิ่มได้สูงสุด ${maxAvailable} ${p.unit || 'ชิ้น'})`;
                     }
                 }
             }).then((result) => {
@@ -376,12 +383,7 @@
                 return;
             }
             
-            if (qty > item.maxStock) {
-                showToast(`ไม่สามารถระบุจำนวนเบิกเกินสต็อกที่มีอยู่ได้ (มีคลัง ${item.maxStock} ${item.unit})`, "error");
-                item.qty = item.maxStock;
-            } else {
-                item.qty = qty;
-            }
+            item.qty = qty;
             updatePOSCartUI();
         }
 
@@ -451,21 +453,24 @@
                 const subtotal = item.price * item.qty;
                 total += subtotal;
                 totalQty += item.qty;
+                const isOverStock = (item.maxStock <= 0) || (item.qty > item.maxStock);
+                const overStockQty = item.qty - Math.max(0, item.maxStock);
                 
                 let itemHtml = `
-                    <div class="bg-slate-800/80 border border-slate-700/50 p-3 rounded-xl flex items-center justify-between gap-3 relative transition-all">
+                    <div class="bg-slate-800/80 border ${isOverStock ? 'border-amber-500/60' : 'border-slate-700/50'} p-3 rounded-xl flex items-center justify-between gap-3 relative transition-all">
                         <div class="flex-1 min-w-0">
                             <div class="flex justify-between items-start gap-1">
                                 <span class="text-[9px] font-mono bg-slate-700 text-slate-300 font-bold px-1 py-0.5 rounded block truncate">${escapeHTML(item.id)}</span>
                                 <button onclick="removeFromPOSCart('${escapeForJS(item.id)}')" class="text-slate-400 hover:text-red-400 transition" title="ลบรายการ"><i class="fa-solid fa-times text-xs"></i></button>
                             </div>
                             <h5 class="text-xs font-semibold text-slate-100 truncate mt-1.5" title="${escapeHTML(item.name)}">${escapeHTML(item.name)}</h5>
+                            ${isOverStock ? `<div class="text-[9px] text-amber-300 font-medium mt-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>เกินคลัง (ติดลบสะสม ${overStockQty} ${escapeHTML(item.unit)})</div>` : ''}
                             
                             <div class="flex items-center justify-between mt-2.5">
                                 <span class="text-xs font-bold text-amber-400">฿${(item.price).toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
                                 <div class="flex items-center bg-slate-900 rounded-lg border border-slate-700 overflow-hidden">
                                     <button type="button" onclick="updatePOSCartItemQty('${escapeForJS(item.id)}', ${item.qty - 1})" class="px-2 py-1 text-slate-400 hover:text-white transition"><i class="fa-solid fa-minus text-[9px]"></i></button>
-                                    <input type="number" value="${item.qty}" min="1" max="${item.maxStock}" onchange="updatePOSCartItemQty('${escapeForJS(item.id)}', this.value)" class="w-10 bg-transparent text-center text-xs font-bold text-white focus:outline-none border-none py-0.5 p-0">
+                                    <input type="number" value="${item.qty}" min="1" onchange="updatePOSCartItemQty('${escapeForJS(item.id)}', this.value)" class="w-10 bg-transparent text-center text-xs font-bold text-white focus:outline-none border-none py-0.5 p-0">
                                     <button type="button" onclick="updatePOSCartItemQty('${escapeForJS(item.id)}', ${item.qty + 1})" class="px-2 py-1 text-slate-400 hover:text-white transition"><i class="fa-solid fa-plus text-[9px]"></i></button>
                                 </div>
                             </div>
@@ -487,13 +492,16 @@
             if (mobileList) {
                 mobileList.innerHTML = '';
                 posCart.forEach(item => {
+                    const isOverStock = (item.maxStock <= 0) || (item.qty > item.maxStock);
+                    const overStockQty = item.qty - Math.max(0, item.maxStock);
                     const itemHtml = `
-                        <div class="bg-white p-3 rounded-xl border border-gray-150 flex items-center justify-between gap-3 shadow-sm">
+                        <div class="bg-white p-3 rounded-xl border ${isOverStock ? 'border-amber-400' : 'border-gray-150'} flex items-center justify-between gap-3 shadow-sm">
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-[9px] font-mono bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded">${escapeHTML(item.id)}</span>
                                 </div>
                                 <h5 class="text-xs font-bold text-slate-800 truncate mt-1.5">${escapeHTML(item.name)}</h5>
+                                ${isOverStock ? `<div class="text-[10px] text-amber-700 font-semibold mt-0.5"><i class="fa-solid fa-triangle-exclamation mr-1"></i>เกินคลัง (ติดลบ ${overStockQty} ${escapeHTML(item.unit)})</div>` : ''}
                                 <span class="text-xs font-extrabold text-blue-600 mt-1 block">฿${(item.price).toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
                             </div>
                             <div class="flex flex-col items-end justify-between gap-2.5">
@@ -1506,7 +1514,7 @@
                         loadTransactions();
                     });
                     
-                    await fetchData(false);
+                    await fetchData(true);
                     renderPOSGrid();
                 } else {
                     showToast('เกิดข้อผิดพลาด: ' + result.message, 'error');
@@ -1683,7 +1691,7 @@
                         switchView('view-transactions');
                         loadTransactions();
                     });
-                    await fetchData(false);
+                    await fetchData(true);
                     renderPOSGrid();
                 } else {
                     showToast(result.message || 'บันทึกข้อมูลไม่สำเร็จ', 'error');
@@ -3486,7 +3494,7 @@
                     if (result.status === 'success') {
                         closeTransactionDetailModal();
                         showToast('ยกเลิกรายการและคืนยอดคลังสำเร็จ');
-                        await fetchData(false);
+                        await fetchData(true);
                         await loadTransactions();
                     } else {
                         showToast('เกิดข้อผิดพลาด: ' + result.message, 'error');
@@ -3508,7 +3516,7 @@
                     if (result.status === 'success') {
                         closeTransactionDetailModal();
                         showToast('ลบรายการประวัติใบเบิกเรียบร้อยแล้ว', 'success');
-                        await fetchData(false);
+                        await fetchData(true);
                         await loadTransactions();
                     } else {
                         showToast('ลบรายการไม่สำเร็จ: ' + result.message, 'error');

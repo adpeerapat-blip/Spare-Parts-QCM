@@ -157,7 +157,7 @@
 
             if (successCount > 0) {
                 showToast(`บันทึกการปรับปรุงสต็อกสำเร็จ ${successCount} รายการ ${failCount > 0 ? `(ล้มเหลว ${failCount} รายการ)` : ''}`, failCount > 0 ? 'warning' : 'success');
-                await fetchData(false);
+                await fetchData(true);
             } else {
                 showToast('เกิดข้อผิดพลาด ไม่สามารถปรับปรุงสต็อกได้', 'error');
             }
@@ -301,7 +301,12 @@
                         </div>
                     `;
                 } else {
-                    stockCellHtml = `<span class="font-extrabold text-blue-600 text-base">${p.stock_qty || 0}</span>`;
+                    const sNum = parseFloat(p.stock_qty) || 0;
+                    if (sNum < 0) {
+                        stockCellHtml = `<span class="font-extrabold text-red-600 text-base bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-lg inline-flex items-center"><i class="fa-solid fa-triangle-exclamation mr-1 text-xs"></i>${sNum}</span>`;
+                    } else {
+                        stockCellHtml = `<span class="font-extrabold text-blue-600 text-base">${sNum}</span>`;
+                    }
                 }
 
                 let tr = `
@@ -459,7 +464,7 @@
                 if (result.status === 'success') {
                     showToast('ปรับปรุงยอดสต็อกสำเร็จเรียบร้อย');
                     closeAdjustStockModal();
-                    await fetchData(false);
+                    await fetchData(true);
                     renderRestockTable();
                 } else {
                     showToast('เกิดข้อผิดพลาด: ' + result.message, 'error');
@@ -581,7 +586,7 @@
                     document.getElementById('formRestockProduct').reset();
                     document.getElementById('restock_product_id').value = '';
                     document.getElementById('restock_product_detail').classList.add('hidden');
-                    await fetchData(false);
+                    await fetchData(true);
                 } else {
                     showToast('เกิดข้อผิดพลาด: ' + result.message, 'error');
                 }

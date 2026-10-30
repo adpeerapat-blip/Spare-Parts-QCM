@@ -410,11 +410,13 @@
                                 <div class="flex flex-wrap gap-2 mb-3">
                                     <span class="text-xs font-medium text-blue-500 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">${escapeHTML(p.category) || 'ไม่ระบุประเภท'}</span>
                                     <span class="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">หน่วย: ${escapeHTML(p.unit) || 'ชิ้น'}</span>
-                                    ${p.stock_qty <= 0 ? 
-                                        `<span class="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100"><i class="fa-solid fa-triangle-exclamation mr-1"></i>หมดสต็อก</span>` : 
+                                    ${p.stock_qty < 0 ? 
+                                        `<span class="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200"><i class="fa-solid fa-triangle-exclamation mr-1"></i>ติดลบ: ${p.stock_qty}</span>` : 
+                                      (p.stock_qty == 0 ? 
+                                        `<span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200"><i class="fa-solid fa-circle-exclamation mr-1"></i>หมดสต็อก</span>` : 
                                       (p.stock_qty <= 5 ? 
                                         `<span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100"><i class="fa-solid fa-circle-exclamation mr-1"></i>เหลือน้อย: ${p.stock_qty}</span>` : 
-                                        `<span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-100"><i class="fa-solid fa-circle-check mr-1"></i>คงเหลือ: ${p.stock_qty}</span>`)}
+                                        `<span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-100"><i class="fa-solid fa-circle-check mr-1"></i>คงเหลือ: ${p.stock_qty}</span>`))}
                                 </div>
                                 <div class="mb-4">
                                     ${costLineHtml}
