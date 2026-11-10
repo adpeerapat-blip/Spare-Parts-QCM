@@ -1527,12 +1527,14 @@
             });
         }
 
-        // ================== ระบบอัปเดตสต็อกจาก ERP ==================
+// ================== ระบบอัปเดตสต็อกและราคาต้นทุนจาก ERP ==================
         let erpPreviewState = {
             matchedToUpdate: [],
             matchedUnchanged: [],
             notFoundInSystem: [],
             fileName: '',
+            hasOnHand: true,
+            hasCost: false,
             activeTab: 'update'
         };
 
@@ -1543,7 +1545,7 @@
             }
             const canSync = currentUser.role === 'ADMIN' || currentUser.role === 'Manager' || currentUser.role === 'StoreOfficer' || hasAccess('view-restock');
             if (!canSync) {
-                showToast('คุณไม่มีสิทธิ์ในการอัปเดตสต็อก', 'error');
+                showToast('คุณไม่มีสิทธิ์ในการอัปเดตสต็อกหรือต้นทุน', 'error');
                 return;
             }
             const input = document.getElementById('erpStockFileInput');
@@ -1555,7 +1557,7 @@
             if (!file) return;
             event.target.value = '';
 
-            showLoading('กำลังอ่านและวิเคราะห์ไฟล์สต็อก ERP...');
+            showLoading('กำลังอ่านและวิเคราะห์ไฟล์ ERP...');
 
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -1580,27 +1582,52 @@
                     const firstRow = rows[0];
                     const keys = Object.keys(firstRow);
 
+                    const cleanStr = s => String(s || '').trim().toLowerCase().replace(/[\s_\-.]/g, '');
+
+                    // ตรวจหาคอลัมน์รหัสสินค้า (Item ID / รหัสสินค้า)
                     const idKey = keys.find(k => {
                         const c = k.trim().toLowerCase();
-                        return c === 'รหัสสินค้า' || c === 'รหัส' || c === 'item code' || c === 'product id' || c === 'item_code' || c === 'product_id' || c === 'code';
+                        const cl = cleanStr(k);
+                        return c === 'รหัสสินค้า' || c === 'รหัส' || c === 'item code' || c === 'item id' || c === 'product id' ||
+                               cl === 'itemcode' || cl === 'itemid' || cl === 'productid' || cl === 'partno' || cl === 'code' || cl === 'id';
                     });
 
+                    // ตรวจหาคอลัมน์ยอดคงเหลือ (Qty On Hand / On Hand / ยอดคงเหลือ)
                     const onHandKey = keys.find(k => {
                         const c = k.trim().toLowerCase();
-                        return c === 'on hand' || c === 'onhand' || c === 'available' || c === 'ยอดคงเหลือ' || c === 'จำนวน' || c === 'stock' || c === 'stock_qty';
+                        const cl = cleanStr(k);
+                        return c === 'qty on hand' || c === 'on hand' || c === 'onhand' || c === 'available' || c === 'ยอดคงเหลือ' || c === 'จำนวน' || c === 'คงเหลือ' || c === 'stock' || c === 'stock_qty' ||
+                               cl === 'qtyonhand' || cl === 'onhand' || cl === 'qty' || cl === 'quantity' || cl === 'available' || cl === 'stockqty';
                     });
 
+                    // ตรวจหาคอลัมน์ชื่อสินค้า (Item Description / ชื่อสินค้า)
                     const nameKey = keys.find(k => {
                         const c = k.trim().toLowerCase();
-                        return c === 'ชื่อสินค้า' || c === 'ชื่อ' || c === 'description' || c === 'item name' || c === 'name';
+                        const cl = cleanStr(k);
+                        return c === 'ชื่อสินค้า' || c === 'ชื่อ' || c === 'description' || c === 'item description' || c === 'item name' ||
+                               cl === 'itemdescription' || cl === 'itemname' || cl === 'productname' || cl === 'description' || cl === 'name' || cl === 'รายละเอียด';
                     });
 
-                    if (!idKey || !onHandKey) {
+                    // ตรวจหาคอลัมน์ราคาต้นทุน (Cost / Unit Cost / ราคาต้นทุน / ต้นทุน)
+                    const costKey = keys.find(k => {
+                        const c = k.trim().toLowerCase();
+                        const cl = cleanStr(k);
+                        return c === 'cost' || c === 'unit cost' || c === 'item cost' || c === 'ราคาต้นทุน' || c === 'ต้นทุน' || c === 'ต้นทุนต่อหน่วย' ||
+                               c === 'standard cost' || c === 'avg cost' || c === 'average cost' || c === 'ราคาซื้อ' ||
+                               cl === 'unitcost' || cl === 'itemcost' || cl === 'standardcost' || cl === 'avgcost' || cl === 'averagecost' || cl === 'cost' || cl === 'unitprice';
+                    });
+
+                    if (!idKey || (!onHandKey && !costKey)) {
                         hideLoading();
                         Swal.fire({
                             icon: 'error',
                             title: 'โครงสร้างไฟล์ไม่ถูกต้อง',
-                            html: `ไม่พบคอลัมน์ <b>"รหัสสินค้า"</b> หรือ <b>"On Hand"</b> ในไฟล์<br><br><span class="text-xs text-slate-500">คอลัมน์ที่พบในไฟล์: ${keys.join(', ')}</span>`,
+                            html: `ไฟล์ต้องมีคอลัมน์ <b>"รหัสสินค้า (Item ID / รหัสสินค้า)"</b> ร่วมกับอย่างน้อยหนึ่งรายการดังต่อไปนี้:<br><br>
+                                   <ul class="text-left text-xs list-disc pl-6 space-y-1 text-slate-600">
+                                       <li><b>ยอดคงเหลือ:</b> Qty On Hand, On Hand, ยอดคงเหลือ, จำนวน</li>
+                                       <li><b>ราคาต้นทุน:</b> Cost, Unit Cost, ราคาต้นทุน, ต้นทุน</li>
+                                   </ul><br>
+                                   <span class="text-xs text-slate-500">คอลัมน์ที่ตรวจพบในไฟล์: ${keys.join(', ')}</span>`,
                             customClass: { popup: 'rounded-2xl' }
                         });
                         return;
@@ -1611,16 +1638,31 @@
                         const rawId = String(r[idKey] || '').trim();
                         if (!rawId) return;
 
-                        let qtyStr = String(r[onHandKey] !== undefined ? r[onHandKey] : '0').replace(/,/g, '').trim();
-                        const qty = parseFloat(qtyStr);
-                        if (isNaN(qty)) return;
-
                         const rawName = nameKey ? String(r[nameKey] || '').trim() : '';
 
+                        let qty = null;
+                        if (onHandKey && r[onHandKey] !== undefined && r[onHandKey] !== '') {
+                            const qStr = String(r[onHandKey]).replace(/,/g, '').trim();
+                            const qVal = parseFloat(qStr);
+                            if (!isNaN(qVal)) qty = qVal;
+                        }
+
+                        let cost = null;
+                        if (costKey && r[costKey] !== undefined && r[costKey] !== '') {
+                            const cStr = String(r[costKey]).replace(/,/g, '').trim();
+                            const cVal = parseFloat(cStr);
+                            if (!isNaN(cVal)) cost = cVal;
+                        }
+
                         if (!erpMap[rawId]) {
-                            erpMap[rawId] = { id: rawId, name: rawName, qty: qty, count: 1 };
+                            erpMap[rawId] = { id: rawId, name: rawName, qty: qty, cost: cost, count: 1 };
                         } else {
-                            erpMap[rawId].qty += qty;
+                            if (qty !== null) {
+                                erpMap[rawId].qty = (erpMap[rawId].qty !== null ? erpMap[rawId].qty : 0) + qty;
+                            }
+                            if (cost !== null) {
+                                erpMap[rawId].cost = cost;
+                            }
                             erpMap[rawId].count += 1;
                             if (!erpMap[rawId].name && rawName) erpMap[rawId].name = rawName;
                         }
@@ -1628,6 +1670,9 @@
 
                     const allProducts = (typeof db !== 'undefined' && db.products) ? db.products : [];
                     const erpIds = Object.keys(erpMap);
+
+                    const hasOnHand = !!onHandKey;
+                    const hasCost = !!costKey;
 
                     const matchedToUpdate = [];
                     const matchedUnchanged = [];
@@ -1638,18 +1683,43 @@
                         const prod = allProducts.find(p => String(p.id).trim() === id);
                         if (prod) {
                             const currentStock = parseFloat(prod.stock_qty) || 0;
-                            const newStock = item.qty;
-                            const diff = newStock - currentStock;
+                            const newStock = (hasOnHand && item.qty !== null) ? item.qty : currentStock;
+                            const stockDiff = newStock - currentStock;
+
+                            const currentCost = parseFloat(prod.cost) || 0;
+                            const itemHasCost = hasCost && item.cost !== null && !isNaN(item.cost);
+                            const newCost = itemHasCost ? item.cost : currentCost;
+                            const costDiff = newCost - currentCost;
+
+                            const isStockChanged = hasOnHand && item.qty !== null && stockDiff !== 0;
+                            const isCostChanged = itemHasCost && Math.abs(costDiff) > 0.001;
+                            const isChanged = isStockChanged || isCostChanged;
+
+                            const newPriceA = Math.round(newCost * 2.1 * 100) / 100;
+                            const newPriceB = Math.round(newCost * 1.7 * 100) / 100;
+                            const newPriceC = Math.round(newCost * 1.3 * 100) / 100;
+
                             const dataObj = {
                                 id: id,
                                 name: prod.name || item.name || 'ไม่ระบุชื่อ',
                                 unit: prod.unit || 'ชิ้น',
                                 currentStock: currentStock,
                                 newStock: newStock,
-                                diff: diff
+                                stockDiff: stockDiff,
+                                hasOnHand: hasOnHand && item.qty !== null,
+                                isStockChanged: isStockChanged,
+                                currentCost: currentCost,
+                                newCost: newCost,
+                                costDiff: costDiff,
+                                hasCost: itemHasCost,
+                                isCostChanged: isCostChanged,
+                                newPriceA: newPriceA,
+                                newPriceB: newPriceB,
+                                newPriceC: newPriceC,
+                                isChanged: isChanged
                             };
 
-                            if (diff !== 0) {
+                            if (isChanged) {
                                 matchedToUpdate.push(dataObj);
                             } else {
                                 matchedUnchanged.push(dataObj);
@@ -1658,12 +1728,22 @@
                             notFoundInSystem.push({
                                 id: id,
                                 name: item.name || 'ไม่ระบุชื่อ',
-                                erpQty: item.qty
+                                erpQty: item.qty,
+                                erpCost: item.cost
                             });
                         }
                     });
 
-                    matchedToUpdate.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+                    // จัดเรียง: รายการที่มียอดเปลี่ยนแปลงแสดงขึ้นมาก่อน
+                    matchedToUpdate.sort((a, b) => {
+                        if (a.isStockChanged && b.isStockChanged) {
+                            return Math.abs(b.stockDiff) - Math.abs(a.stockDiff);
+                        }
+                        if (a.isCostChanged && b.isCostChanged) {
+                            return Math.abs(b.costDiff) - Math.abs(a.costDiff);
+                        }
+                        return (b.isStockChanged ? 1 : 0) - (a.isStockChanged ? 1 : 0);
+                    });
 
                     hideLoading();
                     erpPreviewState = {
@@ -1671,6 +1751,8 @@
                         matchedUnchanged: matchedUnchanged,
                         notFoundInSystem: notFoundInSystem,
                         fileName: file.name,
+                        hasOnHand: hasOnHand,
+                        hasCost: hasCost,
                         activeTab: matchedToUpdate.length > 0 ? 'update' : (matchedUnchanged.length > 0 ? 'unchanged' : 'notfound')
                     };
                     renderErpStockPreviewModal();
@@ -1703,7 +1785,7 @@
         };
 
         function renderErpStockPreviewModal() {
-            const { matchedToUpdate, matchedUnchanged, notFoundInSystem, fileName, activeTab } = erpPreviewState;
+            const { matchedToUpdate, matchedUnchanged, notFoundInSystem, fileName, hasOnHand, hasCost, activeTab } = erpPreviewState;
             const totalErpItems = matchedToUpdate.length + matchedUnchanged.length + notFoundInSystem.length;
 
             let tableRowsHtml = '';
@@ -1712,72 +1794,166 @@
             if (activeTab === 'update') {
                 currentList = matchedToUpdate;
                 if (currentList.length === 0) {
-                    tableRowsHtml = '<tr><td colspan="5" class="py-8 text-center text-slate-400">สต็อกในระบบตรงกับ ERP ทั้งหมดแล้ว ไม่มียอดที่ต้องปรับปรุง</td></tr>';
+                    tableRowsHtml = `<tr><td colspan="${hasCost ? 6 : 5}" class="py-8 text-center text-slate-400">ข้อมูลในระบบตรงกับ ERP ทั้งหมดแล้ว ไม่มียอดที่ต้องปรับปรุง</td></tr>`;
                 } else {
                     tableRowsHtml = currentList.slice(0, 100).map(it => {
-                        const diffBadge = it.diff > 0 
-                            ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">+${it.diff.toLocaleString()}</span>`
-                            : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">${it.diff.toLocaleString()}</span>`;
+                        // Badge สต็อก
+                        let stockCell = `<span class="text-slate-400 italic">-</span>`;
+                        if (it.hasOnHand) {
+                            const diffBadge = it.stockDiff > 0 
+                                ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">+${it.stockDiff.toLocaleString()}</span>`
+                                : (it.stockDiff < 0 ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">${it.stockDiff.toLocaleString()}</span>` : `<span class="text-[10px] text-slate-400 font-mono">ตรงกัน</span>`);
+                            stockCell = `
+                                <div class="text-right">
+                                    <span class="font-mono text-slate-400 text-[11px]">${it.currentStock.toLocaleString()}</span>
+                                    <i class="fa-solid fa-arrow-right text-[9px] text-slate-300 mx-1"></i>
+                                    <span class="font-mono font-bold text-blue-600">${it.newStock.toLocaleString()}</span>
+                                    <div class="mt-0.5">${diffBadge}</div>
+                                </div>`;
+                        }
+
+                        // Badge ราคาต้นทุน
+                        let costCell = '';
+                        if (hasCost) {
+                            if (it.hasCost) {
+                                const cDiffBadge = it.costDiff > 0
+                                    ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">+฿${it.costDiff.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`
+                                    : (it.costDiff < 0 ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">฿${it.costDiff.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>` : `<span class="text-[10px] text-slate-400 font-mono">ตรงกัน</span>`);
+                                costCell = `
+                                    <td class="p-2.5 text-right whitespace-nowrap">
+                                        <div>
+                                            <span class="font-mono text-slate-400 text-[11px]">฿${it.currentCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                            <i class="fa-solid fa-arrow-right text-[9px] text-slate-300 mx-1"></i>
+                                            <span class="font-mono font-bold text-emerald-600">฿${it.newCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                        </div>
+                                        <div class="mt-0.5">${cDiffBadge}</div>
+                                    </td>
+                                    <td class="p-2.5 text-right font-mono text-[10px] text-slate-500 whitespace-nowrap">
+                                        <div>A (2.1x): <b class="text-indigo-600">฿${it.newPriceA.toLocaleString(undefined, {minimumFractionDigits: 2})}</b></div>
+                                        <div>B (1.7x): <span class="text-slate-600">฿${it.newPriceB.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                                        <div>C (1.3x): <span class="text-slate-600">฿${it.newPriceC.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                                    </td>`;
+                            } else {
+                                costCell = `
+                                    <td class="p-2.5 text-right text-slate-400 text-xs italic">-</td>
+                                    <td class="p-2.5 text-right text-slate-400 text-xs italic">-</td>`;
+                            }
+                        }
+
                         return `
                             <tr class="hover:bg-slate-50 transition border-b border-slate-100 text-xs">
-                                <td class="p-2.5 font-mono text-slate-500">${escapeHTML(it.id)}</td>
+                                <td class="p-2.5 font-mono text-slate-500 whitespace-nowrap">${escapeHTML(it.id)}</td>
                                 <td class="p-2.5 font-medium text-slate-800">${escapeHTML(it.name)}</td>
-                                <td class="p-2.5 text-right font-mono text-slate-500">${it.currentStock.toLocaleString()}</td>
-                                <td class="p-2.5 text-right font-mono font-bold text-blue-600">${it.newStock.toLocaleString()}</td>
-                                <td class="p-2.5 text-center">${diffBadge}</td>
+                                <td class="p-2.5 whitespace-nowrap">${stockCell}</td>
+                                ${costCell}
                             </tr>`;
                     }).join('');
                     if (currentList.length > 100) {
-                        tableRowsHtml += `<tr><td colspan="5" class="p-2 text-center text-xs text-slate-400 italic bg-slate-50">...และอีก ${(currentList.length - 100).toLocaleString()} รายการ (จะได้รับการอัปเดตทั้งหมด)</td></tr>`;
+                        tableRowsHtml += `<tr><td colspan="${hasCost ? 6 : 5}" class="p-2 text-center text-xs text-slate-400 italic bg-slate-50">...และอีก ${(currentList.length - 100).toLocaleString()} รายการ (จะได้รับการอัปเดตทั้งหมด)</td></tr>`;
                     }
                 }
             } else if (activeTab === 'unchanged') {
                 currentList = matchedUnchanged;
                 if (currentList.length === 0) {
-                    tableRowsHtml = '<tr><td colspan="5" class="py-8 text-center text-slate-400">ไม่มีรายการที่ยอดตรงกัน</td></tr>';
+                    tableRowsHtml = `<tr><td colspan="${hasCost ? 6 : 5}" class="py-8 text-center text-slate-400">ไม่มีรายการที่ยอดตรงกัน</td></tr>`;
                 } else {
                     tableRowsHtml = currentList.slice(0, 100).map(it => `
                         <tr class="hover:bg-slate-50 transition border-b border-slate-100 text-xs">
                             <td class="p-2.5 font-mono text-slate-500">${escapeHTML(it.id)}</td>
                             <td class="p-2.5 font-medium text-slate-800">${escapeHTML(it.name)}</td>
                             <td class="p-2.5 text-right font-mono text-slate-600">${it.currentStock.toLocaleString()}</td>
-                            <td class="p-2.5 text-right font-mono font-bold text-slate-700">${it.newStock.toLocaleString()}</td>
-                            <td class="p-2.5 text-center"><span class="text-xs text-slate-400 font-mono">ตรงกัน (0)</span></td>
+                            ${hasCost ? `
+                                <td class="p-2.5 text-right font-mono text-slate-600">฿${it.currentCost.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                <td class="p-2.5 text-center"><span class="text-xs text-slate-400 font-mono">ตรงกัน (0)</span></td>` : `
+                                <td class="p-2.5 text-right font-mono text-slate-600">${it.newStock.toLocaleString()}</td>
+                                <td class="p-2.5 text-center"><span class="text-xs text-slate-400 font-mono">ตรงกัน (0)</span></td>`}
                         </tr>`).join('');
                     if (currentList.length > 100) {
-                        tableRowsHtml += `<tr><td colspan="5" class="p-2 text-center text-xs text-slate-400 italic bg-slate-50">...และอีก ${(currentList.length - 100).toLocaleString()} รายการ</td></tr>`;
+                        tableRowsHtml += `<tr><td colspan="${hasCost ? 6 : 5}" class="p-2 text-center text-xs text-slate-400 italic bg-slate-50">...และอีก ${(currentList.length - 100).toLocaleString()} รายการ</td></tr>`;
                     }
                 }
             } else if (activeTab === 'notfound') {
                 currentList = notFoundInSystem;
                 if (currentList.length === 0) {
-                    tableRowsHtml = '<tr><td colspan="5" class="py-8 text-center text-slate-400">ทุกรายการในไฟล์มีอยู่ในระบบครบถ้วน</td></tr>';
+                    tableRowsHtml = `<tr><td colspan="${hasCost ? 6 : 5}" class="py-8 text-center text-slate-400">ทุกรายการในไฟล์มีอยู่ในระบบครบถ้วน</td></tr>`;
                 } else {
                     tableRowsHtml = currentList.slice(0, 100).map(it => `
                         <tr class="hover:bg-slate-50 transition border-b border-slate-100 text-xs">
                             <td class="p-2.5 font-mono text-rose-500">${escapeHTML(it.id)}</td>
                             <td class="p-2.5 font-medium text-slate-700">${escapeHTML(it.name)}</td>
-                            <td class="p-2.5 text-right text-slate-400 italic">-</td>
-                            <td class="p-2.5 text-right font-mono font-bold text-slate-700">${it.erpQty.toLocaleString()}</td>
-                            <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">ไม่พบในระบบ</span></td>
+                            <td class="p-2.5 text-right font-mono font-bold text-slate-700">${it.erpQty !== null ? it.erpQty.toLocaleString() : '-'}</td>
+                            ${hasCost ? `
+                                <td class="p-2.5 text-right font-mono text-slate-700">${it.erpCost !== null ? ('฿' + it.erpCost.toLocaleString(undefined, {minimumFractionDigits: 2})) : '-'}</td>
+                                <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">ไม่พบในระบบ</span></td>` : `
+                                <td class="p-2.5 text-right text-slate-400 italic">-</td>
+                                <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">ไม่พบในระบบ</span></td>`}
                         </tr>`).join('');
                     if (currentList.length > 100) {
-                        tableRowsHtml += `<tr><td colspan="5" class="p-2 text-center text-xs text-slate-400 italic bg-slate-50">...และอีก ${(currentList.length - 100).toLocaleString()} รายการ (ข้ามการอัปเดต)</td></tr>`;
+                        tableRowsHtml += `<tr><td colspan="${hasCost ? 6 : 5}" class="p-2 text-center text-xs text-slate-400 italic bg-slate-50">...และอีก ${(currentList.length - 100).toLocaleString()} รายการ (ข้ามการอัปเดต)</td></tr>`;
                     }
                 }
             }
 
+            // แบนเนอร์แจ้งสถานะคอลัมน์ที่ตรวจพบ
+            let fileHintBanner = '';
+            if (hasOnHand && hasCost) {
+                fileHintBanner = `
+                    <div class="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+                        <span>ตรวจพบทั้งคอลัมน์ <b>ยอดคงเหลือ (Qty On Hand)</b> และ <b>ราคาต้นทุน (Cost)</b>: ระบบจะอัปเดตทั้งสต็อกและคำนวณราคาขาย A/B/C ใหม่ให้อัตโนมัติ</span>
+                    </div>`;
+            } else if (hasOnHand && !hasCost) {
+                fileHintBanner = `
+                    <div class="bg-blue-50 border border-blue-200 p-2.5 rounded-xl text-xs text-blue-800 flex items-start gap-2">
+                        <i class="fa-solid fa-circle-info text-blue-600 text-sm mt-0.5"></i>
+                        <div>
+                            <b>ตรวจพบคอลัมน์ยอดคงเหลือ (Qty On Hand):</b> ระบบจะอัปเดตสต็อกคงเหลือในระบบ<br>
+                            <span class="text-[11px] text-blue-600">💡 หากต้องการอัปเดต <b>ราคาต้นทุน</b> ด้วย ท่านสามารถเพิ่มคอลัมน์ <b>"Cost"</b> หรือ <b>"ราคาต้นทุน"</b> ลงในไฟล์นี้ได้</span>
+                        </div>
+                    </div>`;
+            } else if (!hasOnHand && hasCost) {
+                fileHintBanner = `
+                    <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-xs text-amber-800 flex items-center gap-2">
+                        <i class="fa-solid fa-tags text-amber-600 text-sm"></i>
+                        <span>ตรวจพบคอลัมน์ <b>ราคาต้นทุน (Cost)</b>: ระบบจะอัปเดตราคาต้นทุนและคำนวณราคาขายระดับ A/B/C ให้อัตโนมัติ (ไม่กระทบยอดสต็อก)</span>
+                    </div>`;
+            }
+
+            // หัวตาราง
+            let tableHeaders = '';
+            if (hasCost) {
+                tableHeaders = `
+                    <tr>
+                        <th class="p-2.5">รหัสสินค้า</th>
+                        <th class="p-2.5">ชื่อสินค้า</th>
+                        <th class="p-2.5 text-right">${hasOnHand ? 'สต็อก (เดิม ➔ ใหม่)' : 'สต็อกคงเหลือ'}</th>
+                        <th class="p-2.5 text-right">ต้นทุน (เดิม ➔ ERP)</th>
+                        <th class="p-2.5 text-right">ราคาขายใหม่ (A / B / C)</th>
+                    </tr>`;
+            } else {
+                tableHeaders = `
+                    <tr>
+                        <th class="p-2.5">รหัสสินค้า</th>
+                        <th class="p-2.5">ชื่อสินค้า</th>
+                        <th class="p-2.5 text-right">สต็อกเดิม</th>
+                        <th class="p-2.5 text-right">สต็อก ERP</th>
+                        <th class="p-2.5 text-center">ผลต่าง</th>
+                    </tr>`;
+            }
+
             const modalHtml = `
-                <div class="space-y-4 text-left">
+                <div class="space-y-3.5 text-left">
                     <div class="flex items-center justify-between pb-2 border-b border-slate-100 text-xs">
-                        <span class="text-slate-500 flex items-center gap-1.5"><i class="fa-solid fa-file-csv text-emerald-600"></i> ไฟล์: <b class="text-slate-700">${escapeHTML(fileName)}</b></span>
-                        <span class="text-slate-400 font-mono">ทั้งหมด ${totalErpItems.toLocaleString()} รายการ</span>
+                        <span class="text-slate-500 flex items-center gap-1.5"><i class="fa-solid fa-file-excel text-emerald-600"></i> ไฟล์: <b class="text-slate-700">${escapeHTML(fileName)}</b></span>
+                        <span class="text-slate-400 font-mono">รวมในไฟล์ ${totalErpItems.toLocaleString()} รายการ</span>
                     </div>
+
+                    ${fileHintBanner}
 
                     <!-- Metric Cards -->
                     <div class="grid grid-cols-3 gap-2 text-center">
                         <button type="button" onclick="setErpPreviewTab('update')" class="p-2.5 rounded-xl border transition-all ${activeTab === 'update' ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-500/20' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}">
-                            <div class="text-[11px] font-semibold text-slate-500">ต้องปรับปรุงยอด</div>
+                            <div class="text-[11px] font-semibold text-slate-500">ต้องปรับปรุง</div>
                             <div class="text-lg font-extrabold text-blue-600 mt-0.5">${matchedToUpdate.length.toLocaleString()}</div>
                             <div class="text-[10px] text-slate-400">รายการที่ยอดเปลี่ยน</div>
                         </button>
@@ -1798,13 +1974,7 @@
                         <div class="max-h-64 overflow-y-auto">
                             <table class="w-full text-left border-collapse">
                                 <thead class="sticky top-0 bg-slate-100 text-[11px] font-bold text-slate-600 uppercase border-b border-slate-200 z-10">
-                                    <tr>
-                                        <th class="p-2.5">รหัสสินค้า</th>
-                                        <th class="p-2.5">ชื่อสินค้า</th>
-                                        <th class="p-2.5 text-right">สต็อกเดิม</th>
-                                        <th class="p-2.5 text-right">สต็อก ERP</th>
-                                        <th class="p-2.5 text-center">ผลต่าง</th>
-                                    </tr>
+                                    ${tableHeaders}
                                 </thead>
                                 <tbody class="divide-y divide-slate-100">
                                     ${tableRowsHtml}
@@ -1814,20 +1984,20 @@
                     </div>
 
                     ${matchedToUpdate.length > 0 ? `
-                        <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl text-[11px] text-amber-800 flex items-start gap-2">
+                        <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-[11px] text-amber-800 flex items-start gap-2">
                             <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm mt-0.5"></i>
                             <div>
-                                <b>คำเตือน:</b> การกดยืนยันจะปรับปรุงยอดคงเหลือของอะไหล่จำนวน <b>${matchedToUpdate.length.toLocaleString()} รายการ</b> ในระบบทันที พร้อมบันทึกล็อตและประวัติการปรับปรุงสต็อก (Restock Transaction)
+                                <b>คำยืนยัน:</b> การกดยืนยันจะปรับปรุงข้อมูลของอะไหล่จำนวน <b>${matchedToUpdate.length.toLocaleString()} รายการ</b> ในระบบทันที พร้อมบันทึกประวัติการปรับปรุงสต็อก (Restock Transaction)
                             </div>
                         </div>` : ''}
                 </div>`;
 
             Swal.fire({
-                title: '<i class="fa-solid fa-file-circle-check text-emerald-600 mr-2"></i>ตรวจสอบยอดสต็อก ERP',
+                title: '<i class="fa-solid fa-file-circle-check text-emerald-600 mr-2"></i>ตรวจสอบข้อมูลจาก ERP',
                 html: modalHtml,
-                width: '780px',
+                width: hasCost ? '860px' : '780px',
                 showCancelButton: true,
-                confirmButtonText: matchedToUpdate.length > 0 ? `<i class="fa-solid fa-cloud-arrow-up mr-1.5"></i> ยืนยันอัปเดตสต็อก (${matchedToUpdate.length.toLocaleString()} รายการ)` : 'ปิดหน้าต่าง',
+                confirmButtonText: matchedToUpdate.length > 0 ? `<i class="fa-solid fa-cloud-arrow-up mr-1.5"></i> ยืนยันอัปเดตข้อมูล (${matchedToUpdate.length.toLocaleString()} รายการ)` : 'ปิดหน้าต่าง',
                 cancelButtonText: 'ยกเลิก',
                 confirmButtonColor: matchedToUpdate.length > 0 ? '#059669' : '#6b7280',
                 cancelButtonColor: '#94a3b8',
@@ -1851,58 +2021,138 @@
         async function executeSyncErpStock(itemsToUpdate) {
             if (!itemsToUpdate || itemsToUpdate.length === 0) return;
 
-            showLoading(`กำลังบันทึกการปรับปรุงสต็อก ${itemsToUpdate.length} รายการ...`);
+            showLoading(`กำลังบันทึกการปรับปรุงข้อมูล ${itemsToUpdate.length} รายการ...`);
             try {
                 const operator = (isLoggedIn && currentUser && currentUser.fullName) ? currentUser.fullName : 'สโตร์ (ERP Sync)';
-                const payload = {
-                    requester: operator,
-                    department: 'สโตร์ (อัปเดตสต็อก ERP)',
-                    note: `อัปเดตสต็อกจากไฟล์ ERP (${itemsToUpdate.length} รายการ)`,
-                    items: itemsToUpdate.map(it => ({
-                        id: it.id,
-                        newQty: it.newStock,
-                        currentStock: it.currentStock,
-                        diff: it.diff
-                    }))
-                };
+                const nowTimestamp = Date.now();
+                const allProducts = (typeof db !== 'undefined' && db.products) ? db.products : [];
 
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'syncErpStock', payload: payload })
+                // 1. อัปเดตลง memory db และเตรียมคำสั่งอัปเดต Firebase โดยตรงทันที
+                const fbUpdates = {};
+                let directCostUpdatedCount = 0;
+                let directStockChangedCount = 0;
+
+                itemsToUpdate.forEach(it => {
+                    const pIdx = allProducts.findIndex(p => p && String(p.id).trim() === String(it.id).trim());
+                    if (pIdx > -1) {
+                        const prod = allProducts[pIdx];
+
+                        if (it.hasCost && it.newCost !== null && !isNaN(it.newCost)) {
+                            prod.cost = it.newCost;
+                            prod.price_a = it.newPriceA;
+                            prod.price_b = it.newPriceB;
+                            prod.price_c = it.newPriceC;
+                            fbUpdates[`appData/products/${pIdx}/cost`] = it.newCost;
+                            fbUpdates[`appData/products/${pIdx}/price_a`] = it.newPriceA;
+                            fbUpdates[`appData/products/${pIdx}/price_b`] = it.newPriceB;
+                            fbUpdates[`appData/products/${pIdx}/price_c`] = it.newPriceC;
+                            directCostUpdatedCount++;
+                        }
+
+                        if (it.hasOnHand && it.newStock !== null && !isNaN(it.newStock)) {
+                            prod.stock_qty = it.newStock;
+                            fbUpdates[`appData/products/${pIdx}/stock_qty`] = it.newStock;
+                            if (it.stockDiff !== 0) directStockChangedCount++;
+                        }
+                    }
                 });
-                const resData = await res.json();
+
+                fbUpdates['appData/lastUpdated'] = nowTimestamp;
+
+                // อัปเดตไปยัง Firebase Realtime Database โดยตรงทันที
+                try {
+                    if (typeof firebase !== 'undefined' && firebase.database) {
+                        await firebase.database().ref().update(fbUpdates);
+                    }
+                } catch (fbErr) {
+                    console.warn("Direct Firebase update warning:", fbErr);
+                }
+
+                // บันทึกทับ LocalStorage Cache ทันที
+                try {
+                    if (typeof LS_CACHE_KEY !== 'undefined') {
+                        localStorage.setItem(LS_CACHE_KEY, JSON.stringify({
+                            data: db,
+                            lastUpdated: nowTimestamp
+                        }));
+                    }
+                } catch (e) {}
+
+                // รีเฟรชหน้าจอทันที ไม่ต้องรอนาน
+                if (typeof renderCatalog === 'function') renderCatalog();
+                if (typeof renderRestockTable === 'function') renderRestockTable();
+                if (typeof updateAllViews === 'function') updateAllViews();
+
+                // 2. ส่งไปยัง Google Apps Script เพื่อบันทึกลง Google Sheets และ Transactions
+                let resData = null;
+                try {
+                    const payload = {
+                        requester: operator,
+                        department: 'สโตร์ (อัปเดต ERP)',
+                        note: `อัปเดตสต็อก/ต้นทุนจากไฟล์ ERP (${itemsToUpdate.length} รายการ)`,
+                        items: itemsToUpdate.map(it => ({
+                            id: it.id,
+                            hasOnHand: it.hasOnHand,
+                            newQty: it.hasOnHand ? it.newStock : null,
+                            currentStock: it.currentStock,
+                            diff: it.hasOnHand ? it.stockDiff : 0,
+                            hasCost: it.hasCost,
+                            newCost: it.hasCost ? it.newCost : null,
+                            currentCost: it.currentCost,
+                            costDiff: it.hasCost ? it.costDiff : 0
+                        }))
+                    };
+
+                    const res = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'syncErpStock', payload: payload })
+                    });
+                    resData = await res.json();
+                } catch (apiErr) {
+                    console.warn("API_URL background sync warning:", apiErr);
+                }
+
                 hideLoading();
 
-                if (resData.status === 'success') {
-                    await Swal.fire({
-                        icon: 'success',
-                        title: 'อัปเดตสต็อกสำเร็จ!',
-                        html: `
-                            <div class="text-left text-xs space-y-2 text-slate-600">
-                                <p class="font-bold text-slate-800 text-sm">ระบบได้ปรับปรุงยอดคงเหลือเรียบร้อยแล้ว</p>
-                                <ul class="list-disc pl-5 space-y-1">
-                                    <li>อัปเดตยอดสินค้า: <b class="text-emerald-600">${itemsToUpdate.length.toLocaleString()} รายการ</b></li>
-                                    <li>บันทึกประวัติ Transaction: <span class="font-mono font-bold text-slate-700">${resData.data?.transaction_id || '-'}</span></li>
-                                </ul>
-                            </div>`,
-                        confirmButtonColor: '#059669',
-                        confirmButtonText: 'ตกลง',
-                        customClass: {
-                            popup: 'rounded-2xl',
-                            confirmButton: 'rounded-xl font-semibold !text-xs !py-2 !px-4'
-                        }
-                    });
-                    await fetchData(true);
-                    if (typeof renderCatalog === 'function') renderCatalog();
-                    if (typeof renderRestockTable === 'function') renderRestockTable();
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด',
-                        text: resData.message || 'ไม่สามารถอัปเดตสต็อกได้',
-                        customClass: { popup: 'rounded-2xl' }
-                    });
+                const costCount = (resData && resData.data && resData.data.costUpdatedCount !== undefined) 
+                    ? resData.data.costUpdatedCount : directCostUpdatedCount;
+                const stockCount = (resData && resData.data && resData.data.stockChangedCount !== undefined) 
+                    ? resData.data.stockChangedCount : directStockChangedCount;
+                const txId = (resData && resData.data && resData.data.transaction_id) 
+                    ? resData.data.transaction_id : null;
+
+                let detailsList = `<li>ปรับปรุงรายการอะไหล่รวม: <b class="text-emerald-600">${itemsToUpdate.length.toLocaleString()} รายการ</b></li>`;
+                if (stockCount > 0) {
+                    detailsList += `<li>รายการที่สต็อกเปลี่ยน: <b class="text-blue-600">${stockCount.toLocaleString()} รายการ</b></li>`;
                 }
+                if (costCount > 0) {
+                    detailsList += `<li>รายการที่อัปเดตราคาต้นทุนและคำนวณราคาขายใหม่: <b class="text-amber-600">${costCount.toLocaleString()} รายการ</b></li>`;
+                }
+                if (txId) {
+                    detailsList += `<li>บันทึกประวัติ Transaction: <span class="font-mono font-bold text-slate-700">${txId}</span></li>`;
+                }
+
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'อัปเดตข้อมูลสำเร็จ!',
+                    html: `
+                        <div class="text-left text-xs space-y-2 text-slate-600">
+                            <p class="font-bold text-slate-800 text-sm">ระบบได้ปรับปรุงยอดและคำนวณราคาขายเรียบร้อยแล้ว</p>
+                            <ul class="list-disc pl-5 space-y-1">
+                                ${detailsList}
+                            </ul>
+                        </div>`,
+                    confirmButtonColor: '#059669',
+                    confirmButtonText: 'ตกลง',
+                    customClass: {
+                        popup: 'rounded-2xl',
+                        confirmButton: 'rounded-xl font-semibold !text-xs !py-2 !px-4'
+                    }
+                });
+
+                if (typeof renderCatalog === 'function') renderCatalog();
+                if (typeof renderRestockTable === 'function') renderRestockTable();
+                if (typeof updateAllViews === 'function') updateAllViews();
             } catch (err) {
                 hideLoading();
                 console.error(err);

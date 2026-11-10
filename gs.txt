@@ -2070,7 +2070,7 @@ function restockProduct(payload) {
 }
 
 
-// อัปเดตสต็อกจากไฟล์ ERP อัตโนมัติ
+// อัปเดตสต็อกและราคาต้นทุนจากไฟล์ ERP อัตโนมัติ
 function syncErpStock(payload) {
   const lock = LockService.getScriptLock();
   try {
@@ -2111,7 +2111,7 @@ function syncErpStock(payload) {
           const num = parseInt(m[1], 10);
           if (!isNaN(num) && num > maxCounter) maxCounter = num;
         } else {
-          const simpleNum = parseInt(tid.replace(/\D/g, ""), 10);
+          const simpleNum = parseInt(tid.replace(/\\D/g, ""), 10);
           if (!isNaN(simpleNum) && simpleNum > lastTxId) lastTxId = simpleNum;
         }
       });
@@ -2135,47 +2135,93 @@ function syncErpStock(payload) {
 
     const txItems = [];
     let updatedCount = 0;
+    let stockChangedCount = 0;
+    let costUpdatedCount = 0;
 
     items.forEach(function(it, idx) {
       const pId = String(it.id).trim();
       const prod = products.find(function(p) { return String(p.id).trim() === pId; });
       if (!prod) return;
-      
-      const oldQty = parseFloat(prod.stock_qty) || 0;
-      const newQty = parseFloat(it.newQty) || 0;
-      const diff = newQty - oldQty;
-      
-      prod.stock_qty = newQty;
-      updatedCount++;
-      
-      if (prodSheet && prodRowMap[pId]) {
-        try {
-          prodSheet.getRange(prodRowMap[pId], 11).setValue(newQty);
-        } catch(e) {}
+
+      let itemModified = false;
+
+      // 1. ตรวจสอบและอัปเดตราคาต้นทุน (Cost) และคำนวณราคาขาย A, B, C อัตโนมัติ
+      let costChanged = false;
+      if (it.hasCost && it.newCost !== undefined && it.newCost !== null && it.newCost !== "") {
+        const newCost = parseFloat(it.newCost);
+        if (!isNaN(newCost) && newCost >= 0) {
+          const oldCost = parseFloat(prod.cost) || 0;
+          if (Math.abs(newCost - oldCost) > 0.001) {
+            costChanged = true;
+            costUpdatedCount++;
+          }
+          prod.cost = newCost;
+          const autoPrices = calculatePrices(newCost);
+          prod.price_a = autoPrices.price_a;
+          prod.price_b = autoPrices.price_b;
+          prod.price_c = autoPrices.price_c;
+
+          if (prodSheet && prodRowMap[pId]) {
+            try {
+              // Col 4 = Cost, Col 5 = Price_A, Col 6 = Price_B, Col 7 = Price_C
+              prodSheet.getRange(prodRowMap[pId], 4, 1, 4).setValues([[newCost, autoPrices.price_a, autoPrices.price_b, autoPrices.price_c]]);
+            } catch(e) {}
+          }
+          itemModified = true;
+        }
       }
-      
-      if (diff !== 0) {
-        const lotId = "LOT-ERP-" + pId + "-" + Date.now() + "-" + idx;
-        lots.push({
-          lot_id: lotId,
-          product_id: pId,
-          cost: parseFloat(prod.cost) || 0,
-          price_a: parseFloat(prod.price_a) || 0,
-          price_b: parseFloat(prod.price_b) || 0,
-          price_c: parseFloat(prod.price_c) || 0,
-          initial_qty: diff,
-          remaining_qty: diff,
-          created_at: nowStr,
-          note: "อัปเดตสต็อก ERP (" + oldQty + " -> " + newQty + ")"
-        });
-        
-        txItems.push({
-          lot_id: lotId,
-          product_id: pId,
-          qty: diff,
-          cost: parseFloat(prod.cost) || 0,
-          price: 0
-        });
+
+      // 2. ตรวจสอบและอัปเดตยอดสต็อกคงเหลือ (Stock Qty)
+      let diff = 0;
+      const oldQty = parseFloat(prod.stock_qty) || 0;
+      if (it.hasOnHand && it.newQty !== undefined && it.newQty !== null && it.newQty !== "") {
+        const newQty = parseFloat(it.newQty);
+        if (!isNaN(newQty)) {
+          diff = newQty - oldQty;
+          prod.stock_qty = newQty;
+
+          if (prodSheet && prodRowMap[pId]) {
+            try {
+              // Col 11 = Stock_Qty
+              prodSheet.getRange(prodRowMap[pId], 11).setValue(newQty);
+            } catch(e) {}
+          }
+
+          if (diff !== 0) {
+            stockChangedCount++;
+            const effectiveCost = parseFloat(prod.cost) || 0;
+            const effectivePriceA = parseFloat(prod.price_a) || 0;
+            const effectivePriceB = parseFloat(prod.price_b) || 0;
+            const effectivePriceC = parseFloat(prod.price_c) || 0;
+
+            const lotId = "LOT-ERP-" + pId + "-" + Date.now() + "-" + idx;
+            lots.push({
+              lot_id: lotId,
+              product_id: pId,
+              cost: effectiveCost,
+              price_a: effectivePriceA,
+              price_b: effectivePriceB,
+              price_c: effectivePriceC,
+              initial_qty: diff,
+              remaining_qty: diff,
+              created_at: nowStr,
+              note: "อัปเดตสต็อก ERP (" + oldQty + " -> " + newQty + ")" + (costChanged ? (" [ปรับต้นทุน: " + effectiveCost + "]") : "")
+            });
+            
+            txItems.push({
+              lot_id: lotId,
+              product_id: pId,
+              qty: diff,
+              cost: effectiveCost,
+              price: 0
+            });
+          }
+          itemModified = true;
+        }
+      }
+
+      if (itemModified) {
+        updatedCount++;
       }
     });
 
@@ -2210,7 +2256,13 @@ function syncErpStock(payload) {
       Logger.log("Firebase patch in syncErpStock warning: " + fbErr.toString());
     }
 
-    return { updatedCount: updatedCount, changedCount: txItems.length, transaction_id: nextTxId };
+    return {
+      updatedCount: updatedCount,
+      stockChangedCount: stockChangedCount,
+      costUpdatedCount: costUpdatedCount,
+      changedCount: txItems.length,
+      transaction_id: txItems.length > 0 ? nextTxId : null
+    };
   } finally {
     lock.releaseLock();
   }

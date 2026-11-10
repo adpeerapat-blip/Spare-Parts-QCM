@@ -1969,15 +1969,15 @@
                                 </div>
                                 <div class="flex-1">
                                     <div class="flex items-center justify-between">
-                                        <h3 class="text-lg font-bold text-slate-800 group-hover:text-emerald-600 transition-all duration-300">อัพเดทสต็อกจาก ERP</h3>
+                                        <h3 class="text-lg font-bold text-slate-800 group-hover:text-emerald-600 transition-all duration-300">อัพเดทสต็อก/ต้นทุนจาก ERP</h3>
                                         <span class="text-[10px] font-bold px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full">ERP Sync</span>
                                     </div>
-                                    <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">อัพเดทยอดคงเหลือ (On Hand) ในระบบให้ตรงกับไฟล์รายงานสต็อกจากระบบ ERP</p>
+                                    <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">อัพเดทยอดคงเหลือ (On Hand) และราคาต้นทุน (Cost) ในระบบให้ตรงกับไฟล์รายงานจากระบบ ERP</p>
                                 </div>
                             </div>
                             <div class="w-full mt-4">
                                 <button onclick="triggerErpStockUpload()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md active:scale-95 flex items-center justify-center gap-2">
-                                    <i class="fa-solid fa-cloud-arrow-up text-sm"></i> อัพโหลดไฟลสต๊อกจาก ERP
+                                    <i class="fa-solid fa-cloud-arrow-up text-sm"></i> อัพโหลดไฟล์สต็อก/ต้นทุนจาก ERP
                                 </button>
                                 <input type="file" id="erpStockFileInput" accept=".csv, .xlsx, .xls" class="hidden" onchange="handleErpStockFileSelected(event)">
                             </div>
